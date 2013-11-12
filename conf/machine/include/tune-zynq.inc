@@ -24,6 +24,6 @@ IMAGE_FSTYPES ?= "cpio ext2 ext2.gz.u-boot ext2.gz"
 #IMAGE_FSTYPES ?= "ext2.gz.u-boot"
 IMAGE_CLASSES += "image_types_uboot"
 
-# U-Boot Configuration
-PREFERRED_PROVIDER_u-boot ?= "u-boot-xlnx"
-PREFERRED_VERSION_u-boot-xlnx ?= "v2013.01%"
+# ezynq-u-boot Configuration
+PREFERRED_PROVIDER_u-boot ?= "u-boot"
+PREFERRED_VERSION_u-boot ?= "v2013.01%"

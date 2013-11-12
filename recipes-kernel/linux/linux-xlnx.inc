@@ -14,6 +14,8 @@ PV = "${LINUX_VERSION}${LINUX_VERSION_EXTENSION}+git${SRCPV}"
 # Override COMPATIBLE_MACHINE to include your machine in a bbappend file.
 COMPATIBLE_MACHINE = "elphel393"
 
+SRC_URI_append += "file://xilinx_nandps.patch"
+
 SRC_URI_append_elphel393 += "file://elphel393_defconfig_${LINUX_VERSION}.cfg \
                              file://elphel393.dts"
 
