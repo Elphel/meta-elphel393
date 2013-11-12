@@ -17,4 +17,4 @@ COMPATIBLE_MACHINE = "elphel393"
 SRC_URI_append_elphel393 += "file://elphel393_defconfig_${LINUX_VERSION}.cfg \
                              file://elphel393.dts"
 
-KERNEL_DEVICETREE_elphel393 = "${S}/elphel393.dts"
+KERNEL_DEVICETREE_elphel393 = "${WORKDIR}/elphel393.dts"
