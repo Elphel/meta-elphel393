@@ -34,4 +34,4 @@ KERNEL_DEVICETREE_zedboard = "${S}/arch/arm/boot/dts/zynq-zed.dts"
 #MACHINE=zc706
 #Copy of zedboard's defconfig
 SRC_URI_append_zedboard += "file://microzed_defconfig_${LINUX_VERSION}.cfg"
-KERNEL_DEVICETREE_zedboard = "${S}/arch/arm/boot/dts/zynq-zc706.dts"
+KERNEL_DEVICETREE_zc706 = "${S}/arch/arm/boot/dts/zynq-zc706.dts"
