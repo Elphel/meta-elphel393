@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = " python-core \
                         ethtool \
                         openssh \
                         net-tools \
+                        lighttpd \
                         modphp \
                         apache2 \
                         php-cli"
