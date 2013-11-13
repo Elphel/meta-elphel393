@@ -81,7 +81,7 @@ do_install() {
 
 inherit update-alternatives
 
-base_sbindir_progs = "arp ifconfig ipmaddr iptunnel mii-tool nameif plipconfig rarp route slattach"
+base_sbindir_progs = "arp ifconfig ipmaddr iptunnel mii-tool mii-diag nameif plipconfig rarp route slattach"
 base_bindir_progs  = "dnsdomainname domainname hostname netstat nisdomainname ypdomainname"
 
 ALTERNATIVE_${PN} = "${base_sbindir_progs} ${base_bindir_progs}"

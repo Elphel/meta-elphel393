@@ -34,4 +34,5 @@ HAVE_HWIRDA=1
 HAVE_FW_MASQUERADE=1
 HAVE_IP_TOOLS=1
 HAVE_MII=1
+# new tools should be added to the list in the recipe (*.bb)
 HAVE_MII_DIAG=1
