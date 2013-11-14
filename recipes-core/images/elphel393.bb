@@ -10,6 +10,7 @@ IMAGE_INSTALL_append = " python-core \
                         openssh \
                         net-tools \
                         lighttpd \
+                        lighttpd-module-fastcgi \
                         modphp \
                         apache2 \
                         php-cli"
