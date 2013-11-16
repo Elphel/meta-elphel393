@@ -264,7 +264,7 @@ index 1a0db68..1907c68 100644
  	struct resource res;
  	struct device_node *np = of_get_parent(lp->phy_node);
  	struct device_node *npp;
-+        phy_register_fixup_for_uid(MARVELL_PHY_ID, MARVELL_PHY_ID_MASK, marvell_phy_fixup);
++/*        phy_register_fixup_for_uid(MARVELL_PHY_ID, MARVELL_PHY_ID_MASK, marvell_phy_fixup);*/
 +        phy_register_fixup_for_uid(AT803X_PHY_ID,  AT803X_PHY_ID_MASK,  ar8035_phy_fixup);
  
  	lp->mii_bus = mdiobus_alloc();
