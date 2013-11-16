@@ -1,0 +1,315 @@
+diff --git a/drivers/net/ethernet/xilinx/xilinx_emacps.c b/drivers/net/ethernet/xilinx/xilinx_emacps.c
+index 1a0db68..1907c68 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_emacps.c
++++ b/drivers/net/ethernet/xilinx/xilinx_emacps.c
+@@ -50,6 +50,13 @@
+ #include <linux/timer.h>
+ 
+ /************************** Constant Definitions *****************************/
++#define CONFIG_ELPHEL_DEBUG 1
++
++#ifdef CONFIG_ELPHEL_DEBUG
++  #define DBG_ELPHEL(x) printk(KERN_WARNING"===== %s:%d: ",__func__,__LINE__);x
++#else
++  #define DBG_ELPHEL(x)
++#endif
+ 
+ /* Must be shorter than length of ethtool_drvinfo.driver field to fit */
+ #define DRIVER_NAME			"xemacps"
+@@ -484,7 +491,14 @@ MDC_DIV_64, MDC_DIV_96, MDC_DIV_128, MDC_DIV_224 };
+ #define xemacps_write(base, reg, val)					\
+ 	__raw_writel((val), (void __iomem *)((base) + (reg)))
+ 
+-
++/* Elphel */
++/* Assuming Xilinx made fixup that is valid for all Marvell PHYs we'll move it into a separate fixup
++   as it is not applicable to Atheros AR8035 used in Elphel393 */
++/*#define MARVELL_PHY_ID_88E1510		0x01410dd0*/
++#define MARVELL_PHY_ID		0x01410dd0 /*Particular one, but we'll use a broad mask */
++#define MARVELL_PHY_ID_MASK	0xfffff000
++#define AT803X_PHY_ID		0x004dd072 /*Particular one, AR8035 but we'll use a broad mask */
++#define AT803X_PHY_ID_MASK	0xffffffe0
+ 
+ struct ring_info {
+ 	struct sk_buff *skb;
+@@ -586,6 +600,19 @@ static int xemacps_mdio_read(struct mii_bus *bus, int mii_id, int phyreg)
+ 	regval |= XEMACPS_PHYMNTNC_OP_R_MASK;
+ 	regval |= (mii_id << XEMACPS_PHYMNTNC_PHYAD_SHIFT_MASK);
+ 	regval |= (phyreg << XEMACPS_PHYMNTNC_PHREG_SHIFT_MASK);
++	/* wait for idle */
++	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
++	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
++	    value = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	  	      printk(KERN_WARNING " ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%8x\n",__func__,__LINE__,(int) value);
++	    do {
++		cpu_relax();
++		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
++	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
++	    value = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	    printk(KERN_WARNING "Previous value of the mii register after shift = 0x%8x\n",(int) value);
++
++	}
+ 
+ 	xemacps_write(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET, regval);
+ 
+@@ -618,7 +645,7 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 	u16 value)
+ {
+ 	struct net_local *lp = bus->priv;
+-	u32 regval;
++	u32 regval,oldregval;
+ 	volatile u32 ipisr;
+ 
+ 	regval  = XEMACPS_PHYMNTNC_OP_MASK;
+@@ -626,6 +653,18 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 	regval |= (mii_id << XEMACPS_PHYMNTNC_PHYAD_SHIFT_MASK);
+ 	regval |= (phyreg << XEMACPS_PHYMNTNC_PHREG_SHIFT_MASK);
+ 	regval |= value;
++	/* wait for idle */
++	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
++	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
++	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	  	      printk(KERN_WARNING " ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%08x\n",__func__,__LINE__,(int) value);
++	    do {
++		cpu_relax();
++		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
++	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
++	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	    printk(KERN_WARNING "Previous value of the mii register after shift = 0x%08x\n",(int) oldregval);
++	}
+ 
+ 	xemacps_write(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET, regval);
+ 
+@@ -634,7 +673,7 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 		cpu_relax();
+ 		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
+ 	} while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
+-
++	DBG_ELPHEL(printk("mii_id=%x phyreg=%x value=%04x",mii_id,phyreg,(int)value));
+ 	return 0;
+ }
+ 
+@@ -655,6 +694,7 @@ static void xemacps_phy_init(struct net_device *ndev)
+ 	struct net_local *lp = netdev_priv(ndev);
+ 	u16 regval;
+ 	int i = 0;
++	DBG_ELPHEL(printk("Seems to be for Marvell again ...")); /* Used for non-Zynq */
+ 
+ 	/* set RX delay */
+ 	regval = xemacps_mdio_read(lp->mii_bus, lp->phy_dev->addr, 20);
+@@ -711,13 +751,18 @@ static void xemacps_adjust_link(struct net_device *ndev)
+ {
+ 	struct net_local *lp = netdev_priv(ndev);
+ 	struct phy_device *phydev = lp->phy_dev;
+-	struct phy_device *gmii2rgmii_phydev = lp->gmii2rgmii_phy_dev;
+ 	int status_change = 0;
+ 	u32 regval;
+-
++	long rate;
++	unsigned long flags;
++/*	DBG_ELPHEL(); */ /* Too noisy -each second */
+ 	if (phydev->link) {
+ 		if ((lp->speed != phydev->speed) ||
+ 			(lp->duplex != phydev->duplex)) {
++			
++			spin_lock_irqsave(&lp->tx_lock, flags);
++			spin_lock(&lp->rx_lock);
++		
+ 			regval = xemacps_read(lp->baseaddr,
+ 				XEMACPS_NWCFG_OFFSET);
+ 			if (phydev->duplex)
+@@ -727,48 +772,31 @@ static void xemacps_adjust_link(struct net_device *ndev)
+ 
+ 			if (phydev->speed == SPEED_1000) {
+ 				regval |= XEMACPS_NWCFG_1000_MASK;
+-				xemacps_set_freq(lp->devclk, 125000000,
+-						&lp->pdev->dev);
++				rate= 125000000;
+ 			} else {
+ 				regval &= ~XEMACPS_NWCFG_1000_MASK;
+ 			}
+ 
+ 			if (phydev->speed == SPEED_100) {
+ 				regval |= XEMACPS_NWCFG_100_MASK;
+-				xemacps_set_freq(lp->devclk, 25000000,
+-						&lp->pdev->dev);
++				rate= 25000000;
+ 			} else {
+ 				regval &= ~XEMACPS_NWCFG_100_MASK;
+ 			}
+ 
+ 			if (phydev->speed == SPEED_10) {
+-				xemacps_set_freq(lp->devclk, 2500000,
+-						&lp->pdev->dev);
++				rate= 2500000;
+ 			}
+-
+ 			xemacps_write(lp->baseaddr, XEMACPS_NWCFG_OFFSET,
+-			regval);
+-
+-			if (regval & XEMACPS_NWCFG_1000_MASK) {
+-				xemacps_mdio_write(lp->mii_bus,
+-				gmii2rgmii_phydev->addr,
+-				XEMACPS_GMII2RGMII_REG_NUM,
+-				XEMACPS_GMII2RGMII_SPEED1000_FD);
+-			} else if (regval & XEMACPS_NWCFG_100_MASK) {
+-				xemacps_mdio_write(lp->mii_bus,
+-				gmii2rgmii_phydev->addr,
+-				XEMACPS_GMII2RGMII_REG_NUM,
+-				XEMACPS_GMII2RGMII_SPEED100_FD);
+-			} else {
+-				xemacps_mdio_write(lp->mii_bus,
+-				gmii2rgmii_phydev->addr,
+-				XEMACPS_GMII2RGMII_REG_NUM,
+-				XEMACPS_GMII2RGMII_SPEED10_FD);
+-			}
+-
++				regval);
++			xemacps_set_freq(lp->devclk,rate,&lp->pdev->dev);
+ 			lp->speed = phydev->speed;
+ 			lp->duplex = phydev->duplex;
+ 			status_change = 1;
++			
++			spin_unlock(&lp->rx_lock);
++			spin_unlock_irqrestore(&lp->tx_lock, flags);
++			DBG_ELPHEL(printk("[XEMACPS_NWCFG_OFFSET] -> %08x",(int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET)));
+ 		}
+ 	}
+ 
+@@ -788,6 +816,83 @@ static void xemacps_adjust_link(struct net_device *ndev)
+ 	}
+ }
+ 
++static int marvell_phy_fixup(struct phy_device *dev)
++{
++	struct net_local *lp = dev->bus->priv;
++//	struct net_local *lp = netdev_priv(ndev);
++	struct phy_device *phydev = lp->phy_dev;
++	struct phy_device *gmii2rgmii_phydev = lp->gmii2rgmii_phy_dev;
++	u32 regval;
++	DBG_ELPHEL(printk("fixup start"));
++	if (phydev->link) {
++		xemacps_adjust_link(lp->ndev); /* will set clock speed, duplex for SoC - then use those values for PHY*/
++/* Do always as parameters are already updated?*/
++		regval = xemacps_read(lp->baseaddr,
++			XEMACPS_NWCFG_OFFSET);
++		if (regval & XEMACPS_NWCFG_1000_MASK) {
++			xemacps_mdio_write(lp->mii_bus,
++			gmii2rgmii_phydev->addr,
++			XEMACPS_GMII2RGMII_REG_NUM,
++			XEMACPS_GMII2RGMII_SPEED1000_FD);
++		} else if (regval & XEMACPS_NWCFG_100_MASK) {
++			xemacps_mdio_write(lp->mii_bus,
++			gmii2rgmii_phydev->addr,
++			XEMACPS_GMII2RGMII_REG_NUM,
++			XEMACPS_GMII2RGMII_SPEED100_FD);
++		} else {
++			xemacps_mdio_write(lp->mii_bus,
++			gmii2rgmii_phydev->addr,
++			XEMACPS_GMII2RGMII_REG_NUM,
++			XEMACPS_GMII2RGMII_SPEED10_FD);
++		}
++	}
++	DBG_ELPHEL(printk("fixup end"));
++	return 0;
++}
++
++/* http://www.spinics.net/lists/devicetree/msg06322.html */
++static int ar8035_phy_fixup(struct phy_device *dev)
++{
++	u16 val;
++	DBG_ELPHEL(printk("fixup start"));
++	struct net_local *lp = dev->bus->priv;
++
++	/* Ar803x phy SmartEEE feature cause link status generates glitch,
++	 * which cause ethernet link down/up issue, so disable SmartEEE
++	 */
++	phy_write(dev, 0xd, 0x3);
++	phy_write(dev, 0xe, 0x805d);
++	phy_write(dev, 0xd, 0x4003);
++
++	val = phy_read(dev, 0xe);
++	phy_write(dev, 0xe, val & ~(1 << 8));
++	/*Enable if needed */
++#if 0
++	/* To enable AR8031 output a 125MHz clk from CLK_25M */
++	phy_write(dev, 0xd, 0x7);
++	phy_write(dev, 0xe, 0x8016);
++	phy_write(dev, 0xd, 0x4007);
++
++	val = phy_read(dev, 0xe);
++	val &= 0xffe3;
++	val |= 0x18;
++	phy_write(dev, 0xe, val);
++#endif
++/* Next one what is really needed for Elphel 393 */
++	/* introduce tx clock delay */
++	phy_write(dev, 0x1d, 0x5);
++	val = phy_read(dev, 0x1e);
++	val |= 0x0100;
++	phy_write(dev, 0x1e, val);
++
++	/*check phy power*/
++	val = phy_read(dev, 0x0);
++	if (val & BMCR_PDOWN)
++		phy_write(dev, 0x0, val & ~BMCR_PDOWN);
++	DBG_ELPHEL(printk("fixup end"));
++	return 0;
++}
++
+ static int xemacps_clk_notifier_cb(struct notifier_block *nb, unsigned long
+ 		event, void *data)
+ {
+@@ -894,6 +999,8 @@ static int xemacps_mii_init(struct net_local *lp)
+ 	struct resource res;
+ 	struct device_node *np = of_get_parent(lp->phy_node);
+ 	struct device_node *npp;
++        phy_register_fixup_for_uid(MARVELL_PHY_ID, MARVELL_PHY_ID_MASK, marvell_phy_fixup);
++        phy_register_fixup_for_uid(AT803X_PHY_ID,  AT803X_PHY_ID_MASK,  ar8035_phy_fixup);
+ 
+ 	lp->mii_bus = mdiobus_alloc();
+ 	if (lp->mii_bus == NULL) {
+@@ -1659,7 +1766,7 @@ static void xemacps_init_hw(struct net_local *lp)
+ 	regval |= XEMACPS_NWCFG_PAUSEEN_MASK;
+ 	regval |= XEMACPS_NWCFG_100_MASK;
+ 	regval |= XEMACPS_NWCFG_HDRXEN_MASK;
+-
++/* Zynq bug semi-fix - MDC is above specs even with 667 MHz */
+ 	if (lp->board_type == BOARD_TYPE_ZYNQ)
+ 		regval |= (MDC_DIV_224 << XEMACPS_NWCFG_MDC_SHIFT_MASK);
+ 	if (lp->ndev->flags & IFF_PROMISC)	/* copy all */
+@@ -1699,6 +1806,7 @@ static void xemacps_init_hw(struct net_local *lp)
+ 	/* Initialize the Time Stamp Unit */
+ 	xemacps_init_tsu(lp);
+ #endif
++	DBG_ELPHEL(printk("[XEMACPS_NWCFG_OFFSET] -> %08x",(int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET)));
+ 
+ 	/* Enable interrupts */
+ 	regval  = XEMACPS_IXR_ALL_MASK;
+@@ -2602,6 +2710,7 @@ static int xemacps_probe(struct platform_device *pdev)
+ 	const void *prop;
+ 	u32 regval = 0;
+ 	int rc = -ENXIO;
++	unsigned long flags;
+ 
+ 	r_mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 	r_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+@@ -2745,8 +2854,17 @@ static int xemacps_probe(struct platform_device *pdev)
+ 
+ 	if (lp->board_type == BOARD_TYPE_ZYNQ) {
+ 		/* Set MDIO clock divider */
+-		regval = (MDC_DIV_224 << XEMACPS_NWCFG_MDC_SHIFT_MASK);
++		/* Always divide by 224 ???  Does not match UG585 - likely Zynq hardware bug. MDC is already too high */
++		/* it also overwrites other bits, not OR-es, that causes intermittent network failures depending on device
++		 *  acrivation sequence */
++		spin_lock_irqsave(&lp->tx_lock, flags);
++		spin_lock(&lp->rx_lock);
++		regval=	xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET) & ~XEMACPS_NWCFG_MDCCLKDIV_MASK;
++		regval |= (MDC_DIV_224 << XEMACPS_NWCFG_MDC_SHIFT_MASK);
+ 		xemacps_write(lp->baseaddr, XEMACPS_NWCFG_OFFSET, regval);
++		spin_unlock(&lp->rx_lock);
++		spin_unlock_irqrestore(&lp->tx_lock, flags);
++		DBG_ELPHEL(printk("%08x -> [XEMACPS_NWCFG_OFFSET]",(int)regval));
+ 	}
+ 
+ 	regval = XEMACPS_NWCTRL_MDEN_MASK;
