@@ -1,22 +1,8 @@
 diff --git a/drivers/net/ethernet/xilinx/xilinx_emacps.c b/drivers/net/ethernet/xilinx/xilinx_emacps.c
-index 1a0db68..1907c68 100644
+index 1a0db68..01e4f16 100644
 --- a/drivers/net/ethernet/xilinx/xilinx_emacps.c
 +++ b/drivers/net/ethernet/xilinx/xilinx_emacps.c
-@@ -50,6 +50,13 @@
- #include <linux/timer.h>
- 
- /************************** Constant Definitions *****************************/
-+#define CONFIG_ELPHEL_DEBUG 1
-+
-+#ifdef CONFIG_ELPHEL_DEBUG
-+  #define DBG_ELPHEL(x) printk(KERN_WARNING"===== %s:%d: ",__func__,__LINE__);x
-+#else
-+  #define DBG_ELPHEL(x)
-+#endif
- 
- /* Must be shorter than length of ethtool_drvinfo.driver field to fit */
- #define DRIVER_NAME			"xemacps"
-@@ -484,7 +491,14 @@ MDC_DIV_64, MDC_DIV_96, MDC_DIV_128, MDC_DIV_224 };
+@@ -484,7 +484,14 @@ MDC_DIV_64, MDC_DIV_96, MDC_DIV_128, MDC_DIV_224 };
  #define xemacps_write(base, reg, val)					\
  	__raw_writel((val), (void __iomem *)((base) + (reg)))
  
@@ -32,36 +18,73 @@ index 1a0db68..1907c68 100644
  
  struct ring_info {
  	struct sk_buff *skb;
-@@ -586,6 +600,19 @@ static int xemacps_mdio_read(struct mii_bus *bus, int mii_id, int phyreg)
+@@ -524,6 +531,8 @@ struct net_local {
+ 
+ 	spinlock_t tx_lock;
+ 	spinlock_t rx_lock;
++	
++	spinlock_t phy_rw_lock; /* to prevent multiple operations on the bus */ 
+ 
+ 	struct platform_device *pdev;
+ 	struct net_device *ndev; /* this device */
+@@ -578,15 +587,32 @@ static struct net_device_ops netdev_ops;
+ static int xemacps_mdio_read(struct mii_bus *bus, int mii_id, int phyreg)
+ {
+ 	struct net_local *lp = bus->priv;
+-	u32 regval;
++	u32 regval,oldregval;
+ 	int value;
+ 	volatile u32 ipisr;
+-
++	unsigned long flags;
++	int collisions=0;
+ 	regval  = XEMACPS_PHYMNTNC_OP_MASK;
  	regval |= XEMACPS_PHYMNTNC_OP_R_MASK;
  	regval |= (mii_id << XEMACPS_PHYMNTNC_PHYAD_SHIFT_MASK);
  	regval |= (phyreg << XEMACPS_PHYMNTNC_PHREG_SHIFT_MASK);
 +	/* wait for idle */
 +	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
 +	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
-+	    value = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	  	      printk(KERN_WARNING " ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%8x\n",__func__,__LINE__,(int) value);
-+	    do {
-+		cpu_relax();
-+		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
-+	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
-+	    value = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	    printk(KERN_WARNING "Previous value of the mii register after shift = 0x%8x\n",(int) value);
-+
++	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	  	       dev_warn(&lp->pdev->dev," ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%08x\n",__func__,__LINE__,(int) value);
++	/* No waiting now, spinlock should take care */	      
 +	}
  
++	spin_lock_irqsave(&lp->phy_rw_lock, flags);
++	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
++	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
++	    do {
++		collisions++;
++	        ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
++	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
++	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	}
  	xemacps_write(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET, regval);
  
-@@ -618,7 +645,7 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 	/* wait for end of transfer */
+@@ -597,7 +623,9 @@ static int xemacps_mdio_read(struct mii_bus *bus, int mii_id, int phyreg)
+ 
+ 	value = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET) &
+ 			XEMACPS_PHYMNTNC_DATA_MASK;
+-
++	spin_unlock_irqrestore(&lp->phy_rw_lock, flags);
++	if (collisions>0)  dev_warn(&lp->pdev->dev, "Previous value of the mii register after shift = 0x%08x, waited %d cycles\n",(int) oldregval, collisions);
++	dev_dbg(&lp->pdev->dev,"mii_id=%x phyreg=%x value=%04x",mii_id,phyreg,(int)value);
+ 	return value;
+ }
+ 
+@@ -618,15 +646,32 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
  	u16 value)
  {
  	struct net_local *lp = bus->priv;
 -	u32 regval;
 +	u32 regval,oldregval;
  	volatile u32 ipisr;
- 
+-
++	unsigned long flags;
++	int collisions=0;
  	regval  = XEMACPS_PHYMNTNC_OP_MASK;
-@@ -626,6 +653,18 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 	regval |= XEMACPS_PHYMNTNC_OP_W_MASK;
  	regval |= (mii_id << XEMACPS_PHYMNTNC_PHYAD_SHIFT_MASK);
  	regval |= (phyreg << XEMACPS_PHYMNTNC_PHREG_SHIFT_MASK);
  	regval |= value;
@@ -69,35 +92,43 @@ index 1a0db68..1907c68 100644
 +	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
 +	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
 +	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	  	      printk(KERN_WARNING " ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%08x\n",__func__,__LINE__,(int) value);
-+	    do {
-+		cpu_relax();
-+		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
-+	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
-+	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	    printk(KERN_WARNING "Previous value of the mii register after shift = 0x%08x\n",(int) oldregval);
++	        dev_warn(&lp->pdev->dev," ********* %s:%d Should not happen - MDIO is NOT IDLE, shift register value=0x%08x\n",__func__,__LINE__,(int) value);
++	/* No waiting now, spinlock should take care */	      
 +	}
  
++	spin_lock_irqsave(&lp->phy_rw_lock, flags);
++	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & 
++	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
++	    do {
++		collisions++;
++	        ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
++	    } while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
++	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	}
  	xemacps_write(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET, regval);
  
-@@ -634,7 +673,7 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
+ 	/* wait for end of transfer */
+@@ -634,7 +679,9 @@ static int xemacps_mdio_write(struct mii_bus *bus, int mii_id, int phyreg,
  		cpu_relax();
  		ipisr = xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET);
  	} while ((ipisr & XEMACPS_NWSR_MDIOIDLE_MASK) == 0);
 -
-+	DBG_ELPHEL(printk("mii_id=%x phyreg=%x value=%04x",mii_id,phyreg,(int)value));
++	spin_unlock_irqrestore(&lp->phy_rw_lock, flags);
++	if (collisions>0)  dev_warn(&lp->pdev->dev,"Previous value of the mii register after shift = 0x%08x, waited %d cycles\n",(int) oldregval, collisions);
++	dev_dbg(&lp->pdev->dev,"mii_id=%x phyreg=%x value=%04x",mii_id,phyreg,(int)value);
  	return 0;
  }
  
-@@ -655,6 +694,7 @@ static void xemacps_phy_init(struct net_device *ndev)
+@@ -655,6 +702,8 @@ static void xemacps_phy_init(struct net_device *ndev)
  	struct net_local *lp = netdev_priv(ndev);
  	u16 regval;
  	int i = 0;
-+	DBG_ELPHEL(printk("Seems to be for Marvell again ...")); /* Used for non-Zynq */
++	
++	dev_dbg(&lp->pdev->dev, "Seems to be for Marvell again ..."); /* Used for non-Zynq */
  
  	/* set RX delay */
  	regval = xemacps_mdio_read(lp->mii_bus, lp->phy_dev->addr, 20);
-@@ -711,13 +751,18 @@ static void xemacps_adjust_link(struct net_device *ndev)
+@@ -711,13 +760,18 @@ static void xemacps_adjust_link(struct net_device *ndev)
  {
  	struct net_local *lp = netdev_priv(ndev);
  	struct phy_device *phydev = lp->phy_dev;
@@ -107,7 +138,7 @@ index 1a0db68..1907c68 100644
 -
 +	long rate;
 +	unsigned long flags;
-+/*	DBG_ELPHEL(); */ /* Too noisy -each second */
++	dev_dbg(&lp->pdev->dev,"xemacps_adjust_link()\n"); /* Too noisy -each second */
  	if (phydev->link) {
  		if ((lp->speed != phydev->speed) ||
  			(lp->duplex != phydev->duplex)) {
@@ -118,7 +149,7 @@ index 1a0db68..1907c68 100644
  			regval = xemacps_read(lp->baseaddr,
  				XEMACPS_NWCFG_OFFSET);
  			if (phydev->duplex)
-@@ -727,48 +772,31 @@ static void xemacps_adjust_link(struct net_device *ndev)
+@@ -727,48 +781,32 @@ static void xemacps_adjust_link(struct net_device *ndev)
  
  			if (phydev->speed == SPEED_1000) {
  				regval |= XEMACPS_NWCFG_1000_MASK;
@@ -143,7 +174,7 @@ index 1a0db68..1907c68 100644
 -						&lp->pdev->dev);
 +				rate= 2500000;
  			}
--
+ 
  			xemacps_write(lp->baseaddr, XEMACPS_NWCFG_OFFSET,
 -			regval);
 -
@@ -172,11 +203,11 @@ index 1a0db68..1907c68 100644
 +			
 +			spin_unlock(&lp->rx_lock);
 +			spin_unlock_irqrestore(&lp->tx_lock, flags);
-+			DBG_ELPHEL(printk("[XEMACPS_NWCFG_OFFSET] -> %08x",(int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET)));
++			dev_dbg(&lp->pdev->dev,"[XEMACPS_NWCFG_OFFSET] -> %08x",(int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET));
  		}
  	}
  
-@@ -788,6 +816,83 @@ static void xemacps_adjust_link(struct net_device *ndev)
+@@ -788,6 +826,83 @@ static void xemacps_adjust_link(struct net_device *ndev)
  	}
  }
  
@@ -187,7 +218,7 @@ index 1a0db68..1907c68 100644
 +	struct phy_device *phydev = lp->phy_dev;
 +	struct phy_device *gmii2rgmii_phydev = lp->gmii2rgmii_phy_dev;
 +	u32 regval;
-+	DBG_ELPHEL(printk("fixup start"));
++	dev_dbg(&lp->pdev->dev,"fixup start");
 +	if (phydev->link) {
 +		xemacps_adjust_link(lp->ndev); /* will set clock speed, duplex for SoC - then use those values for PHY*/
 +/* Do always as parameters are already updated?*/
@@ -210,7 +241,7 @@ index 1a0db68..1907c68 100644
 +			XEMACPS_GMII2RGMII_SPEED10_FD);
 +		}
 +	}
-+	DBG_ELPHEL(printk("fixup end"));
++	dev_dbg(&lp->pdev->dev,"fixup end");
 +	return 0;
 +}
 +
@@ -218,8 +249,8 @@ index 1a0db68..1907c68 100644
 +static int ar8035_phy_fixup(struct phy_device *dev)
 +{
 +	u16 val;
-+	DBG_ELPHEL(printk("fixup start"));
 +	struct net_local *lp = dev->bus->priv;
++	dev_dbg(&lp->pdev->dev,"fixup start");
 +
 +	/* Ar803x phy SmartEEE feature cause link status generates glitch,
 +	 * which cause ethernet link down/up issue, so disable SmartEEE
@@ -253,23 +284,108 @@ index 1a0db68..1907c68 100644
 +	val = phy_read(dev, 0x0);
 +	if (val & BMCR_PDOWN)
 +		phy_write(dev, 0x0, val & ~BMCR_PDOWN);
-+	DBG_ELPHEL(printk("fixup end"));
++	dev_dbg(&lp->pdev->dev,"fixup end");
 +	return 0;
 +}
 +
  static int xemacps_clk_notifier_cb(struct notifier_block *nb, unsigned long
  		event, void *data)
  {
-@@ -894,6 +999,8 @@ static int xemacps_mii_init(struct net_local *lp)
+@@ -865,6 +980,8 @@ static int xemacps_mii_probe(struct net_device *ndev)
+ 
+ 	dev_dbg(&lp->pdev->dev, "attach [%s] phy driver\n",
+ 			lp->phy_dev->drv->name);
++	dev_info(&lp->pdev->dev, "attach [%s] phy driver, phy_addr 0x%x, phy_id 0x%08x\n",
++			lp->phy_dev->drv->name,lp->phy_dev->addr, lp->phy_dev->phy_id);
+ 
+ 	if (lp->gmii2rgmii_phy_node) {
+ 		phydev = of_phy_connect(lp->ndev,
+@@ -894,6 +1011,8 @@ static int xemacps_mii_init(struct net_local *lp)
  	struct resource res;
  	struct device_node *np = of_get_parent(lp->phy_node);
  	struct device_node *npp;
-+/*        phy_register_fixup_for_uid(MARVELL_PHY_ID, MARVELL_PHY_ID_MASK, marvell_phy_fixup);*/
++//        phy_register_fixup_for_uid(MARVELL_PHY_ID, MARVELL_PHY_ID_MASK, marvell_phy_fixup);
 +        phy_register_fixup_for_uid(AT803X_PHY_ID,  AT803X_PHY_ID_MASK,  ar8035_phy_fixup);
  
  	lp->mii_bus = mdiobus_alloc();
  	if (lp->mii_bus == NULL) {
-@@ -1659,7 +1766,7 @@ static void xemacps_init_hw(struct net_local *lp)
+@@ -1007,9 +1126,20 @@ static void xemacps_set_hwaddr(struct net_local *lp)
+ static void xemacps_reset_hw(struct net_local *lp)
+ {
+ 	u32 regisr;
++	unsigned long flags;
++	int dbg_cycles=-1;
+ 	/* make sure we have the buffer for ourselves */
+ 	wmb();
+ 
++	/* Do not interrupt MDIO PHY communication in the middle */
++	spin_lock_irqsave(&lp->phy_rw_lock, flags);
++	
++	/* Only wait if MDIO is enabled */
++	if (xemacps_read(lp->baseaddr, XEMACPS_NWCTRL_OFFSET) & XEMACPS_NWCTRL_MDEN_MASK) {
++		dbg_cycles=0;
++		while ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) & XEMACPS_NWSR_MDIOIDLE_MASK) == 0) dbg_cycles++;;
++	}
++	
+ 	/* Have a clean start */
+ 	xemacps_write(lp->baseaddr, XEMACPS_NWCTRL_OFFSET, 0);
+ 
+@@ -1025,6 +1155,17 @@ static void xemacps_reset_hw(struct net_local *lp)
+ 	xemacps_write(lp->baseaddr, XEMACPS_IDR_OFFSET, ~0UL);
+ 	regisr = xemacps_read(lp->baseaddr, XEMACPS_ISR_OFFSET);
+ 	xemacps_write(lp->baseaddr, XEMACPS_ISR_OFFSET, regisr);
++	
++	spin_unlock_irqrestore(&lp->phy_rw_lock, flags);
++	if (dbg_cycles<0) {
++		dev_dbg(&lp->pdev->dev,"MDIO was disabled\n");
++		
++	} else if (dbg_cycles==0) {
++		dev_dbg(&lp->pdev->dev,"MDIO was idle\n");
++	} else {
++		dev_dbg(&lp->pdev->dev,"Waited %d cycles until MDIO became idle\n",dbg_cycles);
++	}
++	
+ }
+ 
+ #ifdef CONFIG_XILINX_PS_EMAC_HWTSTAMP
+@@ -1640,13 +1781,35 @@ static void xemacps_init_tsu(struct net_local *lp)
+ #endif /* CONFIG_XILINX_PS_EMAC_HWTSTAMP */
+ 
+ /**
++ *  Temporary fix for some bug - losing access to I/O registers (dmatest suspected)
++ *  @lp: local device instance pointer
++ */
++static int wait_register_access(struct net_local *lp)
++{
++	int timeout=1000;
++	int tries=0;
++	u32 regval_dbg=xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
++	
++	if ((xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET) | xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET)) == 0 ) {
++		for (tries=1;tries<timeout;tries++){
++			if ((xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET) | xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET)) != 0 ) break;
++			printk("-");
++		}
++		dev_warn(&lp->pdev->dev,"Seems I/O register access was lost. Waited %d (of %d), Now [XEMACPS_NWCFG_OFFSET]=0x%08x,  [XEMACPS_NWSR_OFFSET]=0x%08x, old [XEMACPS_PHYMNTNC_OFFSET]=0x%08x\n",tries,timeout, (int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET), (int) xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET),(int) regval_dbg);
++		if (tries<timeout) return 0;
++		return 1;
++	}
++	return 0;
++}	
++/**
+  * xemacps_init_hw - Initialize hardware to known good state
+  * @lp: local device instance pointer
+  **/
+ static void xemacps_init_hw(struct net_local *lp)
+ {
+ 	u32 regval;
+-
++	wait_register_access(lp); /* temporary bug fix */
++	
+ 	xemacps_reset_hw(lp);
+ 	xemacps_set_hwaddr(lp);
+ 
+@@ -1659,7 +1822,7 @@ static void xemacps_init_hw(struct net_local *lp)
  	regval |= XEMACPS_NWCFG_PAUSEEN_MASK;
  	regval |= XEMACPS_NWCFG_100_MASK;
  	regval |= XEMACPS_NWCFG_HDRXEN_MASK;
@@ -278,23 +394,45 @@ index 1a0db68..1907c68 100644
  	if (lp->board_type == BOARD_TYPE_ZYNQ)
  		regval |= (MDC_DIV_224 << XEMACPS_NWCFG_MDC_SHIFT_MASK);
  	if (lp->ndev->flags & IFF_PROMISC)	/* copy all */
-@@ -1699,6 +1806,7 @@ static void xemacps_init_hw(struct net_local *lp)
- 	/* Initialize the Time Stamp Unit */
- 	xemacps_init_tsu(lp);
- #endif
-+	DBG_ELPHEL(printk("[XEMACPS_NWCFG_OFFSET] -> %08x",(int) xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET)));
- 
- 	/* Enable interrupts */
- 	regval  = XEMACPS_IXR_ALL_MASK;
-@@ -2602,6 +2710,7 @@ static int xemacps_probe(struct platform_device *pdev)
+@@ -2601,7 +2764,10 @@ static int xemacps_probe(struct platform_device *pdev)
+ 	struct device_node *np;
  	const void *prop;
  	u32 regval = 0;
++	u32 regval_redadback;
  	int rc = -ENXIO;
 +	unsigned long flags;
++	
  
  	r_mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
  	r_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-@@ -2745,8 +2854,17 @@ static int xemacps_probe(struct platform_device *pdev)
+@@ -2626,6 +2792,7 @@ static int xemacps_probe(struct platform_device *pdev)
+ 
+ 	spin_lock_init(&lp->tx_lock);
+ 	spin_lock_init(&lp->rx_lock);
++	spin_lock_init(&lp->phy_rw_lock);
+ 
+ 	lp->baseaddr = ioremap(r_mem->start, (r_mem->end - r_mem->start + 1));
+ 	if (!lp->baseaddr) {
+@@ -2634,8 +2801,8 @@ static int xemacps_probe(struct platform_device *pdev)
+ 		goto err_out_free_netdev;
+ 	}
+ 
+-	dev_dbg(&lp->pdev->dev, "BASEADDRESS hw: %p virt: %p\n",
+-			(void *)r_mem->start, lp->baseaddr);
++	dev_info(&lp->pdev->dev, "BASEADDRESS hw: %p (up to %p) virt: %p\n",
++			(void *)r_mem->start, (void *)r_mem->end, lp->baseaddr);
+ 
+ 	ndev->irq = platform_get_irq(pdev, 0);
+ 
+@@ -2656,6 +2823,7 @@ static int xemacps_probe(struct platform_device *pdev)
+ 
+ 	lp->ip_summed = CHECKSUM_UNNECESSARY;
+ 	lp->board_type = BOARD_TYPE_ZYNQ;
++	wait_register_access(lp); /* temporary bug fix */
+ 
+ 	rc = register_netdev(ndev);
+ 	if (rc) {
+@@ -2745,8 +2913,22 @@ static int xemacps_probe(struct platform_device *pdev)
  
  	if (lp->board_type == BOARD_TYPE_ZYNQ) {
  		/* Set MDIO clock divider */
@@ -309,7 +447,12 @@ index 1a0db68..1907c68 100644
  		xemacps_write(lp->baseaddr, XEMACPS_NWCFG_OFFSET, regval);
 +		spin_unlock(&lp->rx_lock);
 +		spin_unlock_irqrestore(&lp->tx_lock, flags);
-+		DBG_ELPHEL(printk("%08x -> [XEMACPS_NWCFG_OFFSET]",(int)regval));
++		regval_redadback=xemacps_read(lp->baseaddr, XEMACPS_NWCFG_OFFSET);
++		dev_dbg(&lp->pdev->dev,"%08x -> [XEMACPS_NWCFG_OFFSET] -> 0x%08x, baseaddr=0x%08x(0x%08x)",(int)regval,(int)regval_redadback, (int)lp->baseaddr, (int)lp->ndev->base_addr);
++		if (regval_redadback != regval){
++		dev_warn(&lp->pdev->dev,"%s:%d failed to write to XEMACPS_NWCFG_OFFSET: wrote 0x%08x, read 0x%08x\n",__func__,__LINE__,(int) regval, (int) regval_redadback);
++			
++		}
  	}
  
  	regval = XEMACPS_NWCTRL_MDEN_MASK;
