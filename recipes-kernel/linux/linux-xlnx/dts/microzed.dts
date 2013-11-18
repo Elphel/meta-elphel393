@@ -8,12 +8,12 @@
 	model = "Xilinx Zynq";
 
 	aliases {
-		ethernet0 = "/amba@0/ps7-ethernet@e000b000";
-		serial0 = "/amba@0/serial@e0001000";
+		ethernet0 = &ps7_ethernet_0;
+		serial0 = &ps7_uart_1;
 	};
 
 	chosen {
-		bootargs = "console=ttyPS0,115200 root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=65536";
+		bootargs = "console=ttyPS0,115200 root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=131072 ddebug_query=\"file phy.c +p\" ";
 		linux,stdout-path = "/axi@0/serial@e0001000";
 	};
 
@@ -51,84 +51,86 @@
 
 	pmu {
 		compatible = "arm,cortex-a9-pmu";
-		interrupt-parent = <0x1>;
+		interrupt-parent = <&ps7_scugic_0>;
 		interrupts = <0x0 0x5 0x4 0x0 0x6 0x4>;
 		reg = <0xf8891000 0x1000 0xf8893000 0x1000>;
 	};
 
-	memory@0 {
+	ps7_ddr_0: memory@0 {
 		device_type = "memory";
 		reg = <0x0 0x40000000>;
 	};
 
-	amba@0 {
+	ps7_axi_interconnect_0: amba@0 {
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
 		compatible = "xlnx,ps7-axi-interconnect-1.00.a", "simple-bus";
 		ranges;
 
-		ps7-afi@f8008000 {
+		ps7_afi_0: ps7-afi@f8008000 {
 			compatible = "xlnx,ps7-afi-1.00.a";
 			reg = <0xf8008000 0x1000>;
 		};
 
-		ps7-afi@f8009000 {
+		ps7_afi_1: ps7-afi@f8009000 {
 			compatible = "xlnx,ps7-afi-1.00.a";
 			reg = <0xf8009000 0x1000>;
 		};
 
-		ps7-afi@f800a000 {
+		ps7_afi_2: ps7-afi@f800a000 {
 			compatible = "xlnx,ps7-afi-1.00.a";
 			reg = <0xf800a000 0x1000>;
 		};
 
-		ps7-afi@f800b000 {
+		ps7_afi_3: ps7-afi@f800b000 {
 			compatible = "xlnx,ps7-afi-1.00.a";
 			reg = <0xf800b000 0x1000>;
 		};
 
-		ps7-ddrc@f8006000 {
+		ps7_ddrc_0: ps7-ddrc@f8006000 {
 			compatible = "xlnx,ps7-ddrc-1.00.a", "xlnx,ps7-ddrc";
 			reg = <0xf8006000 0x1000>;
 			xlnx,has-ecc = <0x0>;
 		};
 
-		ps7-dev-cfg@f8007000 {
+		ps7_dev_cfg_0: ps7-dev-cfg@f8007000 {
 			compatible = "xlnx,ps7-dev-cfg-1.00.a";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x8 0x4>;
 			reg = <0xf8007000 0x1000>;
 		};
 
-		ps7-dma@f8003000 {
+		ps7_dma_s: ps7-dma@f8003000 {
 			#dma-cells = <0x1>;
 			#dma-channels = <0x8>;
 			#dma-requests = <0x4>;
 			arm,primecell-periphid = <0x41330>;
 			compatible = "xlnx,ps7-dma-1.00.a", "arm,primecell", "arm,pl330";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0xd 0x4 0x0 0xe 0x4 0x0 0xf 0x4 0x0 0x10 0x4 0x0 0x11 0x4 0x0 0x28 0x4 0x0 0x29 0x4 0x0 0x2a 0x4 0x0 0x2b 0x4>;
 			reg = <0xf8003000 0x1000>;
 		};
 
-		ps7-ethernet@e000b000 {
+		ps7_ethernet_0: ps7-ethernet@e000b000 {
 			#address-cells = <0x1>;
 			#size-cells = <0x0>;
 			compatible = "xlnx,ps7-ethernet-1.00.a";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x16 0x1>;
 			local-mac-address = [00 0a 35 00 00 00];
-			phy-handle = <0x2>;
+			phy-handle = <&phy0>;
 			phy-mode = "rgmii-id";
 			reg = <0xe000b000 0x1000>;
 			xlnx,enet-clk-freq-hz = <0x7735940>;
 			xlnx,enet-reset = <0xffffffff>;
+			/*
 			xlnx,enet-slcr-1000mbps-div0 = <0x8>;
 			xlnx,enet-slcr-1000mbps-div1 = <0x1>;
 			xlnx,enet-slcr-100mbps-div0 = <0x8>;
 			xlnx,enet-slcr-100mbps-div1 = <0x5>;
 			xlnx,enet-slcr-10mbps-div0 = <0x8>;
 			xlnx,enet-slcr-10mbps-div1 = <0x32>;
+			*/
 			xlnx,eth-mode = <0x1>;
 			xlnx,has-mdio = <0x1>;
 			xlnx,ptp-enet-clock = <0x69f6bcb>;
@@ -136,29 +138,13 @@
 			mdio {
 				#address-cells = <0x1>;
 				#size-cells = <0x0>;
-
-				phy@7 {
+				phy0: phy@0 {
 					compatible = "marvell,88e1510";
 					device_type = "ethernet-phy";
 					reg = <0x0>;
-					linux,phandle = <0x2>;
-					phandle = <0x2>;
 				};
 			};
 		};
-
-		ps7-i2c@e0004000 {
-			bus-id = <0>;
-			compatible = "xlnx,ps7-i2c-1.00.a";
-			i2c-clk = <400000>;
-			input-clk = <111111114>;
-			interrupt-parent = <0x1>;
-			interrupts = < 0 25 4 >;
-			reg = < 0xe0004000 0x1000 >;
-			xlnx,has-interrupt = <0x0>;
-			xlnx,i2c-clk-freq-hz = <0x69f6bcb>;
-			xlnx,i2c-reset = "";
-		} ;
 
 		ps7-gpio@e000a000 {
 			#gpio-cells = <0x2>;
@@ -167,7 +153,7 @@
 			gpio-controller;
 			gpio-mask-high = <0xc0000>;
 			gpio-mask-low = <0xfe81>;
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x14 0x4>;
 			reg = <0xe000a000 0x1000>;
 		};
@@ -183,7 +169,7 @@
 			cache-level = <0x2>;
 			cache-unified;
 			compatible = "xlnx,ps7-pl310-1.00.a", "arm,pl310-cache";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x2 0x4>;
 			reg = <0xf8f02000 0x1000>;
 		};
@@ -191,7 +177,7 @@
 		ps7-qspi@e000d000 {
 			bus-num = <0x0>;
 			compatible = "xlnx,ps7-qspi-1.00.a";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x13 0x4>;
 			is-dual = <0x0>;
 			num-chip-select = <0x1>;
@@ -248,7 +234,7 @@
 			reg = <0xfffc0000 0x40000>;
 		};
 
-		ps7-scugic@f8f01000 {
+		ps7_scugic_0: ps7-scugic@f8f01000 {
 			#address-cells = <0x2>;
 			#interrupt-cells = <0x3>;
 			#size-cells = <0x1>;
@@ -259,14 +245,14 @@
 			reg = <0xf8f01000 0x1000 0xf8f00100 0x100>;
 		};
 
-		ps7-scutimer@f8f00600 {
+		ps7_scutimer_0: ps7-scutimer@f8f00600 {
 			compatible = "xlnx,ps7-scutimer-1.00.a", "arm,cortex-a9-twd-timer";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x1 0xd 0x301>;
 			reg = <0xf8f00600 0x20>;
 		};
 
-		ps7-scuwdt@f8f00620 {
+		ps7_scuwdt_0: ps7-scuwdt@f8f00620 {
 			compatible = "xlnx,ps7-scuwdt-1.00.a";
 			device_type = "watchdog";
 			interrupt-parent = <0x1>;
@@ -274,10 +260,10 @@
 			reg = <0xf8f00620 0xe0>;
 		};
 
-		ps7-sdio@e0100000 {
+		ps7_sd_0: ps7-sdio@e0100000 {
 			clock-frequency = <0x7735940>;
 			compatible = "xlnx,ps7-sdio-1.00.a", "generic-sdhci";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x18 0x4>;
 			reg = <0xe0100000 0x1000>;
 			xlnx,has-cd = <0x1>;
@@ -334,16 +320,16 @@
 
 		ps7-ttc@f8001000 {
 			compatible = "xlnx,ps7-ttc-1.00.a";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0xa 0x4 0x0 0xb 0x4 0x0 0xc 0x4>;
 			reg = <0xf8001000 0x1000>;
 		};
 
-		serial@e0001000 {
+		ps7_uart_1: serial@e0001000 {
 			compatible = "xlnx,ps7-uart-1.00.a", "xlnx,xuartps";
 			current-speed = <0x1c200>;
 			device_type = "serial";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x32 0x4>;
 			port-number = <0x0>;
 			reg = <0xe0001000 0x1000>;
@@ -351,10 +337,10 @@
 			xlnx,uart-clk-freq-hz = <0x2faf080>;
 		};
 
-		ps7-usb@e0002000 {
+		ps7_usb_0: ps7-usb@e0002000 {
 			compatible = "xlnx,ps7-usb-1.00.a";
 			dr_mode = "host";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x15 0x4>;
 			phy_type = "ulpi";
 			reg = <0xe0002000 0x1000>;
@@ -363,7 +349,7 @@
 
 		ps7-xadc@f8007100 {
 			compatible = "xlnx,ps7-xadc-1.00.a";
-			interrupt-parent = <0x1>;
+			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0x0 0x7 0x4>;
 			reg = <0xf8007100 0x20>;
 		};

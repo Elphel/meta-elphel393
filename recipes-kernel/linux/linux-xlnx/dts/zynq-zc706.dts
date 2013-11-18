@@ -1,3 +1,4 @@
+/* */
 /dts-v1/;
 
 / {
@@ -12,7 +13,7 @@
 		reg = <0x00000000 0x40000000>;
 	};
 	chosen {
-		bootargs = "console=ttyPS0,115200 root=/dev/ram rw ip=:::::eth0:dhcp earlyprintk ramdisk_size=65536";
+		bootargs = "console=ttyPS0,115200 root=/dev/ram rw ip=:::::eth0:dhcp earlyprintk ramdisk_size=131072";
 		linux,stdout-path = "/amba@0/uart@E0001000";
 	};
 
