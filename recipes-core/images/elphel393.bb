@@ -4,16 +4,20 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 
 # remove not needed ipkg informations
 IMAGE_INSTALL_append = " python-core \
-                        i2c-tools \
-                        mtd-utils \
-                        ethtool \
-                        openssh \
-                        net-tools \
-                        lighttpd \
-                        lighttpd-module-fastcgi \
-                        modphp \
-                        apache2 \
-                        php-cli"
+                         htop \
+                         i2c-tools \
+                         mtd-utils \
+                         ethtool \
+                         net-tools \
+                         openssh \
+                         nano \
+                         lighttpd \
+                         lighttpd-module-fastcgi \
+                         lighttpd-module-cgi \
+                         modphp \
+                         apache2 \
+                         php-cgi \
+                         php-cli"
 
 IMAGE_LINGUAS = " "
 
