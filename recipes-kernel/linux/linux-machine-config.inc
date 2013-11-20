@@ -2,7 +2,7 @@ inherit xilinx-utils
 
 # If OOT_KERNEL_DEVICETREE is not set, default to the device tree's provided by
 # MACHINE_DEVICETREE
-OOT_KERNEL_DEVICETREE ?= "${@expand_dir_basepaths_by_extension("MACHINE_DEVICETREE", os.path.join(d.getVar("WORKDIR", True), 'dts'), '.dts', d)}"
+OOT_KERNEL_DEVICETREE ?= "${@expand_dir_basepaths_by_extension("MACHINE_DEVICETREE", os.path.join(d.getVar("WORKDIR", True), 'devicetree'), '.dts', d)}"
 
 # Appends the '<layer>/conf/machine/boards' path to FILESEXTRAPATHS for all
 # layers (using the ${BBPATH})
