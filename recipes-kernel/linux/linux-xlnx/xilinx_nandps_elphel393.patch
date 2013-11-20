@@ -1,8 +1,8 @@
 diff --git a/drivers/mtd/nand/xilinx_nandps.c b/drivers/mtd/nand/xilinx_nandps.c
-index 4b140ed5..9623cc1 100644
+index bf660d4..775c168 100644
 --- a/drivers/mtd/nand/xilinx_nandps.c
 +++ b/drivers/mtd/nand/xilinx_nandps.c
-@@ -114,6 +114,9 @@ static const struct xnandps_command_format xnandps_commands[] = {
+@@ -115,6 +115,9 @@ static const struct xnandps_command_format xnandps_commands[] = {
  	{NAND_CMD_PARAM, NAND_CMD_NONE, 1, NAND_CMD_NONE},
  	{NAND_CMD_GET_FEATURES, NAND_CMD_NONE, 1, NAND_CMD_NONE},
  	{NAND_CMD_SET_FEATURES, NAND_CMD_NONE, 1, NAND_CMD_NONE},
