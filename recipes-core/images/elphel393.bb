@@ -19,10 +19,11 @@ IMAGE_INSTALL_append = " python-core \
                          php-cgi \
                          php-cli"
 
+
 IMAGE_LINGUAS = " "
 
 LICENSE = "MIT"
 
 inherit core-image
 
-IMAGE_ROOTFS_SIZE = "65536"
+IMAGE_ROOTFS_SIZE = "131072"
