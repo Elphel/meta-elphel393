@@ -1,0 +1,16 @@
+Index: gettext-0.18.3.1/gettext-tools/gnulib-m4/sleep.m4
+===================================================================
+--- gettext-0.18.3.1.orig/gettext-tools/gnulib-m4/sleep.m4	2013-08-15 10:25:03.000000000 -0600
++++ gettext-0.18.3.1/gettext-tools/gnulib-m4/sleep.m4	2013-11-21 14:11:23.000000000 -0700
+@@ -37,6 +37,11 @@
+     unsigned int remaining;
+     signal (SIGALRM, handle_alarm);
+     alarm (1);
++    remaining = sleep (3);
++    if (remaining == 0)
++       return 5; /* alarm failed to wake from sleep() */
++/* man alarm: sleep(3) may be implemented using SIGALRM; mixing calls to alarm() and sleep(3) is a bad idea.*/
++    alarm (1);
+     remaining = sleep (pentecost);
+     if (remaining > pentecost)
+       return 3;
