@@ -137,6 +137,11 @@
 			xlnx,has-interrupt = <0x0>;
 			xlnx,i2c-clk-freq-hz = <0x69f6bcb>;
 			xlnx,i2c-reset = "";
+			
+			rtc@68 {
+				compatible = "stm,m41t80";
+				reg = <0x68>;
+			};
 		} ;
 		
 		ps7_gpio_0: ps7-gpio@e000a000 {
