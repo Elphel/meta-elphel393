@@ -16,7 +16,7 @@ S = "${WORKDIR}/git"
 
 FILESEXTRAPATHS_append := "${THISDIR}/linux-xlnx:"
 SRC_URI_append += " file://xilinx_nandps_elphel393.patch"
-#SRC_URI_append += " file://xilinx_emacps_elphel393.patch"
+SRC_URI_append += " file://xilinx_emacps.patch"
 
 inherit kernel
 require linux-dtb.inc
