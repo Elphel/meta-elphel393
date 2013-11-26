@@ -16,6 +16,7 @@ iface atml0 inet dhcp
 # Wired or wireless interfaces
 auto eth0
 iface eth0 inet static
+	hwaddress ether 00:0E:64:10:00:01
 	address 192.168.0.8
 	netmask 255.255.255.0
 	network 192.168.0.0
