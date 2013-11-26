@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-26 00:53:11.204122076 -0700
-+++ git/drivers/misc/Kconfig	2013-11-26 00:53:14.044122105 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-26 01:01:48.820127445 -0700
++++ git/drivers/misc/Kconfig	2013-11-26 01:01:51.944127477 -0700
 @@ -549,6 +549,13 @@
  	  their requirements.
  
@@ -18,8 +18,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-26 00:53:11.204122076 -0700
-+++ git/drivers/misc/Makefile	2013-11-26 00:53:14.044122105 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-26 01:01:48.820127445 -0700
++++ git/drivers/misc/Makefile	2013-11-26 01:01:51.944127477 -0700
 @@ -55,3 +55,4 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -28,8 +28,8 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-26 00:58:21.924125299 -0700
-@@ -0,0 +1,791 @@
++++ git/drivers/misc/vsc330x.c	2013-11-26 09:41:58.660451163 -0700
+@@ -0,0 +1,805 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
 + *! DESCRIPTION: control of the VSC3304 4x4 crosspoint switch
@@ -267,24 +267,28 @@ Index: git/drivers/misc/vsc330x.c
 +static ssize_t address_range_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t address_range_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
-+static DEVICE_ATTR(connection,        SYSFS_PERMISSIONS, global_connection_show, global_connection_store);
-+static DEVICE_ATTR(ISE,               SYSFS_PERMISSIONS, global_ISE_show, global_ISE_store);
-+static DEVICE_ATTR(input_state,       SYSFS_PERMISSIONS, global_input_state_show, global_input_state_store);
-+static DEVICE_ATTR(input_LOS,         SYSFS_PERMISSIONS, global_input_LOS_show, global_input_LOS_store);
-+static DEVICE_ATTR(output_PRE_long,   SYSFS_PERMISSIONS, global_output_PRE_long_show,  global_output_PRE_long_store);
-+static DEVICE_ATTR(output_PRE_short,  SYSFS_PERMISSIONS, global_output_PRE_short_show, global_output_PRE_short_store);
-+static DEVICE_ATTR(output_level,      SYSFS_PERMISSIONS, global_output_level_show, global_output_level_store);
-+static DEVICE_ATTR(output_state,      SYSFS_PERMISSIONS, global_output_state_show, global_output_state_store);
-+static DEVICE_ATTR(status_0,          SYSFS_PERMISSIONS, global_status_0_show, global_status_0_store);
-+static DEVICE_ATTR(status_1,          SYSFS_PERMISSIONS, global_status_1_show, global_status_1_store);
-+static DEVICE_ATTR(core_config_word,  SYSFS_PERMISSIONS, core_config_word_show, core_config_word_store);
-+static DEVICE_ATTR(core_left_bias_en, SYSFS_PERMISSIONS, core_left_bias_en_show, core_left_bias_en_store);
-+static DEVICE_ATTR(core_right_bias_en,SYSFS_PERMISSIONS, core_right_bias_en_show, core_right_bias_en_store);
-+static DEVICE_ATTR(core_buffer_on,    SYSFS_PERMISSIONS, core_buffer_on_show, core_buffer_on_store);
-+static DEVICE_ATTR(core_config_pin_invert,SYSFS_PERMISSIONS, core_config_pin_invert_show, core_config_pin_invert_store);
-+static DEVICE_ATTR(soft_reset,        SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL, soft_reset_store);
-+static DEVICE_ATTR(address_range,     SYSFS_PERMISSIONS, address_range_show, address_range_store);
-+static DEVICE_ATTR(status,            SYSFS_PERMISSIONS & SYSFS_READONLY, status_show, NULL);
++/* Global registers - writes applied to all port registers. No sense to read (so write only), but functions preserved
++ * Placed in "globals" directory */
++static DEVICE_ATTR(connection,        SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_connection_show, global_connection_store);
++static DEVICE_ATTR(ISE,               SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_ISE_show, global_ISE_store);
++static DEVICE_ATTR(input_state,       SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_input_state_show, global_input_state_store);
++static DEVICE_ATTR(input_LOS,         SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_input_LOS_show, global_input_LOS_store);
++static DEVICE_ATTR(output_PRE_long,   SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_output_PRE_long_show,  global_output_PRE_long_store);
++static DEVICE_ATTR(output_PRE_short,  SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_output_PRE_short_show, global_output_PRE_short_store);
++static DEVICE_ATTR(output_level,      SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_output_level_show, global_output_level_store);
++static DEVICE_ATTR(output_state,      SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_output_state_show, global_output_state_store);
++static DEVICE_ATTR(status_0_on_LOS,   SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_status_0_show, global_status_0_store);
++static DEVICE_ATTR(status_1_on_LOS,   SYSFS_PERMISSIONS & SYSFS_WRITEONLY, global_status_1_show, global_status_1_store);
++
++/* control/status registers , placed in "control" directory */
++static DEVICE_ATTR(core_word,         SYSFS_PERMISSIONS,                   core_config_word_show, core_config_word_store);
++static DEVICE_ATTR(core_left_bias_en, SYSFS_PERMISSIONS,                   core_left_bias_en_show, core_left_bias_en_store);
++static DEVICE_ATTR(core_right_bias_en,SYSFS_PERMISSIONS,                   core_right_bias_en_show, core_right_bias_en_store);
++static DEVICE_ATTR(core_buffer_on,    SYSFS_PERMISSIONS,                   core_buffer_on_show, core_buffer_on_store);
++static DEVICE_ATTR(core_config_pin_invert,SYSFS_PERMISSIONS,               core_config_pin_invert_show, core_config_pin_invert_store);
++static DEVICE_ATTR(soft_reset,        SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                        soft_reset_store);
++static DEVICE_ATTR(address_range,     SYSFS_PERMISSIONS,                   address_range_show,          address_range_store);
++static DEVICE_ATTR(status,            SYSFS_PERMISSIONS & SYSFS_READONLY,  status_show, NULL);
 +
 +static struct attribute *globals_dev_attrs[] = {
 +	&dev_attr_connection.attr,
@@ -295,9 +299,18 @@ Index: git/drivers/misc/vsc330x.c
 +	&dev_attr_output_PRE_short.attr,
 +	&dev_attr_output_level.attr,
 +	&dev_attr_output_state.attr,
-+	&dev_attr_status_0.attr,
-+	&dev_attr_status_1.attr,
-+	&dev_attr_core_config_word.attr,
++	&dev_attr_status_0_on_LOS.attr,
++	&dev_attr_status_1_on_LOS.attr,
++	NULL
++};
++
++static const struct attribute_group dev_attr_globals_group = {
++	.attrs = globals_dev_attrs,
++	.name  = "globals",
++};
++
++static struct attribute *control_dev_attrs[] = {
++	&dev_attr_core_word.attr,
 +	&dev_attr_core_left_bias_en.attr,
 +	&dev_attr_core_right_bias_en.attr,
 +	&dev_attr_core_buffer_on.attr,
@@ -308,9 +321,9 @@ Index: git/drivers/misc/vsc330x.c
 +	NULL
 +};
 +
-+static const struct attribute_group dev_attr_globals_group = {
-+	.attrs = globals_dev_attrs,
-+	.name  = "globals",
++static const struct attribute_group dev_attr_control_group = {
++	.attrs = control_dev_attrs,
++	.name  = "control",
 +};
 +
 +
@@ -373,26 +386,27 @@ Index: git/drivers/misc/vsc330x.c
 +	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
 +    int ports=clientdata->out_ports;
 +    int retval=0;
-+    if ((retval=make_group (dev, "connections",           ports, SYSFS_PERMISSIONS, connection_show, connection_store))) return retval;
-+    if ((retval=make_group (dev, "input_ISE_short",       ports, SYSFS_PERMISSIONS, input_ISE_short_show, input_ISE_short_store))) return retval;
-+    if ((retval=make_group (dev, "input_ISE_medium",      ports, SYSFS_PERMISSIONS, input_ISE_medium_show, input_ISE_medium_store))) return retval;
-+    if ((retval=make_group (dev, "input_ISE_long",        ports, SYSFS_PERMISSIONS, input_ISE_long_show, input_ISE_long_store))) return retval;
-+    if ((retval=make_group (dev, "input_state_off",       ports, SYSFS_PERMISSIONS, input_state_off_show, input_state_off_store))) return retval;
-+    if ((retval=make_group (dev, "input_state_invert",    ports, SYSFS_PERMISSIONS, input_state_invert_show, input_state_invert_store))) return retval;
-+    if ((retval=make_group (dev, "input_LOS_threshold",   ports, SYSFS_PERMISSIONS, input_LOS_threshold_show, input_LOS_threshold_store))) return retval;
-+    if ((retval=make_group (dev, "output_PRE_long_level", ports, SYSFS_PERMISSIONS, output_PRE_long_level_show, output_PRE_long_level_store))) return retval;
-+    if ((retval=make_group (dev, "output_PRE_long_decay", ports, SYSFS_PERMISSIONS, output_PRE_long_decay_show, output_PRE_long_decay_store))) return retval;
-+    if ((retval=make_group (dev, "output_PRE_short_level",ports, SYSFS_PERMISSIONS, output_PRE_short_level_show, output_PRE_short_level_store))) return retval;
-+    if ((retval=make_group (dev, "output_PRE_short_decay",ports, SYSFS_PERMISSIONS, output_PRE_short_decay_show, output_PRE_short_decay_store))) return retval;
-+    if ((retval=make_group (dev, "input_terminate_low",   ports, SYSFS_PERMISSIONS, input_terminate_low_show, input_terminate_low_store))) return retval;
-+    if ((retval=make_group (dev, "input_terminate_high",  ports, SYSFS_PERMISSIONS, input_terminate_high_show, input_terminate_high_store))) return retval;
-+    if ((retval=make_group (dev, "output_level",          ports, SYSFS_PERMISSIONS, output_level_show, output_level_store))) return retval;
-+    if ((retval=make_group (dev, "output_mode",           ports, SYSFS_PERMISSIONS, output_mode_show, output_mode_store))) return retval;
-+    if ((retval=make_group (dev, "forward_OOB",           ports, SYSFS_PERMISSIONS, forward_OOB_show, forward_OOB_store))) return retval;
-+    if ((retval=make_group (dev, "status_0_on_LOS",       ports, SYSFS_PERMISSIONS, status_0_on_LOS_show, status_0_on_LOS_store))) return retval;
-+    if ((retval=make_group (dev, "status_1_on_LOS",       ports, SYSFS_PERMISSIONS, status_1_on_LOS_show, status_1_on_LOS_store))) return retval;
 +    if (&dev->kobj) {
-+    	retval = sysfs_create_group(&dev->kobj, &dev_attr_globals_group);
++    	if ((retval=make_group (dev, "connections",           ports, SYSFS_PERMISSIONS, connection_show, connection_store))) return retval;
++    	if ((retval=make_group (dev, "input_ISE_short",       ports, SYSFS_PERMISSIONS, input_ISE_short_show, input_ISE_short_store))) return retval;
++    	if ((retval=make_group (dev, "input_ISE_medium",      ports, SYSFS_PERMISSIONS, input_ISE_medium_show, input_ISE_medium_store))) return retval;
++    	if ((retval=make_group (dev, "input_ISE_long",        ports, SYSFS_PERMISSIONS, input_ISE_long_show, input_ISE_long_store))) return retval;
++    	if ((retval=make_group (dev, "input_state_off",       ports, SYSFS_PERMISSIONS, input_state_off_show, input_state_off_store))) return retval;
++    	if ((retval=make_group (dev, "input_state_invert",    ports, SYSFS_PERMISSIONS, input_state_invert_show, input_state_invert_store))) return retval;
++    	if ((retval=make_group (dev, "input_LOS_threshold",   ports, SYSFS_PERMISSIONS, input_LOS_threshold_show, input_LOS_threshold_store))) return retval;
++    	if ((retval=make_group (dev, "output_PRE_long_level", ports, SYSFS_PERMISSIONS, output_PRE_long_level_show, output_PRE_long_level_store))) return retval;
++    	if ((retval=make_group (dev, "output_PRE_long_decay", ports, SYSFS_PERMISSIONS, output_PRE_long_decay_show, output_PRE_long_decay_store))) return retval;
++    	if ((retval=make_group (dev, "output_PRE_short_level",ports, SYSFS_PERMISSIONS, output_PRE_short_level_show, output_PRE_short_level_store))) return retval;
++    	if ((retval=make_group (dev, "output_PRE_short_decay",ports, SYSFS_PERMISSIONS, output_PRE_short_decay_show, output_PRE_short_decay_store))) return retval;
++    	if ((retval=make_group (dev, "input_terminate_low",   ports, SYSFS_PERMISSIONS, input_terminate_low_show, input_terminate_low_store))) return retval;
++    	if ((retval=make_group (dev, "input_terminate_high",  ports, SYSFS_PERMISSIONS, input_terminate_high_show, input_terminate_high_store))) return retval;
++    	if ((retval=make_group (dev, "output_level",          ports, SYSFS_PERMISSIONS, output_level_show, output_level_store))) return retval;
++    	if ((retval=make_group (dev, "output_mode",           ports, SYSFS_PERMISSIONS, output_mode_show, output_mode_store))) return retval;
++    	if ((retval=make_group (dev, "forward_OOB",           ports, SYSFS_PERMISSIONS, forward_OOB_show, forward_OOB_store))) return retval;
++    	if ((retval=make_group (dev, "status_0_on_LOS",       ports, SYSFS_PERMISSIONS, status_0_on_LOS_show, status_0_on_LOS_store))) return retval;
++    	if ((retval=make_group (dev, "status_1_on_LOS",       ports, SYSFS_PERMISSIONS, status_1_on_LOS_show, status_1_on_LOS_store))) return retval;
++    	if ((retval = sysfs_create_group(&dev->kobj, &dev_attr_globals_group))) return retval;
++    	if ((retval = sysfs_create_group(&dev->kobj, &dev_attr_control_group))) return retval;
 +    }
 +    return retval;
 +}
