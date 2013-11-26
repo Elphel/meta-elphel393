@@ -142,6 +142,11 @@
 				compatible = "stm,m41t80";
 				reg = <0x68>;
 			};
+
+			vsc330x@1 {
+				compatible = "vsc,vsc3304";
+				reg = <0x01>;
+			};
 		} ;
 		
 		ps7_gpio_0: ps7-gpio@e000a000 {
