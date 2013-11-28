@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-27 23:29:14.793862172 -0700
-+++ git/drivers/misc/Kconfig	2013-11-27 23:29:17.897862204 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-28 00:49:54.229912368 -0700
++++ git/drivers/misc/Kconfig	2013-11-28 00:49:57.261912399 -0700
 @@ -549,6 +549,13 @@
  	  their requirements.
  
@@ -18,8 +18,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-27 23:29:14.793862172 -0700
-+++ git/drivers/misc/Makefile	2013-11-27 23:29:17.897862204 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-28 00:49:54.233912368 -0700
++++ git/drivers/misc/Makefile	2013-11-28 00:49:57.261912399 -0700
 @@ -55,3 +55,4 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -28,7 +28,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-28 00:46:10.785910050 -0700
++++ git/drivers/misc/vsc330x.c	2013-11-28 00:56:30.913916483 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -822,7 +822,7 @@ Index: git/drivers/misc/vsc330x.c
 +			    dev_dbg(&client->dev,"page=0x%02x, reg=0x%02x, data=0x%02x, mask=0x%02x \n",
 +			    		(int)setup_data.page, (int)setup_data.reg,(int)setup_data.data,(int)setup_data.mask);
 +			    if (((rc=write_page_with_mask(client, (setup_data.page==0xff)?-1:setup_data.page, setup_data.reg,
-+			    		setup_data.dataroot , setup_data.mask)))<0) return rc;
++			    		setup_data.data, setup_data.mask)))<0) return rc;
 +			}
 +		} else {
 +			dev_info(&client->dev,"'vsc330x,configuration_data' not found\n");
