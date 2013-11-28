@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-26 01:01:48.820127445 -0700
-+++ git/drivers/misc/Kconfig	2013-11-26 01:01:51.944127477 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-26 16:00:21.216686641 -0700
++++ git/drivers/misc/Kconfig	2013-11-26 16:00:24.260686672 -0700
 @@ -549,6 +549,13 @@
  	  their requirements.
  
@@ -18,8 +18,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-26 01:01:48.820127445 -0700
-+++ git/drivers/misc/Makefile	2013-11-26 01:01:51.944127477 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-26 16:00:21.216686641 -0700
++++ git/drivers/misc/Makefile	2013-11-26 16:00:24.260686672 -0700
 @@ -55,3 +55,4 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -28,8 +28,8 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-26 09:41:58.660451163 -0700
-@@ -0,0 +1,805 @@
++++ git/drivers/misc/vsc330x.c	2013-11-27 16:34:08.697603838 -0700
+@@ -0,0 +1,794 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
 + *! DESCRIPTION: control of the VSC3304 4x4 crosspoint switch
@@ -132,7 +132,6 @@ Index: git/drivers/misc/vsc330x.c
 +#define I2C_SOFTWARE_RESET         0x7a
 +#define I2C_SOFTWARE_RESET_DATA    0x10	/* to reset, 0 - normal  */
 +#define I2C_CURRENT_PAGE           0x7f
-+#define VSC330X_FEATURE_FREEZE_UPDATES   0x01
 +#define PORT_PEFIX                 "port_"
 +#define ALL_PORTS                  "all"
 +#define MAX_PORTS                   16
@@ -161,32 +160,27 @@ Index: git/drivers/misc/vsc330x.c
 +MODULE_DEVICE_TABLE(i2c, vsc3304_id);
 +
 +struct vsc330x_data_t {
-+	u8  features;
-+	u8  last_page;
++	int  address_mode_data; // vsc3304 needs 6 to be written, otherwise weird modification  of bit 3
++	int  last_page;
 +	u32 in_ports;
 +	u32 out_ports;
 +};
 +
 +static const struct vsc330x_data_t vsc330x_data[] = {
-+		{.features=0,
-+//				.in_ports=0xff00, .out_ports=0xff00}, /* 3304 - all ports I/O shared*/
-+/* for testing only enabling all ports */
-+				.in_ports=0xffff, .out_ports=0xffff}, /* 3304 - all ports I/O shared*/
-+		{.features=0,
++		{.address_mode_data=6,
++				.in_ports=0xff00, .out_ports=0xff00}, /* 3304 - all ports I/O shared*/
++		{.address_mode_data=-1, // No data, unknown if it is needed for 3308
 +				.in_ports=0x00ff, .out_ports=0x00ff}, /* 3308 - no ports I/O shared */
-+		{.features=VSC330X_FEATURE_FREEZE_UPDATES ,
++		{.address_mode_data=-1, // No data, unknown if it is needed for 3308
 +				.in_ports=0xffff, .out_ports=0xffff} /* 3312 - some ports I/O shared*/
 +};
-+
++static int init_device(struct i2c_client *client);
 +static int read_reg(struct i2c_client *client, u8 reg);
 +static int write_reg(struct i2c_client *client, u8 reg, u8 val);
-+static int read_page_reg(struct i2c_client *client, int page, u8 reg);
-+static int write_page_reg(struct i2c_client *client, int page, u8 reg, u8 val);
 +static int read_field(struct i2c_client *client, u8 reg, int ls_bit_num, int width);
 +static int read_page_field(struct i2c_client *client, int page, u8 reg, int ls_bit_num, int width);
 +static int write_field(struct i2c_client *client, u8 reg, u8 val, int ls_bit_num, int width);
 +static int write_page_field(struct i2c_client *client, int page, u8 reg, u8 val, int ls_bit_num, int width);
-+static int freeze(struct device *dev, int lock);
 +static ssize_t field_show(struct device *dev, struct device_attribute *attr, char *buf,
 +		int page, int ls_bit_num, int width);
 +static ssize_t field_show_reg(struct device *dev, char *buf, int page, int reg, int ls_bit_num, int width);
@@ -266,6 +260,7 @@ Index: git/drivers/misc/vsc330x.c
 +static ssize_t soft_reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t address_range_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t address_range_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t status_combo_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
 +/* Global registers - writes applied to all port registers. No sense to read (so write only), but functions preserved
 + * Placed in "globals" directory */
@@ -288,7 +283,7 @@ Index: git/drivers/misc/vsc330x.c
 +static DEVICE_ATTR(core_config_pin_invert,SYSFS_PERMISSIONS,               core_config_pin_invert_show, core_config_pin_invert_store);
 +static DEVICE_ATTR(soft_reset,        SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                        soft_reset_store);
 +static DEVICE_ATTR(address_range,     SYSFS_PERMISSIONS,                   address_range_show,          address_range_store);
-+static DEVICE_ATTR(status,            SYSFS_PERMISSIONS & SYSFS_READONLY,  status_show, NULL);
++static DEVICE_ATTR(status,            SYSFS_PERMISSIONS & SYSFS_READONLY,  status_combo_show, NULL);
 +
 +static struct attribute *globals_dev_attrs[] = {
 +	&dev_attr_connection.attr,
@@ -405,6 +400,8 @@ Index: git/drivers/misc/vsc330x.c
 +    	if ((retval=make_group (dev, "forward_OOB",           ports, SYSFS_PERMISSIONS, forward_OOB_show, forward_OOB_store))) return retval;
 +    	if ((retval=make_group (dev, "status_0_on_LOS",       ports, SYSFS_PERMISSIONS, status_0_on_LOS_show, status_0_on_LOS_store))) return retval;
 +    	if ((retval=make_group (dev, "status_1_on_LOS",       ports, SYSFS_PERMISSIONS, status_1_on_LOS_show, status_1_on_LOS_store))) return retval;
++    	if ((retval=make_group (dev, "status",                ports, SYSFS_PERMISSIONS & SYSFS_READONLY, status_show, NULL))) return retval;
++
 +    	if ((retval = sysfs_create_group(&dev->kobj, &dev_attr_globals_group))) return retval;
 +    	if ((retval = sysfs_create_group(&dev->kobj, &dev_attr_control_group))) return retval;
 +    }
@@ -578,8 +575,11 @@ Index: git/drivers/misc/vsc330x.c
 +	{return field_show(dev, attr, buf,         I2C_PAGE_STATUS1_CONFIGURE, 0, 1);}
 +static ssize_t status_1_on_LOS_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +	{return field_store(dev, attr, buf, count, I2C_PAGE_STATUS1_CONFIGURE, 0, 1);}
-+
++/* per-port LOS status */
 +static ssize_t status_show (struct device *dev, struct device_attribute *attr, char *buf)
++    {return field_show(dev, attr, buf,         I2C_PAGE_STATUS_READ, 0, 1);}
++/* combined LOS status */
++static ssize_t status_combo_show (struct device *dev, struct device_attribute *attr, char *buf)
 +	{return field_show_reg(dev, buf, I2C_PAGE_STATUS_READ, 0x10, 0, 2);}
 +
 +
@@ -661,19 +661,48 @@ Index: git/drivers/misc/vsc330x.c
 +	{return field_store_reg(dev, buf, count, I2C_PAGE_GLOBAL, I2C_CORE_CONFIGURATION, 0, 1);}
 +
 +static ssize_t soft_reset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return field_store_reg(dev, buf, count, I2C_PAGE_GLOBAL, I2C_SOFTWARE_RESET, 4, 1);}
++{
++	struct i2c_client *client = to_i2c_client(dev);
++	int rc;
++	if (((rc=field_store_reg(dev, buf, count, I2C_PAGE_GLOBAL, I2C_SOFTWARE_RESET, 4, 1)))<0) return rc;
++	if (((rc=init_device(client)))<0) return rc;
++	return count;
++}
 +
 +static ssize_t address_range_show (struct device *dev, struct device_attribute *attr, char *buf)
 +	{return field_show_reg (dev, buf,        I2C_PAGE_GLOBAL, I2C_SOFTWARE_RESET, 0, 4);}
 +static ssize_t address_range_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +	{return field_store_reg(dev, buf, count, I2C_PAGE_GLOBAL, I2C_SOFTWARE_RESET, 0, 4);}
 +
++/* Setup i2c, write address_mode. Needed after soft reset and power up */
++
++static int _init_device(struct i2c_client *client, int address_mode_data)
++{
++	int rc;
++    if (((rc=write_reg(client, I2C_INTERFACE_MODE, I2C_INTERFACE_MODE_DATA)))<0) return rc;
++    if (address_mode_data >=0){ /* only write if needed, 3304 needs, 3312 - does not, 3308 - ? */
++        if (((rc=write_reg(client, I2C_SOFTWARE_RESET_DATA, address_mode_data)))<0) return rc;
++    }
++    if (((rc=write_reg(client, I2C_CURRENT_PAGE, 0)))<0) return rc;
++	return 0;
++}
++
++
++static int init_device(struct i2c_client *client)
++{
++	int rc;
++	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
++	dev_info(&client->dev,"Re-initializing %s\n",client->name);
++	if (((rc=_init_device(client, clientdata->address_mode_data)))<0) return rc;
++	clientdata->last_page=0;
++	return 0;
++}
 +
 +static int bitmask(int ls_bit_num, int width)
 +{
 +	return ((1 << width) -1) << ls_bit_num;
 +}
-+
++//address_mode_data
 +static int read_reg(struct i2c_client *client, u8 reg)
 +{
 +	int val;
@@ -686,28 +715,6 @@ Index: git/drivers/misc/vsc330x.c
 +{
 +	dev_dbg(&client->dev,"device write: slave=0x%x, reg=0x%x, val=0x%x\n", (int) (client->addr),reg,val);
 +	return i2c_smbus_write_byte_data(client, reg, val);
-+}
-+
-+static int read_page_reg(struct i2c_client *client, int page, u8 reg)
-+{
-+	int rc;
-+	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
-+	if ((page>=0) && (clientdata->last_page!=page)) {
-+		if (((rc=write_reg(client, I2C_CURRENT_PAGE, page)))<0) return rc;
-+		clientdata->last_page=page;
-+	}
-+	return read_reg(client, reg);
-+}
-+
-+static int write_page_reg(struct i2c_client *client, int page, u8 reg, u8 val)
-+{
-+	int rc;
-+	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
-+	if ((page>=0) && (clientdata->last_page!=page)) {
-+		if (((rc=write_reg(client, I2C_CURRENT_PAGE, page)))<0) return rc;
-+		clientdata->last_page=page;
-+	}
-+	return write_reg(client, reg, val);
 +}
 +
 +static int read_field(struct i2c_client *client, u8 reg, int ls_bit_num, int width)
@@ -755,32 +762,14 @@ Index: git/drivers/misc/vsc330x.c
 +	return write_field(client, reg, val, ls_bit_num, width);
 +}
 +
-+static int freeze(struct device *dev, int lock)
-+{
-+	struct i2c_client *client = to_i2c_client(dev);
-+	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
-+	if (clientdata->features & VSC330X_FEATURE_FREEZE_UPDATES ){
-+	 /*Assumes config pin grounded, otherwise swap freeze/unfreeze*/
-+		return write_reg(client, I2C_CORE_CONFIGURATION, lock? I2C_CORE_CONFIGURATION_DATAF: I2C_CORE_CONFIGURATION_DATA);
-+	} else {
-+		dev_dbg(dev, "Update freeze is not implemented in %s\n",client->name);
-+		return 0; /* just do nothing */
-+	}
-+
-+}
-+
 +static int vsc330x_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
 +{
 +	int rc=0;
 +	struct vsc330x_data_t *clientdata = NULL;
++	/* initialize i2c mode and (if needed) address range bit field */
 +
-+/* initialize i2c mode */
-+    rc=write_reg(client, I2C_INTERFACE_MODE, I2C_INTERFACE_MODE_DATA);
-+    if (rc<0) goto wr_err;
-+    rc=write_reg(client, I2C_CURRENT_PAGE, 0); // initialize to page 0
-+    if (rc<0) goto wr_err;
-+
++	if (((rc=_init_device(client, vsc330x_data[id->driver_data].address_mode_data)))<0) goto wr_err;
 +	dev_info(&client->dev,
 +		 "Chip %s found, driver version %s\n", id->name, DRV_VERSION);
 +	clientdata = devm_kzalloc(&client->dev, sizeof(*clientdata), GFP_KERNEL);
@@ -789,7 +778,7 @@ Index: git/drivers/misc/vsc330x.c
 +		goto exit;
 +	}
 +	clientdata->last_page = 0;
-+	clientdata->features = vsc330x_data[id->driver_data].features;
++	clientdata->address_mode_data = vsc330x_data[id->driver_data].address_mode_data;
 +	clientdata->in_ports = vsc330x_data[id->driver_data].in_ports;
 +	clientdata->out_ports = vsc330x_data[id->driver_data].out_ports;
 +	i2c_set_clientdata(client, clientdata);
