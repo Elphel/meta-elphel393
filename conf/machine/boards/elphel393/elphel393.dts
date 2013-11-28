@@ -124,7 +124,7 @@
 				} ;
 			} ;
 		} ;
-		
+
 		ps7_i2c_0: ps7-i2c@e0004000 {
 			bus-id = <0>;
 			clocks = <&clkc 38>;
@@ -137,7 +137,7 @@
 			xlnx,has-interrupt = <0x0>;
 			xlnx,i2c-clk-freq-hz = <0x69f6bcb>;
 			xlnx,i2c-reset = "";
-			
+
 			rtc@68 {
 				compatible = "stm,m41t80";
 				reg = <0x68>;
@@ -146,9 +146,38 @@
 			vsc330x@1 {
 				compatible = "vsc,vsc3304";
 				reg = <0x01>;
+				vsc330x,configuration_name = "elphel393: from external";
+				/* configuration below is for external eSATA host accessing SSD. Will chnage
+				 * when the SATA controller code will be operational
+				 * TODO: specify optimal drive strength, pre-emphasis, etc.
+				 * All parameters are exported to sysfs for run-time modification
+				 */
+				vsc330x,configuration_data=<
+				0x11080101 /*page 0x11, register 0x08, data=0x1 (inverted input), write enabled mask=0x1 */
+				0x11090001
+				0x110a0101
+				0x110b0101
+				0x110e0001
+				0x110f0101
+
+				0x230a0b1f /* set output mode for port 10 as non-inverted, forwarding OOB enabled */
+				0x230b151f /* set output mode for port 11 as     inverted, forwarding OOB enabled */
+				0x230c151f
+				0x230d0b1f
+				0x230e151f
+				0x230f151f
+
+				0xff750101 /* freeze configuration to enable simultaneous modification */
+				0x110e0002 /* enable channel 14 input */
+				0x11090002 /* enable channel  9 input */
+
+				0x000b091f /* connect port 11 output to input 9 */
+				0x000c0e1f /* connect port 12 output to input 14 */
+				0xff750001 /* un-freeze configuration to apply connection modifications */
+				>;
 			};
 		} ;
-		
+
 		ps7_gpio_0: ps7-gpio@e000a000 {
 			#gpio-cells = <2>;
 			clocks = <&clkc 42>;
@@ -176,8 +205,8 @@
 			reg = <0xf8f02000 0x1000>;
 		} ;
 
-		
-		
+
+
 		ps7_ram_0: ps7-ram@0 {
 			compatible = "xlnx,ps7-ram-1.00.a", "xlnx,ps7-ocm";
 			interrupt-parent = <&ps7_scugic_0>;
@@ -254,7 +283,7 @@
 			interrupts = <0 10 4>, <0 11 4>, <0 12 4>;
 			reg = <0xf8001000 0x1000>;
 		} ;
-		
+
 		ps7_smcc_0: ps7-smcc@e000e000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -290,7 +319,7 @@
                                 };
 			} ;
 		} ;
-		
+
 		ps7_uart_0: serial@e0000000 {
 			clock-names = "ref_clk", "aper_clk";
 			clocks = <&clkc 23>, <&clkc 40>;

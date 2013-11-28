@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-26 16:00:21.216686641 -0700
-+++ git/drivers/misc/Kconfig	2013-11-26 16:00:24.260686672 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-27 23:29:14.793862172 -0700
++++ git/drivers/misc/Kconfig	2013-11-27 23:29:17.897862204 -0700
 @@ -549,6 +549,13 @@
  	  their requirements.
  
@@ -18,8 +18,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-26 16:00:21.216686641 -0700
-+++ git/drivers/misc/Makefile	2013-11-26 16:00:24.260686672 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-27 23:29:14.793862172 -0700
++++ git/drivers/misc/Makefile	2013-11-27 23:29:17.897862204 -0700
 @@ -55,3 +55,4 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -28,8 +28,8 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-27 16:34:08.697603838 -0700
-@@ -0,0 +1,794 @@
++++ git/drivers/misc/vsc330x.c	2013-11-28 00:46:10.785910050 -0700
+@@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
 + *! DESCRIPTION: control of the VSC3304 4x4 crosspoint switch
@@ -57,6 +57,7 @@ Index: git/drivers/misc/vsc330x.c
 +#include <linux/slab.h>
 +#include <linux/mutex.h>
 +#include <linux/string.h>
++#include <linux/of.h>
 +
 +#define DRV_VERSION "1.0"
 +/* TODO: Descriptions from vsc3312 - check differences */
@@ -762,6 +763,82 @@ Index: git/drivers/misc/vsc330x.c
 +	return write_field(client, reg, val, ls_bit_num, width);
 +}
 +
++static int write_with_mask(struct i2c_client *client, u8 reg, u8 val, u8 mask)
++{
++	int rc;
++	dev_dbg(&client->dev,"reg=0x%x, val=0x%x, mask=0x%x\n", (int) reg, (int) val, (int) mask);
++	if (val !=0xff){
++	    if (((rc=read_reg(client, reg)))<0) return rc;
++	    val=((val ^ rc) & mask)^ rc;
++	}
++	return  write_reg(client, reg, rc);
++}
++
++static int write_page_with_mask(struct i2c_client *client, int page, u8 reg, u8 val , u8 mask)
++{
++	int rc;
++	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
++	dev_dbg(&client->dev,"page=0x%x (last was 0x%x), reg=0x%x, val=0x%x, mask=0x%x\n",
++			page,clientdata->last_page, (int) reg, (int) val,(int) mask);
++	if ((page>=0) && (clientdata->last_page!=page)) {
++		if (((rc=write_reg(client, I2C_CURRENT_PAGE, page)))<0) return rc;
++		clientdata->last_page=page;
++	}
++	return write_with_mask(client, reg, val, mask);
++}
++
++
++
++static void vsc330x_init_of(struct i2c_client *client)
++{
++//	struct device *dev=&client->dev;
++	const __be32 * config_data;
++	struct device_node *node = client->dev.of_node;
++    int len,i,rc;
++    struct vsc330x_setup_data  {
++    	u8		page;
++    	u8		reg;
++    	u8		data;
++    	u8		mask;
++    };
++    struct vsc330x_setup_data setup_data;
++    __be32 * setup_data_be32= (__be32 *) &setup_data;
++
++
++    const char * config_name;
++	if (node) {
++
++		config_name = of_get_property(client->dev.of_node, "vsc330x,configuration_name", &len);
++		if (config_name){
++			dev_info(&client->dev,"Initializing %s registers for \"%s\"\n",client->name,config_name);
++		}
++		config_data = of_get_property(client->dev.of_node, "vsc330x,configuration_data", &len);
++		if (config_data){
++			len /= sizeof(*config_data);
++			dev_dbg(&client->dev,"Read %d values\n",len);
++			for (i=0;i<len;i++){
++			    dev_dbg(&client->dev,"0x%08x (0x%08x)\n", config_data[i],be32_to_cpup(config_data+i));
++				*setup_data_be32=config_data[i];
++			    dev_dbg(&client->dev,"page=0x%02x, reg=0x%02x, data=0x%02x, mask=0x%02x \n",
++			    		(int)setup_data.page, (int)setup_data.reg,(int)setup_data.data,(int)setup_data.mask);
++			    if (((rc=write_page_with_mask(client, (setup_data.page==0xff)?-1:setup_data.page, setup_data.reg,
++			    		setup_data.dataroot , setup_data.mask)))<0) return rc;
++			}
++		} else {
++			dev_info(&client->dev,"'vsc330x,configuration_data' not found\n");
++		}
++	} else {
++		dev_info(&client->dev,"Device tree data not found for %s\n",client->name);
++	}
++}
++/*
++ 	dev_info(&client->dev,
++
++ */
++
++
++
++
 +static int vsc330x_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
 +{
@@ -785,6 +862,7 @@ Index: git/drivers/misc/vsc330x.c
 +	rc = vsc330x_sysfs_register(&client->dev);
 +	if (rc)
 +		goto exit;
++	vsc330x_init_of(client);
 +	return 0;	/* found OK*/
 +wr_err:
 +	rc = -EIO;
