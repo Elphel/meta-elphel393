@@ -1,8 +1,8 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-28 00:49:54.229912368 -0700
-+++ git/drivers/misc/Kconfig	2013-11-28 00:49:57.261912399 -0700
-@@ -549,6 +549,13 @@
+--- git.orig/drivers/misc/Kconfig	2013-11-28 23:02:27.094741664 -0700
++++ git/drivers/misc/Kconfig	2013-11-28 23:02:30.142741696 -0700
+@@ -549,6 +549,19 @@
  	  their requirements.
  
  	  If unsure, say N
@@ -13,22 +13,29 @@ Index: git/drivers/misc/Kconfig
 +	  To compile this driver as a module, choose M here: the
 +	  module will be called vsc330x.
 +
++config SI5338
++	tristate "Support Silicon Laboratories SI5338 Quad Clock Generator"
++	help
++	  Say Y here if you have a SI5338 cQuad Clock Generator IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called si5338.
  
  source "drivers/misc/c2port/Kconfig"
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-28 00:49:54.233912368 -0700
-+++ git/drivers/misc/Makefile	2013-11-28 00:49:57.261912399 -0700
-@@ -55,3 +55,4 @@
+--- git.orig/drivers/misc/Makefile	2013-11-28 23:02:27.094741664 -0700
++++ git/drivers/misc/Makefile	2013-11-28 23:02:30.142741696 -0700
+@@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
  obj-$(CONFIG_XILINX_TRAFGEN)	+= xilinx_trafgen.o
 +obj-$(CONFIG_VSC330X)	        += vsc330x.o
++obj-$(CONFIG_SI5338)	        += si5338.o
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-28 00:56:30.913916483 -0700
++++ git/drivers/misc/vsc330x.c	2013-11-28 23:02:30.142741696 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -767,7 +774,7 @@ Index: git/drivers/misc/vsc330x.c
 +{
 +	int rc;
 +	dev_dbg(&client->dev,"reg=0x%x, val=0x%x, mask=0x%x\n", (int) reg, (int) val, (int) mask);
-+	if (val !=0xff){
++	if (mask !=0xff){
 +	    if (((rc=read_reg(client, reg)))<0) return rc;
 +	    val=((val ^ rc) & mask)^ rc;
 +	}
@@ -902,3 +909,313 @@ Index: git/drivers/misc/vsc330x.c
 +MODULE_ALIAS("i2c:vsc330x");
 +
 +
+Index: git/drivers/misc/si5338.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ git/drivers/misc/si5338.c	2013-11-28 23:42:24.350766529 -0700
+@@ -0,0 +1,305 @@
++/*!***************************************************************************
++ *! FILE NAME  : si5338.c
++ *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
++ *! Copyright (C) 2013 Elphel, Inc.
++ *! -----------------------------------------------------------------------------**
++ *!
++ *!  This program is free software: you can redistribute it and/or modify
++ *!  it under the terms of the GNU General Public License as published by
++ *!  the Free Software Foundation, either version 3 of the License, or
++ *!  (at your option) any later version.
++ *!
++ *!  This program is distributed in the hope that it will be useful,
++ *!  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *!  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *!  GNU General Public License for more details.
++ *!
++ *!  You should have received a copy of the GNU General Public License
++ *!  along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/i2c.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/mutex.h>
++#include <linux/string.h>
++#include <linux/of.h>
++
++#define DRV_VERSION "1.0"
++#define SYSFS_PERMISSIONS         0644 /* default permissions for sysfs files */
++#define SYSFS_READONLY            0444
++#define SYSFS_WRITEONLY           0222
++
++
++
++#define REG5338_PAGE               255
++#define REG5338_PAGE_MASK            1
++#define REG5338_DEV_CONFIG2          2
++#define REG5338_DEV_CONFIG2_MASK  0x3f
++#define REG5338_DEV_CONFIG2_VAL    38 /* last 2 digits of part number */
++
++
++static ssize_t raw_address_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t raw_data_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_data_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t raw_hex_address_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_hex_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t raw_hex_data_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_hex_data_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t raw_hex_all_show (struct device *dev, struct device_attribute *attr, char *buf);
++
++static int write_reg(struct i2c_client *client, u16 reg, u8 val, u8 mask);
++static int read_reg(struct i2c_client *client, u16 reg);
++
++
++/* raw access to i2c registers, need to set address (9 bits) first, then r/w data */
++static DEVICE_ATTR(address,     SYSFS_PERMISSIONS,  raw_address_show, raw_address_store);
++static DEVICE_ATTR(data,        SYSFS_PERMISSIONS,  raw_data_show,    raw_data_store);
++static DEVICE_ATTR(hex_address, SYSFS_PERMISSIONS,  raw_hex_address_show, raw_hex_address_store);
++static DEVICE_ATTR(hex_data,    SYSFS_PERMISSIONS,  raw_hex_data_show,    raw_hex_data_store);
++static DEVICE_ATTR(hex_all,     SYSFS_PERMISSIONS & SYSFS_READONLY,  raw_hex_all_show,  NULL);
++
++static struct attribute *raw_dev_attrs[] = {
++	&dev_attr_address.attr,
++	&dev_attr_data.attr,
++	&dev_attr_hex_address.attr,
++	&dev_attr_hex_data.attr,
++	&dev_attr_hex_all.attr,
++	NULL
++};
++
++static const struct attribute_group dev_attr_raw_group = {
++	.attrs = raw_dev_attrs,
++	.name  = "raw",
++};
++
++static const struct i2c_device_id si5338_id[] = {
++	{ "si5338", 0 },
++	{ }
++};
++
++struct si5338_data_t {
++	int reg_addr;   /* used for raw register r/w */
++	int last_page;  /* value of last page accessed (bit 0 of register 255) */
++};
++
++
++static int si5338_sysfs_register(struct device *dev)
++{
++//	struct i2c_client *client = to_i2c_client(dev);
++//	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
++    int retval=0;
++    if (&dev->kobj) {
++    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_raw_group)))<0) return retval;
++    }
++    return retval;
++}
++
++
++
++static ssize_t raw_address_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct si5338_data_t *clientdata=i2c_get_clientdata(to_i2c_client(dev));
++    return sprintf(buf, "%d\n",clientdata->reg_addr);
++}
++static ssize_t raw_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct si5338_data_t *clientdata=i2c_get_clientdata(to_i2c_client(dev));
++    sscanf(buf, "%du", &clientdata->reg_addr);
++    return count;
++}
++
++static ssize_t raw_data_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	int data= read_reg(client, clientdata->reg_addr);
++    return sprintf(buf, "%d\n",data);
++}
++static ssize_t raw_data_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	int data;
++    sscanf(buf, "%du", &data);
++    write_reg(client, clientdata->reg_addr, data, 0xff); /* write all register, it is up to user to do R-mod-W */
++    return count;
++}
++
++static ssize_t raw_hex_address_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct si5338_data_t *clientdata=i2c_get_clientdata(to_i2c_client(dev));
++    return sprintf(buf, "0x%03x\n",clientdata->reg_addr);
++}
++static ssize_t raw_hex_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct si5338_data_t *clientdata=i2c_get_clientdata(to_i2c_client(dev));
++    sscanf(buf, "%x", &clientdata->reg_addr);
++    return count;
++}
++
++static ssize_t raw_hex_data_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	int data= read_reg(client, clientdata->reg_addr);
++    return sprintf(buf, "0x%02x\n",data);
++}
++static ssize_t raw_hex_data_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	int data;
++    sscanf(buf, "%x", &data);
++    write_reg(client, clientdata->reg_addr, data, 0xff); /* write all register, it is up to user to do R-mod-W */
++    return count;
++}
++
++static ssize_t raw_hex_all_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int low_addr=0,reg,data,rc,high_addr=348,len=0, count=PAGE_SIZE;
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	for (reg=low_addr;reg<high_addr;reg++) if (count>10){
++		if ((reg & 0xf) ==0){
++			rc=sprintf(buf, "%03x: ",reg);
++		    buf+=rc;
++		    len+=rc;
++		    count-=rc;
++		}
++		if (((data= read_reg(client, reg)))<0) return data;
++		rc=sprintf(buf, "%02x",data);
++	    buf+=rc;
++	    len+=rc;
++	    count-=rc;
++		if (((reg & 0xf) == 0xf) || (reg==(high_addr-1))){
++			rc=sprintf(buf, "\n");
++		} else {
++			rc=sprintf(buf, " ");
++		}
++	    buf+=rc;
++	    len+=rc;
++	    count-=rc;
++	}
++	return len;
++}
++/*
++ * 	int reg, port_mask, rc=0, len=0, count=PAGE_SIZE;
++ *
++ 		for (reg=0;reg<MAX_PORTS;reg++) if ((port_mask & (1<<reg)) && (count>5)) {
++			dev_dbg(dev, "name='%s' reg=0x%x, page=0x%x, ls_bit_num=0x%x, width=0x%x\n",
++					attr->attr.name, reg, page, ls_bit_num,  width);
++			rc = read_page_field(client, page, reg, ls_bit_num, width);
++//		    rc=field_show_reg(dev, buf, page, reg, ls_bit_num, width);
++		    if (rc<0) return rc;
++		    rc=sprintf(buf, "%d ", rc);
++		    buf+=rc;
++		    len+=rc;
++		    count-=rc;
++
++		}
++
++ */
++
++
++
++
++static int _write_single_reg(struct i2c_client *client, u8 reg, u8 val)
++{
++	struct si5338_data_t *clientdata;
++	dev_dbg(&client->dev,"device write: slave=0x%x, reg=0x%x, val=0x%x\n", (int) (client->addr),reg,val);
++	if (clientdata && (reg==REG5338_PAGE)) {
++		clientdata = i2c_get_clientdata(client);
++		clientdata->last_page=val & REG5338_PAGE_MASK;
++	}
++	return i2c_smbus_write_byte_data(client, reg, val);
++}
++
++static int write_reg(struct i2c_client *client, u16 reg, u8 val, u8 mask)
++{
++	int rc,page;
++	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	page=(reg >> 8) & REG5338_PAGE_MASK;
++	if (page != (clientdata->last_page)) { /* set page if needed */
++		if (((rc=_write_single_reg(client, REG5338_PAGE, page)))<0) return rc;
++	}
++	dev_dbg(&client->dev,"reg=0x%x, val=0x%x, mask=0x%x\n", (int) reg, (int) val, (int) mask);
++	if (mask==0) return 0;
++	if (mask !=0xff){
++	    if (((rc=read_reg(client, reg & 0xff)))<0) return rc;
++	    val=((val ^ rc) & mask)^ rc;
++	}
++	return  _write_single_reg(client, reg & 0xff, rc);
++}
++
++static int read_reg(struct i2c_client *client, u16 reg)
++{
++	int rc,page;
++	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	page=(reg >> 8) & REG5338_PAGE_MASK;
++	if (clientdata && (reg!=REG5338_PAGE) && (page != clientdata->last_page)) { /* set page if needed */
++		if (((rc=_write_single_reg(client, REG5338_PAGE, page)))<0) return rc;
++	}
++	rc= i2c_smbus_read_byte_data(client, reg & 0xff);
++	dev_dbg(&client->dev,"reading i2c device : slave=0x%x, reg=0x%x -> 0x%x\n",(int) (client->addr),reg,rc);
++	if (rc<0) return rc;
++	if (clientdata && (reg==REG5338_PAGE)) {
++		clientdata->last_page= rc & REG5338_PAGE_MASK;
++	}
++	return rc;
++}
++
++
++
++static int si5338_i2c_probe(struct i2c_client *client,
++				      const struct i2c_device_id *id)
++{
++	int rc=0;
++	struct si5338_data_t *clientdata = NULL;
++	/* initialize i2c ... */
++//#define REG5338_DEV_CONFIG2          2
++//#define REG5338_DEV_CONFIG2_MASK  0x3f
++//#define REG5338_DEV_CONFIG2_VAL    38 /* last 2 digits of part number */
++	if (((rc=_write_single_reg(client, REG5338_PAGE,0)))<0) return rc; // did not respond
++	if (((rc=read_reg(client, REG5338_DEV_CONFIG2)))<0) return rc; // did not respond
++	if ((rc & REG5338_DEV_CONFIG2_MASK)!= REG5338_DEV_CONFIG2_VAL){
++		dev_info(&client->dev,
++			 "Chip returned unexpected value from reg %d: %d, expected %d. It is not %s\n",
++			 REG5338_DEV_CONFIG2,rc, REG5338_DEV_CONFIG2_VAL,id->name);
++		return -EIO;
++	}
++
++	dev_info(&client->dev,
++		 "Chip %s is found, driver version %s\n", id->name, DRV_VERSION);
++	clientdata = devm_kzalloc(&client->dev, sizeof(*clientdata), GFP_KERNEL);
++	i2c_set_clientdata(client, clientdata);
++	if (((rc=read_reg(client, REG5338_PAGE)))<0) return rc; // will set clientdata->last_page
++	si5338_sysfs_register(&client->dev);
++	return 0;
++}
++
++
++static int si5338_i2c_remove(struct i2c_client *client)
++{
++	return 0;
++}
++
++static struct i2c_driver si5338_i2c_driver = {
++	.driver = {
++		.name	= "si5338",
++		.owner	= THIS_MODULE,
++	},
++	.probe		= si5338_i2c_probe,
++	.remove		= si5338_i2c_remove,
++	.id_table	= si5338_id,
++};
++
++module_i2c_driver(si5338_i2c_driver);
++MODULE_DEVICE_TABLE(i2c, si5338_id);
++MODULE_AUTHOR("Andrey Filippov  <andrey@elphel.com>");
++MODULE_DESCRIPTION("SI5338 I2C bus driver");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("i2c:si5338");

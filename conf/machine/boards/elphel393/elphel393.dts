@@ -176,6 +176,10 @@
 				0xff750001 /* un-freeze configuration to apply connection modifications */
 				>;
 			};
+			si5338@70 {
+				compatible = "sil,si5338";
+				reg = <0x70>;
+			};
 		} ;
 
 		ps7_gpio_0: ps7-gpio@e000a000 {
