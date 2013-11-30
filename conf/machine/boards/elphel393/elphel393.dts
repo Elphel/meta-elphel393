@@ -184,6 +184,25 @@
 				0x20a0f0 /* just for testing: write data 0xa0 with write enable mask 0xf0 to register 0x020 */
 				>;
 			};
+			gpio@20{
+				compatible = "ti,tca6408";
+				reg = <0x20>;
+			};
+			gpio@21{
+				compatible = "ti,tca6408";
+				reg = <0x21>;
+			};
+			/* Use 'spd' instead of '24c02' for read only access*/
+			stts2002@31 {
+				compatible = "at,24c02";
+				reg = <0x31>;
+			};
+			hwmon@19 { /*hwmon@19*/
+				compatible = "stm,jc42";
+				reg = <0x19>;
+
+			};
+
 		} ;
 
 		ps7_gpio_0: ps7-gpio@e000a000 {

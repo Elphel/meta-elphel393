@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-29 17:23:40.563426999 -0700
-+++ git/drivers/misc/Kconfig	2013-11-29 17:23:44.899427043 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-29 23:33:09.275656939 -0700
++++ git/drivers/misc/Kconfig	2013-11-29 23:33:12.155656969 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-29 17:23:40.563426999 -0700
-+++ git/drivers/misc/Makefile	2013-11-29 17:23:44.899427043 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-29 23:33:09.275656939 -0700
++++ git/drivers/misc/Makefile	2013-11-29 23:33:12.155656969 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-29 17:23:44.899427043 -0700
++++ git/drivers/misc/vsc330x.c	2013-11-29 23:33:12.155656969 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,7 +912,7 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-11-29 18:25:55.975465743 -0700
++++ git/drivers/misc/si5338.c	2013-11-29 23:33:12.159656969 -0700
 @@ -0,0 +1,381 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
