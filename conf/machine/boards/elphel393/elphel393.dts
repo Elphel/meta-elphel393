@@ -179,6 +179,10 @@
 			si5338@70 {
 				compatible = "sil,si5338";
 				reg = <0x70>;
+				si5338,configuration_data=<
+				0x1ffcf0 /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
+				0x20a0f0 /* just for testing: write data 0xa0 with write enable mask 0xf0 to register 0x020 */
+				>;
 			};
 		} ;
 

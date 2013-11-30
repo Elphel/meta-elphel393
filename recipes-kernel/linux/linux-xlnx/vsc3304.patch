@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-28 23:02:27.094741664 -0700
-+++ git/drivers/misc/Kconfig	2013-11-28 23:02:30.142741696 -0700
+--- git.orig/drivers/misc/Kconfig	2013-11-29 17:23:40.563426999 -0700
++++ git/drivers/misc/Kconfig	2013-11-29 17:23:44.899427043 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-28 23:02:27.094741664 -0700
-+++ git/drivers/misc/Makefile	2013-11-28 23:02:30.142741696 -0700
+--- git.orig/drivers/misc/Makefile	2013-11-29 17:23:40.563426999 -0700
++++ git/drivers/misc/Makefile	2013-11-29 17:23:44.899427043 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-28 23:02:30.142741696 -0700
++++ git/drivers/misc/vsc330x.c	2013-11-29 17:23:44.899427043 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -778,7 +778,7 @@ Index: git/drivers/misc/vsc330x.c
 +	    if (((rc=read_reg(client, reg)))<0) return rc;
 +	    val=((val ^ rc) & mask)^ rc;
 +	}
-+	return  write_reg(client, reg, rc);
++	return  write_reg(client, reg, val);
 +}
 +
 +static int write_page_with_mask(struct i2c_client *client, int page, u8 reg, u8 val , u8 mask)
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-11-28 23:42:24.350766529 -0700
-@@ -0,0 +1,305 @@
++++ git/drivers/misc/si5338.c	2013-11-29 18:25:55.975465743 -0700
+@@ -0,0 +1,381 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -957,6 +957,12 @@ Index: git/drivers/misc/si5338.c
 +#define REG5338_DEV_CONFIG2_VAL    38 /* last 2 digits of part number */
 +
 +
++#define FVCOMIN                    2200000000L
++#define FVCOMAX                    2840000000L
++
++
++
++
 +static ssize_t raw_address_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t raw_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t raw_data_show (struct device *dev, struct device_attribute *attr, char *buf);
@@ -966,7 +972,12 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t raw_hex_data_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t raw_hex_data_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t raw_hex_all_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_hex_adwe_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t raw_hex_adwe_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
++static void si5338_init_of(struct i2c_client *client);
++
++static int write_adwe(struct i2c_client *client, u32 adwe);
 +static int write_reg(struct i2c_client *client, u16 reg, u8 val, u8 mask);
 +static int read_reg(struct i2c_client *client, u16 reg);
 +
@@ -977,6 +988,7 @@ Index: git/drivers/misc/si5338.c
 +static DEVICE_ATTR(hex_address, SYSFS_PERMISSIONS,  raw_hex_address_show, raw_hex_address_store);
 +static DEVICE_ATTR(hex_data,    SYSFS_PERMISSIONS,  raw_hex_data_show,    raw_hex_data_store);
 +static DEVICE_ATTR(hex_all,     SYSFS_PERMISSIONS & SYSFS_READONLY,  raw_hex_all_show,  NULL);
++static DEVICE_ATTR(hex_adwe,    SYSFS_PERMISSIONS,  raw_hex_adwe_show,  raw_hex_adwe_store);
 +
 +static struct attribute *raw_dev_attrs[] = {
 +	&dev_attr_address.attr,
@@ -984,6 +996,7 @@ Index: git/drivers/misc/si5338.c
 +	&dev_attr_hex_address.attr,
 +	&dev_attr_hex_data.attr,
 +	&dev_attr_hex_all.attr,
++	&dev_attr_hex_adwe.attr,
 +	NULL
 +};
 +
@@ -1000,6 +1013,7 @@ Index: git/drivers/misc/si5338.c
 +struct si5338_data_t {
 +	int reg_addr;   /* used for raw register r/w */
 +	int last_page;  /* value of last page accessed (bit 0 of register 255) */
++	struct mutex lock;
 +};
 +
 +
@@ -1078,7 +1092,7 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int low_addr=0,reg,data,rc,high_addr=348,len=0, count=PAGE_SIZE;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++//	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
 +	for (reg=low_addr;reg<high_addr;reg++) if (count>10){
 +		if ((reg & 0xf) ==0){
 +			rc=sprintf(buf, "%03x: ",reg);
@@ -1102,33 +1116,57 @@ Index: git/drivers/misc/si5338.c
 +	}
 +	return len;
 +}
++static ssize_t raw_hex_adwe_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return sprintf(buf,"Write only, provide single or multiple hex values in the form [0x]AAADDWW, where AAA is register address\n" \
++			            "DD - data byte and WW - write enable bits ( 1 - write, 0 - keep old)\n");
++
++}
 +/*
-+ * 	int reg, port_mask, rc=0, len=0, count=PAGE_SIZE;
-+ *
-+ 		for (reg=0;reg<MAX_PORTS;reg++) if ((port_mask & (1<<reg)) && (count>5)) {
-+			dev_dbg(dev, "name='%s' reg=0x%x, page=0x%x, ls_bit_num=0x%x, width=0x%x\n",
-+					attr->attr.name, reg, page, ls_bit_num,  width);
-+			rc = read_page_field(client, page, reg, ls_bit_num, width);
-+//		    rc=field_show_reg(dev, buf, page, reg, ls_bit_num, width);
-+		    if (rc<0) return rc;
-+		    rc=sprintf(buf, "%d ", rc);
-+		    buf+=rc;
-+		    len+=rc;
-+		    count-=rc;
-+
-+		}
-+
++ *  accepts single or multiple data, each [0x]AAADDWW - AAA - register address, DD - data byte, WW - write enable mask (1 - write, 0 - keep).
++ *  Ignores any other characters, so same format as in dts with hex data is OK
 + */
++static ssize_t raw_hex_adwe_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	const char digits[]="0123456789";
++	struct i2c_client *client =       to_i2c_client(dev);
++	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
++	int adwe,rc=0;
++	int left=count,num_bytes;
++	const char * cp;
++ 	mutex_lock(&clientdata->lock);
++	while ((left>0) && ((cp=strpbrk(buf,digits))) && cp[0]){
++		left -= (cp-buf);
++		buf = cp;
++		dev_dbg(dev,"left=%d", left);
++	    sscanf(buf, "%x%n", &adwe,&num_bytes);
++	    left-=num_bytes;
++	    buf+=num_bytes;
++	    dev_dbg(dev,"left=%d num_bytes=%d, adwe=0x%08x", left,num_bytes,adwe);
++	    if (((rc=write_adwe(client, adwe)))<0) {
++	    	mutex_unlock(&clientdata->lock);
++	    	return rc;
++	    }
++	}
++	mutex_unlock(&clientdata->lock);
++    return count;
++}
 +
++static int write_adwe(struct i2c_client *client, u32 adwe)
++{
++	u8 we=   adwe & 0xff;
++	u8 data= (adwe>>8) & 0xff;
++	u16 reg=  (adwe>>16) & (0xff | (REG5338_PAGE_MASK << 8)); /* 0x1ff */
++	return write_reg(client, reg, data, we);
 +
-+
++}
 +
 +static int _write_single_reg(struct i2c_client *client, u8 reg, u8 val)
 +{
-+	struct si5338_data_t *clientdata;
++	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
 +	dev_dbg(&client->dev,"device write: slave=0x%x, reg=0x%x, val=0x%x\n", (int) (client->addr),reg,val);
 +	if (clientdata && (reg==REG5338_PAGE)) {
-+		clientdata = i2c_get_clientdata(client);
++//		dev_dbg(&client->dev,"changing page: new=0x%x, was=0x%x\n",val & REG5338_PAGE_MASK,clientdata->last_page);
 +		clientdata->last_page=val & REG5338_PAGE_MASK;
 +	}
 +	return i2c_smbus_write_byte_data(client, reg, val);
@@ -1138,17 +1176,18 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int rc,page;
 +	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	if (mask==0) return 0;
 +	page=(reg >> 8) & REG5338_PAGE_MASK;
 +	if (page != (clientdata->last_page)) { /* set page if needed */
 +		if (((rc=_write_single_reg(client, REG5338_PAGE, page)))<0) return rc;
 +	}
++//	dev_info(&client->dev,"reg=0x%x, val=0x%x, mask=0x%x\n", (int) reg, (int) val, (int) mask);
 +	dev_dbg(&client->dev,"reg=0x%x, val=0x%x, mask=0x%x\n", (int) reg, (int) val, (int) mask);
-+	if (mask==0) return 0;
 +	if (mask !=0xff){
 +	    if (((rc=read_reg(client, reg & 0xff)))<0) return rc;
 +	    val=((val ^ rc) & mask)^ rc;
 +	}
-+	return  _write_single_reg(client, reg & 0xff, rc);
++	return  _write_single_reg(client, reg & 0xff, val);
 +}
 +
 +static int read_reg(struct i2c_client *client, u16 reg)
@@ -1156,6 +1195,7 @@ Index: git/drivers/misc/si5338.c
 +	int rc,page;
 +	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
 +	page=(reg >> 8) & REG5338_PAGE_MASK;
++	dev_dbg(&client->dev,"reading i2c device : slave=0x%x, reg=0x%x page=0x%x, last_page=0x%x\n",(int) (client->addr),reg,page,clientdata->last_page);
 +	if (clientdata && (reg!=REG5338_PAGE) && (page != clientdata->last_page)) { /* set page if needed */
 +		if (((rc=_write_single_reg(client, REG5338_PAGE, page)))<0) return rc;
 +	}
@@ -1168,7 +1208,41 @@ Index: git/drivers/misc/si5338.c
 +	return rc;
 +}
 +
-+
++static void si5338_init_of(struct i2c_client *client)
++{
++//	struct device *dev=&client->dev;
++	const __be32 * config_data;
++	struct device_node *node = client->dev.of_node;
++    int len,i,rc;
++    u16 page_reg;
++    struct si5338_setup_data  {
++    	u8		page;
++    	u8		reg;
++    	u8		data;
++    	u8		mask;
++    };
++    struct si5338_setup_data setup_data;
++    __be32 * setup_data_be32= (__be32 *) &setup_data;
++	if (node) {
++		config_data = of_get_property(client->dev.of_node, "si5338,configuration_data", &len);
++		if (config_data){
++			len /= sizeof(*config_data);
++			dev_dbg(&client->dev,"Read %d values\n",len);
++			dev_info(&client->dev,"Found %d items in 'si5338,configuration_data' in the Device Tree\n",len);
++			for (i=0;i<len;i++){
++				*setup_data_be32=config_data[i];
++				page_reg=setup_data.reg+(setup_data.page<<8);
++			    dev_dbg(&client->dev,"page_reg=0x%03x, data=0x%02x, mask=0x%02x \n",
++			    		(int) page_reg,(int)setup_data.data,(int)setup_data.mask);
++			    if (((rc=write_reg(client, page_reg, setup_data.data, setup_data.mask)))<0) return rc;
++			}
++		} else {
++			dev_info(&client->dev,"'si5338,configuration_data' not found in the Device Tree\n");
++		}
++	} else {
++		dev_info(&client->dev,"Device tree data not found for %s\n",client->name);
++	}
++}
 +
 +static int si5338_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
@@ -1194,6 +1268,8 @@ Index: git/drivers/misc/si5338.c
 +	i2c_set_clientdata(client, clientdata);
 +	if (((rc=read_reg(client, REG5338_PAGE)))<0) return rc; // will set clientdata->last_page
 +	si5338_sysfs_register(&client->dev);
++	mutex_init(&clientdata->lock);
++	si5338_init_of(client);
 +	return 0;
 +}
 +
