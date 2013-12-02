@@ -139,7 +139,7 @@
 			xlnx,i2c-reset = "";
 
 			rtc@68 {
-				compatible = "stm,m41t80";
+				compatible = "stm,m41t62";
 				reg = <0x68>;
 			};
 
@@ -183,6 +183,12 @@
 				0x1ffcf0 /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
 				0x20a0f0 /* just for testing: write data 0xa0 with write enable mask 0xf0 to register 0x020 */
 				>;
+				si5338,in_pfd_ref=<0>; /* p1div_in (input divisors not used) */
+				si5338,in_pfd_fb= <0>; /* unused */
+				si5338,in_p1_div= <0>; /* unused */
+				si5338,in_p2_div= <0>; /* unused */
+				si5338,in_mux= <1>; /* in-3 */
+				si5338,in_frequency= <25000000>; /* 25MHz */
 			};
 			gpio@20{
 				compatible = "ti,tca6408";

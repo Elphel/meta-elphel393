@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-11-29 23:33:09.275656939 -0700
-+++ git/drivers/misc/Kconfig	2013-11-29 23:33:12.155656969 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-01 13:21:03.113068339 -0700
++++ git/drivers/misc/Kconfig	2013-12-01 13:21:06.549068375 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-11-29 23:33:09.275656939 -0700
-+++ git/drivers/misc/Makefile	2013-11-29 23:33:12.155656969 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-01 13:21:03.113068339 -0700
++++ git/drivers/misc/Makefile	2013-12-01 13:21:06.549068375 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-11-29 23:33:12.155656969 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-01 13:21:06.549068375 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-11-29 23:33:12.159656969 -0700
-@@ -0,0 +1,381 @@
++++ git/drivers/misc/si5338.c	2013-12-01 17:28:06.337222090 -0700
+@@ -0,0 +1,867 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -942,6 +942,8 @@ Index: git/drivers/misc/si5338.c
 +#include <linux/mutex.h>
 +#include <linux/string.h>
 +#include <linux/of.h>
++#include <linux/math64.h>
++
 +
 +#define DRV_VERSION "1.0"
 +#define SYSFS_PERMISSIONS         0644 /* default permissions for sysfs files */
@@ -959,8 +961,21 @@ Index: git/drivers/misc/si5338.c
 +
 +#define FVCOMIN                    2200000000L
 +#define FVCOMAX                    2840000000L
++#define INFREQMIN                     5000000LL
++#define INFREQMAX                   710000000LL
 +
 +
++#define AWE_IN_MUX                 0x1d18
++#define AWE_IN_MUX1                0x1c1c
++
++#define AWE_XTAL_FREQ              0x1c03
++#define AWE_PFD_REF                0x1de0
++#define AWE_PFD_FB                 0x1ee0
++#define AWE_P1DIV                  0x1d07
++#define AWE_P2DIV                  0x1e07
++
++
++static void si5338_init_of(struct i2c_client *client);
 +
 +
 +static ssize_t raw_address_show (struct device *dev, struct device_attribute *attr, char *buf);
@@ -975,20 +990,59 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t raw_hex_adwe_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t raw_hex_adwe_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
-+static void si5338_init_of(struct i2c_client *client);
++//static ssize_t input_xtal_freq_show (struct device *dev, struct device_attribute *attr, char *buf);
++//static ssize_t input_xtal_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t input_xtal_freq_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_frequency_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_frequency_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t _in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn);
++static ssize_t _in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
++static ssize_t in_p1_div_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_p1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_p2_div_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_p2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_mux_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_mux_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_mux_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_pfd_ref_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_pfd_ref_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_pfd_ref_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_pfd_fb_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_pfd_fb_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_pfd_fb_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ref_frequency_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
++
++
++/* -------------------------------------- */
++
++static s64 get_pll_in_frequency(struct i2c_client *client);
++static int set_in_mux(struct i2c_client *client, int data);
++static int get_in_mux(struct i2c_client *client);
++static int set_in_pdiv(struct i2c_client *client, int div, int chn); /*chn =0,1 */
++static int get_in_pdiv(struct i2c_client *client, int chn); /*chn =0,1 */
++static int set_in_pfd_ref_fb(struct i2c_client *client, u8 val, int chn); /*chn =0 - ref, 1 - fb*/
++static int get_in_pfd_ref_fb(struct i2c_client *client, int chn); /*chn =0,1 */
++static int set_in_frequency(struct i2c_client *client, u64 frequency);
++static u64 get_in_frequency(struct i2c_client *client);
++
++
++static s64 read_multireg64 (struct i2c_client *client, int awel, u32 * awe);
++static int write_multireg64 (struct i2c_client *client, u64 data, int awel, u32 * awe);
++static int read_field (struct i2c_client *client, u32 awe);
++static int write_field (struct i2c_client *client, u8 data, u32 awe);
 +static int write_adwe(struct i2c_client *client, u32 adwe);
 +static int write_reg(struct i2c_client *client, u16 reg, u8 val, u8 mask);
 +static int read_reg(struct i2c_client *client, u16 reg);
 +
 +
 +/* raw access to i2c registers, need to set address (9 bits) first, then r/w data */
-+static DEVICE_ATTR(address,     SYSFS_PERMISSIONS,  raw_address_show, raw_address_store);
-+static DEVICE_ATTR(data,        SYSFS_PERMISSIONS,  raw_data_show,    raw_data_store);
-+static DEVICE_ATTR(hex_address, SYSFS_PERMISSIONS,  raw_hex_address_show, raw_hex_address_store);
-+static DEVICE_ATTR(hex_data,    SYSFS_PERMISSIONS,  raw_hex_data_show,    raw_hex_data_store);
-+static DEVICE_ATTR(hex_all,     SYSFS_PERMISSIONS & SYSFS_READONLY,  raw_hex_all_show,  NULL);
-+static DEVICE_ATTR(hex_adwe,    SYSFS_PERMISSIONS,  raw_hex_adwe_show,  raw_hex_adwe_store);
++static DEVICE_ATTR(address,      SYSFS_PERMISSIONS,  raw_address_show, raw_address_store);
++static DEVICE_ATTR(data,         SYSFS_PERMISSIONS,  raw_data_show,    raw_data_store);
++static DEVICE_ATTR(hex_address,  SYSFS_PERMISSIONS,  raw_hex_address_show, raw_hex_address_store);
++static DEVICE_ATTR(hex_data,     SYSFS_PERMISSIONS,  raw_hex_data_show,    raw_hex_data_store);
++static DEVICE_ATTR(hex_all,      SYSFS_PERMISSIONS & SYSFS_READONLY,  raw_hex_all_show,  NULL);
++static DEVICE_ATTR(hex_adwe,     SYSFS_PERMISSIONS,  raw_hex_adwe_show,  raw_hex_adwe_store);
 +
 +static struct attribute *raw_dev_attrs[] = {
 +	&dev_attr_address.attr,
@@ -1005,12 +1059,54 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "raw",
 +};
 +
++
++//static DEVICE_ATTR(xtal_freq,    SYSFS_PERMISSIONS,  input_xtal_freq_show, input_xtal_freq_store);
++static DEVICE_ATTR(xtal_freq_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  input_xtal_freq_txt_show, NULL);
++
++static DEVICE_ATTR(in_frequency,     SYSFS_PERMISSIONS,                   in_frequency_show, in_frequency_store);
++static DEVICE_ATTR(in_p1_div,        SYSFS_PERMISSIONS,                   in_p1_div_show,   in_p1_div_store);
++static DEVICE_ATTR(in_p2_div,        SYSFS_PERMISSIONS,                   in_p2_div_show,   in_p2_div_store);
++static DEVICE_ATTR(in_mux,           SYSFS_PERMISSIONS,                   in_mux_show, in_mux_store);
++static DEVICE_ATTR(in_mux_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  in_mux_txt_show, NULL);
++static DEVICE_ATTR(in_pfd_ref,       SYSFS_PERMISSIONS,                   in_pfd_ref_show, in_pfd_ref_store);
++static DEVICE_ATTR(in_pfd_ref_txt,   SYSFS_PERMISSIONS & SYSFS_READONLY,  in_pfd_ref_txt_show, NULL);
++static DEVICE_ATTR(in_pfd_fb,        SYSFS_PERMISSIONS,                   in_pfd_fb_show, in_pfd_fb_store);
++static DEVICE_ATTR(in_pfd_fb_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  in_pfd_fb_txt_show, NULL);
++static DEVICE_ATTR(pll_ref_frequency,SYSFS_PERMISSIONS & SYSFS_READONLY,  pll_ref_frequency_show, NULL);
++
++
++static struct attribute *input_dev_attrs[] = {
++//	&dev_attr_xtal_freq.attr,
++	&dev_attr_xtal_freq_txt.attr,
++	&dev_attr_in_frequency.attr,
++	&dev_attr_in_p1_div.attr,
++	&dev_attr_in_p2_div.attr,
++	&dev_attr_in_mux.attr,
++	&dev_attr_in_mux_txt.attr,
++	&dev_attr_in_pfd_ref.attr,
++	&dev_attr_in_pfd_ref_txt.attr,
++	&dev_attr_in_pfd_fb.attr,
++	&dev_attr_in_pfd_fb_txt.attr,
++	&dev_attr_pll_ref_frequency.attr,
++	NULL
++};
++
++static const struct attribute_group dev_attr_input_group = {
++	.attrs = input_dev_attrs,
++	.name  = "input",
++};
++
++
++
++
 +static const struct i2c_device_id si5338_id[] = {
 +	{ "si5338", 0 },
 +	{ }
 +};
 +
 +struct si5338_data_t {
++	u64 input_frequency;
++	u64 pll_frequency;
 +	int reg_addr;   /* used for raw register r/w */
 +	int last_page;  /* value of last page accessed (bit 0 of register 255) */
 +	struct mutex lock;
@@ -1024,6 +1120,7 @@ Index: git/drivers/misc/si5338.c
 +    int retval=0;
 +    if (&dev->kobj) {
 +    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_raw_group)))<0) return retval;
++    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_input_group)))<0) return retval;
 +    }
 +    return retval;
 +}
@@ -1151,6 +1248,345 @@ Index: git/drivers/misc/si5338.c
 +	mutex_unlock(&clientdata->lock);
 +    return count;
 +}
++/*
++static ssize_t input_xtal_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data= read_field (client, AWE_XTAL_FREQ);
++    return sprintf(buf, "0x%02x\n",data);
++}
++static ssize_t input_xtal_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data;
++    sscanf(buf, "%x", &data);
++    write_field (client, data, AWE_XTAL_FREQ);
++    return count;
++}
++*/
++static ssize_t input_xtal_freq_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	const char *txt[]= {"8MHz..11Mhz", "11MHz..19Mhz", "19MHz..26Mhz", "26MHz..30Mhz"};
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data= read_field (client, AWE_XTAL_FREQ);
++    return sprintf(buf, "%s\n",(data>=0)?txt[data]:"error");
++}
++
++
++static ssize_t in_frequency_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	s64 freq= get_in_frequency (client);
++	if (freq<0) return -EINVAL;
++    return sprintf(buf, "%lld\n",freq);
++}
++static ssize_t in_frequency_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int rc;
++	u64 freq;
++	struct i2c_client *client =       to_i2c_client(dev);
++    sscanf(buf, "%lld", &freq);
++    if (((rc=set_in_frequency (client, freq)))<0) return rc;
++    return count;
++}
++
++static ssize_t _in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn)
++{
++	int div;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((div=get_in_pdiv(client,chn)))<0) return div;
++    return sprintf(buf, "%d\n",div);
++}
++static ssize_t _in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int div,rc;
++    sscanf(buf, "%d", &div);
++    if (((rc=set_in_pdiv(client, div,chn)))<0) return rc;
++    return count;
++}
++
++static ssize_t in_p1_div_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return _in_p12_div_show (dev, attr, buf, 0);
++}
++static ssize_t in_p1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	return _in_p12_div_store(dev, attr, buf, count, 0);
++}
++
++static ssize_t in_p2_div_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return _in_p12_div_show (dev, attr, buf, 1);
++}
++static ssize_t in_p2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	return _in_p12_div_store(dev, attr, buf, count, 1);
++}
++
++static ssize_t in_mux_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_mux(client)))<0) return data;
++    return sprintf(buf, "%d\n",data);
++}
++static ssize_t in_mux_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data,rc;
++	sscanf(buf, "%d", &data);
++    if (((rc=set_in_mux(client, data)))<0) return rc;
++    return count;
++}
++static ssize_t in_mux_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	const char *mux_txt[]={"IN1/IN2(diff)","IN3(single ended)","IN1/IN2(xtal)"};
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_mux(client)))<0) return data;
++    return sprintf(buf, "%s\n",mux_txt[data]);
++}
++static ssize_t in_pfd_ref_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_pfd_ref_fb(client,0)))<0) return data;
++    return sprintf(buf, "%d\n",data);
++}
++static ssize_t in_pfd_ref_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data,rc;
++	sscanf(buf, "%d", &data);
++    if (((rc=set_in_pfd_ref_fb(client, data,0)))<0) return rc;
++    return count;
++}
++static ssize_t in_pfd_ref_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	const char *pfd_ref_txt[]={"p1div_in(refclk)","p2div_in(fbclk)","p1div_out(refclk)","p2div_out(fbclk)","xoclk","noclk"};
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_pfd_ref_fb(client,0)))<0) return data;
++    return sprintf(buf, "%s\n",pfd_ref_txt[data]);
++}
++
++static ssize_t in_pfd_fb_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_pfd_ref_fb(client,1)))<0) return data;
++    return sprintf(buf, "%d\n",data);
++}
++static ssize_t in_pfd_fb_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data,rc;
++	sscanf(buf, "%d", &data);
++    if (((rc=set_in_pfd_ref_fb(client, data,1)))<0) return rc;
++    return count;
++}
++static ssize_t in_pfd_fb_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	const char *pfd_fb_txt[]={"p2div_in(fbclk)","p1div_in(refclk)","p2div_out(fbclk)","p1div_out(refclk)","reserved","noclk"};
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data=get_in_pfd_ref_fb(client,1)))<0) return data;
++    return sprintf(buf, "%s\n",pfd_fb_txt[data]);
++}
++
++static ssize_t pll_ref_frequency_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	s64 pll_in_freq= get_pll_in_frequency(client);
++	if (pll_in_freq<0) return (int) pll_in_freq;
++    return sprintf(buf, "%lld\n",pll_in_freq);
++}
++
++
++
++/* -------------------------------------- */
++
++static s64 get_pll_in_frequency(struct i2c_client *client)
++{
++	int mux;
++	int div=1;
++	s64 in_freq= get_in_frequency (client);
++	if (in_freq<0) return -EINVAL;
++	if (((mux=get_in_pfd_ref_fb(client,0)))<0) return mux;
++	if      (mux==2) div=get_in_pdiv(client,0);
++	else if (mux==3) div=get_in_pdiv(client,1);
++	if (div<0) return div;
++	return div64_u64(in_freq,div);
++}
++
++static int set_in_mux(struct i2c_client *client, int data)
++{
++	int data1,rc;
++	switch (data) {
++	case 0: data1=0; break;
++	case 1: data1=2; break;
++	case 2: data1=5; break;
++	default:
++		dev_err(&client->dev, "Invalid value for input multiplexer %d\n",data);
++		return - EINVAL;
++	}
++	if (((rc=write_field (client, data,  AWE_IN_MUX )))<0) return rc;
++	if (((rc=write_field (client, data1, AWE_IN_MUX1)))<0) return rc;
++	return 0;
++}
++
++static int get_in_mux(struct i2c_client *client)
++{
++	return read_field(client,AWE_IN_MUX );
++}
++static const u8 in_div_values[]={1,2,4,8,16,32};
++static int set_in_pdiv(struct i2c_client *client, int div, int chn) /*chn =0,1 */
++{
++	int rc;
++	u8 val;
++	for (val=0;val<(sizeof(in_div_values)/sizeof(in_div_values[0]));val++) if (in_div_values[val]==div) {
++		if (((rc=write_field (client, val,  chn?AWE_P2DIV:AWE_P1DIV )))<0) return rc;
++		return 0;
++	}
++	dev_err(&client->dev, "Invalid value for input divider: %d\n",div);
++	return - EINVAL;
++}
++
++static int get_in_pdiv(struct i2c_client *client, int chn) /*chn =0,1 */
++{
++	int rc;
++	if (((rc=read_field(client, chn?AWE_P2DIV:AWE_P1DIV )))<0) return rc;
++	if (rc>=(sizeof(in_div_values)/sizeof(in_div_values[0]))){
++		dev_err(&client->dev, "Invalid value for input divider: %d\n",rc);
++		return - EINVAL;
++	}
++	return in_div_values[rc];
++}
++
++static int set_in_pfd_ref_fb(struct i2c_client *client, u8 val, int chn) /*chn =0 - ref, 1 - fb*/
++{
++	int rc;
++	if (val>5) {
++		dev_err(&client->dev, "Invalid value for input pfd selector: %d\n", (int) val);
++		return - EINVAL;
++	}
++	if (((rc=write_field (client, val,  chn?AWE_PFD_FB:AWE_PFD_REF )))<0) return rc;
++	return 0;
++}
++
++static int get_in_pfd_ref_fb(struct i2c_client *client, int chn) /*chn =0,1 */
++{
++	return read_field(client, chn?AWE_PFD_FB:AWE_PFD_REF );
++}
++
++static int set_in_frequency(struct i2c_client *client, u64 frequency)
++{
++	int xtal_mode;
++	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	if (frequency < INFREQMIN){
++		dev_err(&client->dev, "Input frequency too low: %llu < %llu\n",frequency, INFREQMIN);
++		return - EINVAL;
++	}
++	if (frequency > INFREQMAX){
++		dev_err(&client->dev, "Input frequency too high: %llu > %llu\n",frequency, INFREQMAX);
++		return - EINVAL;
++	}
++	clientdata->input_frequency=frequency;
++	/* set xtal mode */
++	xtal_mode=0;
++	if (frequency>11000000ll) xtal_mode=1;
++	if (frequency>19000000ll) xtal_mode=2;
++	if (frequency>26000000ll) xtal_mode=3;
++	return write_field (client, xtal_mode, AWE_XTAL_FREQ);
++}
++static u64 get_in_frequency(struct i2c_client *client)
++{
++	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	return clientdata->input_frequency;
++}
++
++/* -------------------------------------- */
++
++static s64 read_multireg64 (struct i2c_client *client, int awel, u32 * awe)
++{
++	int i,nshift,nbits, full_shift=0;
++	u8 mask;
++	u16 reg;
++	s64 data=0, rc;
++	for (i=0;i<awel;i++){
++		reg=awe[i]>>8;
++		mask=awe[i]&0xff;
++		if (mask!=0){
++			nshift=0;
++			nbits=1;
++			while (((1<<nshift) & mask)==0) nshift++;
++			while (((1<<(nshift+nbits)) & mask)!=0) nbits++;
++			if (((rc=read_reg(client, reg)))<0) return rc;
++			rc &=  mask;
++			rc >>= nshift;
++			rc <<= full_shift;
++			data |= rc;
++			full_shift+=nbits;
++		}
++	}
++	return data;
++}
++
++
++static int write_multireg64 (struct i2c_client *client, u64 data, int awel, u32 * awe)
++{
++	int i,rc,nshift,nbits;
++	u8 mask,reg_data;
++	u16 reg;
++	for (i=0;i<awel;i++){
++		reg=awe[i]>>8;
++		mask=awe[i]&0xff;
++		if (mask!=0){
++			nshift=0;
++			nbits=1;
++			while (((1<<nshift) & mask)==0) nshift++;
++			while (((1<<(nshift+nbits)) & mask)!=0) nbits++;
++			reg_data=(data & 0xff) << nshift; /* may have some garbage in high bits, will be cut of by mask */
++			data >>= nbits;
++			if (((rc=write_reg(client, reg, reg_data, mask)))<0) return rc;
++		}
++	}
++	return 0;
++}
++
++static int read_field (struct i2c_client *client, u32 awe)
++{
++	int rc,nshift;
++	u8 mask;
++	u16 reg;
++	reg=awe>>8;
++	mask=awe&0xff;
++	if (mask!=0){
++		nshift=0;
++		while (((1<<nshift) & mask)==0) nshift++;
++		if (((rc=read_reg(client, reg)))<0) return rc;
++		return (rc & mask) >> nshift;
++	}
++	return 0;
++}
++
++
++static int write_field (struct i2c_client *client, u8 data, u32 awe)
++{
++	int rc,nshift;
++	u8 mask,reg_data;
++	u16 reg;
++	reg=awe>>8;
++	mask=awe&0xff;
++	if (mask!=0){
++		nshift=0;
++		while (((1<<nshift) & mask)==0) nshift++;
++		reg_data=(data & 0xff) << nshift;
++		if (((rc=write_reg(client, reg, reg_data, mask)))<0) return rc;
++	}
++}
++
 +
 +static int write_adwe(struct i2c_client *client, u32 adwe)
 +{
@@ -1158,7 +1594,6 @@ Index: git/drivers/misc/si5338.c
 +	u8 data= (adwe>>8) & 0xff;
 +	u16 reg=  (adwe>>16) & (0xff | (REG5338_PAGE_MASK << 8)); /* 0x1ff */
 +	return write_reg(client, reg, data, we);
-+
 +}
 +
 +static int _write_single_reg(struct i2c_client *client, u8 reg, u8 val)
@@ -1213,7 +1648,7 @@ Index: git/drivers/misc/si5338.c
 +//	struct device *dev=&client->dev;
 +	const __be32 * config_data;
 +	struct device_node *node = client->dev.of_node;
-+    int len,i,rc;
++    int len,i;
 +    u16 page_reg;
 +    struct si5338_setup_data  {
 +    	u8		page;
@@ -1234,15 +1669,62 @@ Index: git/drivers/misc/si5338.c
 +				page_reg=setup_data.reg+(setup_data.page<<8);
 +			    dev_dbg(&client->dev,"page_reg=0x%03x, data=0x%02x, mask=0x%02x \n",
 +			    		(int) page_reg,(int)setup_data.data,(int)setup_data.mask);
-+			    if (((rc=write_reg(client, page_reg, setup_data.data, setup_data.mask)))<0) return rc;
++			    if (write_reg(client, page_reg, setup_data.data, setup_data.mask)<0) return;
 +			}
-+		} else {
-+			dev_info(&client->dev,"'si5338,configuration_data' not found in the Device Tree\n");
++//		} else {
++//			dev_info(&client->dev,"'si5338,configuration_data' not found in the Device Tree\n");
 +		}
++		/* input section */
++		config_data = of_get_property(client->dev.of_node, "si5338,in_pfd_ref", &len);
++		if (config_data && (len>0)) {
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_pfd_ref",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_pfd_ref_fb(client, be32_to_cpup(config_data), 0);
++		}
++		config_data = of_get_property(client->dev.of_node, "si5338,in_pfd_fb", &len);
++		if (config_data && (len>0)){
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_pfd_fb",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_pfd_ref_fb(client, be32_to_cpup(config_data), 1);
++		}
++		config_data = of_get_property(client->dev.of_node, "si5338,in_p1_div", &len);
++		if (config_data && (len>0)) {
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_p1_div",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_pdiv(client, be32_to_cpup(config_data), 0);
++		}
++		config_data = of_get_property(client->dev.of_node, "si5338,in_p2_div", &len);
++		if (config_data && (len>0)) {
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_p2_div",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_pdiv(client, be32_to_cpup(config_data), 1);
++		}
++		config_data = of_get_property(client->dev.of_node, "si5338,in_mux", &len);
++		if (config_data && (len>0)) {
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_mux",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_mux(client, be32_to_cpup(config_data));
++		}
++		config_data = of_get_property(client->dev.of_node, "si5338,in_frequency", &len);
++		if (config_data && (len>0)) {
++			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_frequency",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++			set_in_frequency(client, be32_to_cpup(config_data)); /* 32 bits are sufficient here */
++		}
++/*
++si5338 0-0070: Chip si5338 is found, driver version 1.0
++si5338 0-0070: Found 2 items in 'si5338,configuration_data' in the Device Tree
++si5338 0-0070: Invalid value for input multiplexer 16777216
++si5338 0-0070: Input frequency too high: 1081638145 > 710000000
++ */
 +	} else {
 +		dev_info(&client->dev,"Device tree data not found for %s\n",client->name);
 +	}
 +}
++#if 0
++si5338,in_pfd_ref=<0>; /* p1div_in (input divisors not used) */
++si5338,in_pfd_fb= <0>; /* unused */
++si5338,in_p1_div= <0>; /* unused */
++si5338,in_p2_div= <0>; /* unused */
++si5338,in_mux= <1>; /* in-3 */
++si5338,in_frequency= <25000000>; /* 25MHz */
++
++#endif
++
 +
 +static int si5338_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
@@ -1269,6 +1751,10 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=read_reg(client, REG5338_PAGE)))<0) return rc; // will set clientdata->last_page
 +	si5338_sysfs_register(&client->dev);
 +	mutex_init(&clientdata->lock);
++
++	clientdata->input_frequency=0;
++	clientdata->pll_frequency=0;
++
 +	si5338_init_of(client);
 +	return 0;
 +}
