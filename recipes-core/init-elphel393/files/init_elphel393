@@ -1,0 +1,28 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/init_elphel393
+NAME=init_elphel393
+DESC="extra init scripts"
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	echo "$NAME."
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	echo "$NAME."
+	;;
+  restart|force-reload)
+	echo -n "Restarting $DESC: "
+	echo "$NAME."
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0 
