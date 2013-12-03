@@ -9,8 +9,9 @@ IMAGE_INSTALL_append = " python-core \
                          mtd-utils \
                          ethtool \
                          net-tools \
+                         ntp \
                          sntp \
-                         ntp-utils \
+                         ntpdate \
                          openssh \
                          nano \
                          lighttpd \
