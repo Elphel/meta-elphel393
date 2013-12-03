@@ -9,6 +9,8 @@ IMAGE_INSTALL_append = " python-core \
                          mtd-utils \
                          ethtool \
                          net-tools \
+                         sntp \
+                         ntp-utils \
                          openssh \
                          nano \
                          lighttpd \
@@ -17,7 +19,8 @@ IMAGE_INSTALL_append = " python-core \
                          modphp \
                          apache2 \
                          php-cgi \
-                         php-cli"
+                         php-cli \
+                         init-elphel393"
 
 
 IMAGE_LINGUAS = " "
