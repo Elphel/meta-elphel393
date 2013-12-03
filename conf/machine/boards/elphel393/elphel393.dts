@@ -188,6 +188,7 @@
 				si5338,in_p1_div= <0>; /* unused */
 				si5338,in_p2_div= <0>; /* unused */
 				si5338,in_mux= <1>; /* in-3 */
+				si5338,fb_mux= <2>; /* no clock */
 				si5338,in_frequency= <25000000>; /* 25MHz */
 			};
 			gpio@20{
