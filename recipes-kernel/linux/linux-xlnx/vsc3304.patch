@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-02 23:08:01.002329798 -0700
-+++ git/drivers/misc/Kconfig	2013-12-02 23:08:03.994329829 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-03 15:26:18.686938629 -0700
++++ git/drivers/misc/Kconfig	2013-12-03 15:26:21.590938659 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-02 23:08:01.002329798 -0700
-+++ git/drivers/misc/Makefile	2013-12-02 23:08:03.994329829 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-03 15:26:18.686938629 -0700
++++ git/drivers/misc/Makefile	2013-12-03 15:26:21.590938659 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-12-02 23:08:03.998329829 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-03 15:26:21.594938659 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-12-02 23:17:35.422335756 -0700
-@@ -0,0 +1,1493 @@
++++ git/drivers/misc/si5338.c	2013-12-03 22:08:01.215188627 -0700
+@@ -0,0 +1,1759 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -986,6 +986,8 @@ Index: git/drivers/misc/si5338.c
 +#define AWE_VCO_GAIN               0x3170
 +#define AWE_RSEL                   0x310c
 +#define AWE_BWSEL                  0x3103
++#define AWE_VCO_GAIN_RSEL_BWSEL    0x317f
++
 +#define AWE_PLL_EN                 0x32c0
 +#define AWE_MSCAL                  0x323f
 +#define AWE_MS3_HS                 0x3380
@@ -1071,6 +1073,13 @@ Index: git/drivers/misc/si5338.c
 +#define AWE_MSN_P3_23_16           0x69ff
 +#define AWE_MSN_P3_29_24           0x6a3f
 +
++#define AWE_MISC_47                0x2ffc /* write 0x5 */
++#define AWE_MISC_106               0x6a80 /* write 0x1 */
++#define AWE_MISC_116               0x7480 /* write 0x1 */
++#define AWE_MISC_42                0x2a20 /* write 0x1 */
++#define AWE_MISC_06A               0x06e0 /* write 0x0 */
++#define AWE_MISC_06B               0x0602 /* write 0x0 */
++#define AWE_MISC_28                0x1cc0 /* write 0x0 */
 +
 +static void si5338_init_of(struct i2c_client *client);
 +
@@ -1142,9 +1151,25 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t pll_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t pll_by_out_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t pll_by_out_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t _pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
++static ssize_t _pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int chn);
++static ssize_t pll_ms0_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ms1_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ms2_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ms3_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ms0_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms1_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms2_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms3_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms0_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms1_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms2_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms3_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
 +
 +/* -------------------------------------- */
++static int set_pll_paremeters(struct i2c_client *client);
++static int set_misc_registers(struct i2c_client *client);
 +static int ms_to_p123(u64* ms,u32 * p123);
 +static int p123_to_ms(u64* ms,u32 * p123);
 +static int get_ms_p123(struct i2c_client *client,u32 * p123, int chn); /* chn 0,1,2,3,4 (4 - msn) */
@@ -1153,7 +1178,8 @@ Index: git/drivers/misc/si5338.c
 +static int get_pll_freq(struct i2c_client *client,u64 * pll_freq);
 +static int set_pll_freq_by_out(struct i2c_client *client, u64 *out_freq, int int_msn_div);
 +
-+
++static int get_pll_ms_freq(struct i2c_client *client, u64 *out_freq, int chn);
++static int set_pll_ms_by_out(struct i2c_client *client, u64 *out_freq, int chn, int int_div);
 +static s64 get_pll_in_frequency(struct i2c_client *client);
 +static int set_in_mux(struct i2c_client *client, int data);
 +static int get_in_mux(struct i2c_client *client);
@@ -1273,12 +1299,30 @@ Index: git/drivers/misc/si5338.c
 +static DEVICE_ATTR(pll_by_out_int,  SYSFS_PERMISSIONS,  pll_freq_show,  pll_by_out_int_store);
 +
 +
++static DEVICE_ATTR(pll_ms0_freq_fract,SYSFS_PERMISSIONS,  pll_ms0_freq_show,  pll_ms0_freq_fract_store);
++static DEVICE_ATTR(pll_ms0_freq_int,  SYSFS_PERMISSIONS,  pll_ms0_freq_show,  pll_ms0_freq_int_store);
++static DEVICE_ATTR(pll_ms1_freq_fract,SYSFS_PERMISSIONS,  pll_ms1_freq_show,  pll_ms1_freq_fract_store);
++static DEVICE_ATTR(pll_ms1_freq_int,  SYSFS_PERMISSIONS,  pll_ms1_freq_show,  pll_ms1_freq_int_store);
++static DEVICE_ATTR(pll_ms2_freq_fract,SYSFS_PERMISSIONS,  pll_ms2_freq_show,  pll_ms2_freq_fract_store);
++static DEVICE_ATTR(pll_ms2_freq_int,  SYSFS_PERMISSIONS,  pll_ms2_freq_show,  pll_ms2_freq_int_store);
++static DEVICE_ATTR(pll_ms3_freq_fract,SYSFS_PERMISSIONS,  pll_ms3_freq_show,  pll_ms3_freq_fract_store);
++static DEVICE_ATTR(pll_ms3_freq_int,  SYSFS_PERMISSIONS,  pll_ms3_freq_show,  pll_ms3_freq_int_store);
++
++
 +static struct attribute *pll_dev_attrs[] = {
 +	&dev_attr_pll_ref_frequency.attr,
 +	&dev_attr_pll_freq_fract.attr,
 +	&dev_attr_pll_freq_int.attr,
 +	&dev_attr_pll_by_out_fract.attr,
 +	&dev_attr_pll_by_out_int.attr,
++	&dev_attr_pll_ms0_freq_fract.attr,
++	&dev_attr_pll_ms0_freq_int.attr,
++	&dev_attr_pll_ms1_freq_fract.attr,
++	&dev_attr_pll_ms1_freq_int.attr,
++	&dev_attr_pll_ms2_freq_fract.attr,
++	&dev_attr_pll_ms2_freq_int.attr,
++	&dev_attr_pll_ms3_freq_fract.attr,
++	&dev_attr_pll_ms3_freq_int.attr,
 +	NULL
 +};
 +
@@ -1439,22 +1483,7 @@ Index: git/drivers/misc/si5338.c
 +	mutex_unlock(&clientdata->lock);
 +    return count;
 +}
-+/*
-+static ssize_t input_xtal_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int data= read_field (client, AWE_XTAL_FREQ);
-+    return sprintf(buf, "0x%02x\n",data);
-+}
-+static ssize_t input_xtal_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int data;
-+    sscanf(buf, "%x", &data);
-+    write_field (client, data, AWE_XTAL_FREQ);
-+    return count;
-+}
-+*/
++
 +static ssize_t input_xtal_freq_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
 +	const char *txt[]= {"8MHz..11Mhz", "11MHz..19Mhz", "19MHz..26Mhz", "26MHz..30Mhz"};
@@ -1734,8 +1763,13 @@ Index: git/drivers/misc/si5338.c
 +	}
 +	if (by_out) {
 +		if (((rc=set_pll_freq_by_out(client, freq, int_div)))<0) return rc;
++		if (((rc=set_pll_paremeters(client)))<0) return rc;
++		if (((rc=set_misc_registers(client)))<0) return rc;
++
 +	} else {
 +		if (((rc=set_pll_freq       (client, freq, int_div)))<0) return rc;
++		if (((rc=set_pll_paremeters(client)))<0) return rc;
++		if (((rc=set_misc_registers(client)))<0) return rc;
 +	}
 +    return count;
 +}
@@ -1748,14 +1782,129 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t pll_by_out_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +	{return _pll_freq_store(dev, attr, buf, count, 1, 1);}
 +
++static ssize_t _pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++{
++	int rc;
++	u64 ms_freq[3];
++	struct i2c_client *client =       to_i2c_client(dev);
++
++	if (((rc=get_pll_ms_freq(client, ms_freq, chn)))<0) return rc;
++    return sprintf(buf, "%lld %lld %lld\n",ms_freq[0],ms_freq[1],ms_freq[2]);
++}
++static ssize_t _pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int chn)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int rc;
++	u64 freq[3];
++	int num_items;
++	num_items=sscanf(buf, "%lld %lld %lld", &freq[0], &freq[1], &freq[2]);
++	if (num_items<3){
++		freq[1]=0;
++		freq[2]=1;
++	}
++	if (((rc=set_pll_ms_by_out(client, freq, chn, int_div)))<0) return rc;
++    return count;
++}
++static ssize_t pll_ms0_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
++{return _pll_ms_freq_show(dev, attr, buf, 0);}
++static ssize_t pll_ms1_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
++{return _pll_ms_freq_show(dev, attr, buf, 1);}
++static ssize_t pll_ms2_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
++{return _pll_ms_freq_show(dev, attr, buf, 2);}
++static ssize_t pll_ms3_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
++{return _pll_ms_freq_show(dev, attr, buf, 3);}
++static ssize_t pll_ms0_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 0, 0);}
++static ssize_t pll_ms1_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 0, 1);}
++static ssize_t pll_ms2_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 0, 2);}
++static ssize_t pll_ms3_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 0, 3);}
++static ssize_t pll_ms0_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 1, 0);}
++static ssize_t pll_ms1_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 1, 1);}
++static ssize_t pll_ms2_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 1, 2);}
++static ssize_t pll_ms3_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{return _pll_ms_freq_store(dev, attr, buf, count, 1, 3);}
 +
 +
 +/* -----------PLL section--------------------------- */
-+/* Setting PLL frequency in 3 ways:
-+ * 1 - specified directly, allow fractional MSN
-+ * 2 - specified directly, integer MSN
-+ * 3 - specified by output frequency, integer MSN
-+ */
++static int set_pll_paremeters(struct i2c_client *client)
++{
++	int rc;
++	s64 pll_in_freq;
++	u64 pll_out_freq[3];
++	s64 K,Q,kphi_nom,kphi_denom,fvco_mhz, fpfd_mhz;
++	int rsel,bwsel,vco_gain,pll_kphi,mscal,ms_pec;
++	if (((pll_in_freq=get_pll_in_frequency(client)))<0) return (int) pll_in_freq;
++	if (((rc=get_pll_freq(client,pll_out_freq)))<0) return rc;
++	fpfd_mhz = div64_u64(pll_in_freq,1000000ll);
++	fvco_mhz = div64_u64(pll_out_freq[0],1000000ll);
++	if (fpfd_mhz>=15){
++		K=925;
++		rsel=0;
++		bwsel=0;
++	} else if (fpfd_mhz>=8){
++		K=325;
++		rsel=1;
++		bwsel=1;
++	} else {
++		K=185;
++		rsel=3;
++		bwsel=2;
++	}
++	if (fvco_mhz>2425){
++		Q=3;
++		vco_gain=0;
++	} else {
++		Q=4;
++		vco_gain=1;
++	}
++	kphi_nom=  K*2500LL*2500LL*2500LL;
++	kphi_denom=533LL*Q*fpfd_mhz*fvco_mhz*fvco_mhz;
++	pll_kphi=(int) div64_u64(kphi_nom + (kphi_denom>>1),kphi_denom);
++	if ((pll_kphi<1) || (pll_kphi>127)) {
++		dev_err(&client->dev, "Calculated PLL_KPHI does not fit 1<=%d<=127\n",pll_kphi);
++		if (pll_kphi<1) pll_kphi=1;
++		else if (pll_kphi>127) pll_kphi=127;
++	}
++	mscal = (int) div64_u64(2067000-667*fvco_mhz+50000,100000ll);
++	if ((mscal<0) || (mscal>63)) {
++		dev_err(&client->dev, "Calculated MSCAL does not fit 0<=%d<=63\n",mscal);
++		if (mscal<0) mscal=0;
++		else if (mscal>63) mscal=63;
++	}
++	ms_pec = 7;
++	dev_dbg(&client->dev, "Calculated values: PLL_KPHI=%d K=%lld RSEL=%d BWSEL=%d VCO_GAIN=%d MSCAL=%d MS_PEC=%d\n",
++			pll_kphi, K, rsel, bwsel, vco_gain, mscal, ms_pec);
++	/* setting actual registers */
++	if (((rc=write_field(client, (u8) pll_kphi, AWE_PLL_KPHI)))<0) return rc;
++	if (((rc=write_field(client, (u8) (((vco_gain & 7)<<4) | ((rsel & 3)<<2) | (bwsel & 3)),
++			AWE_VCO_GAIN_RSEL_BWSEL)))<0) return rc;
++	if (((rc=write_field(client, (u8) mscal,  AWE_MSCAL )))<0) return rc;
++	if (((rc=write_field(client, (u8) ms_pec, AWE_MS_PEC)))<0) return rc;
++	return 0;
++}
++
++static int set_misc_registers(struct i2c_client *client)
++{
++	/* ST52238 Reference Manual R1.2 p.28 */
++	int rc;
++	if (((rc=write_field(client, 0x5,  AWE_MISC_47 )))<0) return rc;
++	if (((rc=write_field(client, 0x1,  AWE_MISC_106 )))<0) return rc;
++	if (((rc=write_field(client, 0x1,  AWE_MISC_116 )))<0) return rc;
++	if (((rc=write_field(client, 0x1,  AWE_MISC_42 )))<0) return rc;
++	if (((rc=write_field(client, 0x0,  AWE_MISC_06A )))<0) return rc;
++	if (((rc=write_field(client, 0x0,  AWE_MISC_06B )))<0) return rc;
++	if (((rc=write_field(client, 0x0,  AWE_MISC_28 )))<0) return rc;
++	return 0;
++}
++
++
++/* -----------MultiSynth section--------------------------- */
 +static u32 awe_msx[5][3][5]=
 +	{{{AWE_MS0_P1_07_00, AWE_MS0_P1_15_08, AWE_MS0_P1_17_16, 0, 0},
 +	  {AWE_MS0_P2_05_00, AWE_MS0_P2_13_06, AWE_MS0_P2_21_14, AWE_MS0_P2_29_22, 0},
@@ -1824,6 +1973,10 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int i;
 +	s64 rc;
++	if ((chn<0) || (chn>4)){
++		dev_err(&client->dev, "Invalid channel %d. Only 0,1,2,3 and 4 (for MSN) are supported\n",chn);
++		return - EINVAL;
++	}
 +	for (i=0;i<3;i++){
 +		if (((rc=read_multireg64 (client,  awe_msx[chn][i])))<0) return (int) rc;
 +		p123[i]= (u32) rc;
@@ -1833,12 +1986,22 @@ Index: git/drivers/misc/si5338.c
 +static int set_ms_p123(struct i2c_client *client,u32 * p123, int chn) /* chn 0,1,2,3,4 (4 - msn) */
 +{
 +	int i,rc;
++	if ((chn<0) || (chn>4)){
++		dev_err(&client->dev, "Invalid channel %d. Only 0,1,2,3 and 4 (for MSN) are supported\n",chn);
++		return - EINVAL;
++	}
 +	for (i=0;i<3;i++){
 +		if (((rc=write_multireg64(client, (u64) p123[i], awe_msx[chn][i])))<0) return rc;
 +	}
 +	return 0;
 +}
 +
++/* Setting PLL frequency in 3 ways:
++ * 1 - specified directly, allow fractional MSN
++ * 2 - specified directly, integer MSN
++ * 3 - specified by output frequency, allow fractional MSN (use PPL frequency closest to the middle)
++ * 4 - specified by output frequency, integer MSN
++ */
 +static int set_pll_freq(struct i2c_client *client, u64 *vco_freq, int int_div)
 +{
 +	s64 pll_in_freq, pll_in_freq_scaled,pll_out_freq_scaled,d;
@@ -1892,7 +2055,7 @@ Index: git/drivers/misc/si5338.c
 +	ms_to_p123(msn, msn_p123);
 +	return set_ms_p123(client,msn_p123, 4); // MSN
 +}
-+
++/* normalizes output */
 +static int get_pll_freq(struct i2c_client *client,u64 * pll_freq)
 +{
 +	int rc;
@@ -1924,14 +2087,19 @@ Index: git/drivers/misc/si5338.c
 +{
 +	/* use r-divider if the output frequency is too low (less than 5 MHz) */
 +	u64 out_int=out_freq[0],out_nom=out_freq[1],out_denom=out_freq[2],
-+			pll_out_freq[3], scaled_max,scaled_min;
++			pll_out_freq[3], scaled_max,scaled_min,d;
 +	s64 pll_freq_scaled, out_freq_scaled,err,best_err=-1,out_div,pll_in_freq,in_div,best_in_div,
 +			pll_in_freq_scaled,synth_out_scaled;
 +	int r_div=1;
-+	if (out_denom<out_nom){
-+		dev_err(&client->dev, "Nominator (%lld) should be less than denominator (%lld)\n",
-+				out_nom,out_denom);
++	if (out_denom==0){
++		dev_err(&client->dev, "Denominator should not be 0 in %lld+%lld/%lld\n",
++				out_int,out_nom,out_denom);
 +		return -EINVAL;
++	}
++	if (out_nom>=out_denom){ /* normalize */
++		d=div64_u64(out_nom,out_denom);
++		out_int+=d;
++		out_nom-=d*out_denom;
 +	}
 +	if (out_int<(FVCOMAX/MSINT_MAX)){
 +		while ((r_div < 32) && (out_int<(FVCOMAX/MSINT_MAX))){
@@ -2014,8 +2182,106 @@ Index: git/drivers/misc/si5338.c
 +		return set_pll_freq(client, pll_out_freq, 0); /* integer result */
 +	}
 +}
++static int get_pll_ms_freq(struct i2c_client *client, u64 *out_freq, int chn)
++{
++	int rc;
++	u64 pll_out_freq[3], ms[3], pll_freq_scaled, ms_scaled;
++	u32 p123[3];
++	if (((rc=get_pll_freq(client,pll_out_freq)))<0) return rc;
++	/* trim PLL frequency fraction */
++	while (pll_out_freq[2]>=0x1000){
++		pll_out_freq[1] >>= 1;
++		pll_out_freq[2] >>= 1;
++	}
++	pll_freq_scaled=pll_out_freq[0]*pll_out_freq[2]+pll_out_freq[1];
 +
++	if (((rc=get_ms_p123(client,p123, chn)))<0) return rc; /* includes invalid chn */
++	p123_to_ms(ms,p123);
++	/* trim MS divisor fraction */
++	while (ms[2]>=0x1000){
++		ms[1] >>= 1;
++		ms[2] >>= 1;
++	}
++	ms_scaled=ms[0]*ms[2]+ms[1];
++	out_freq[1]=pll_freq_scaled*ms[2];
++	out_freq[2]=ms[0]*pll_out_freq[2];
++	out_freq[0]=div64_u64(out_freq[1],out_freq[2]);
++	out_freq[1]-=out_freq[0]*out_freq[2];
++	dev_dbg(&client->dev, "MS%d output frequency: %llu+%llu/%llu Hz\n",chn,out_freq[0],out_freq[1],out_freq[2]);
++	return 0;
++}
 +
++/*
++ *  Adjust MultiSynth divisor (MS0..MS3) for specified output frequency
++ *  MSN, input frequency should be already set
++ *  out_freq as int,nom,denom
++ */
++static int set_pll_ms_by_out(struct i2c_client *client, u64 *out_freq, int chn, int int_div)
++{
++	/* use r-divider if the output frequency is too low (less than 5 MHz) */
++	u64 out_int=out_freq[0],out_nom=out_freq[1],out_denom=out_freq[2],
++			pll_out_freq[3],d;
++	s64 pll_freq_scaled, out_freq_scaled;
++	u64 ms[3];
++	u32 p123[3];
++	int r_div=1,rc;
++	if (out_denom==0){
++		dev_err(&client->dev, "Denominator should not be 0 in %lld+%lld/%lld\n",
++				out_int,out_nom,out_denom);
++		return -EINVAL;
++	}
++	if (out_nom>=out_denom){ /* normalize */
++		d=div64_u64(out_nom,out_denom);
++		out_int+=d;
++		out_nom-=d*out_denom;
++	}
++	if (out_int<(FVCOMAX/MSINT_MAX)){
++		while ((r_div < 32) && (out_int<(FVCOMAX/MSINT_MAX))){
++			out_int<<=1;
++			out_nom<<=1;
++			r_div<<=1;
++			if (out_nom>out_denom) {
++				out_int++;
++				out_nom-=out_denom;
++			}
++
++		}
++		if (out_int<(FVCOMAX/MSINT_MAX)){
++			dev_err(&client->dev, "Specified output frequency is too low: %lld < %lld\n",
++					out_freq[0], FVCOMAX/MSINT_MAX/32);
++			return -EINVAL;
++		}
++	}
++	dev_dbg(&client->dev, "Output divider by %u, Output frequency before divider: %llu+%llu/%llu Hz\n",
++			r_div,out_int, out_nom,out_denom);
++	/* trim output frequency fraction */
++	while (out_denom>=0x1000){
++		out_nom >>= 1;
++		out_denom >>= 1;
++	}
++	out_freq_scaled=out_int*out_denom+out_nom;
++	if (((rc=get_pll_freq(client,pll_out_freq)))<0) return rc;
++	/* trim PLL frequency fraction */
++	while (pll_out_freq[2]>=0x1000){
++		pll_out_freq[1] >>= 1;
++		pll_out_freq[2] >>= 1;
++	}
++	pll_freq_scaled=pll_out_freq[0]*pll_out_freq[2]+pll_out_freq[1];
++	ms[1]=pll_freq_scaled*out_denom;
++	ms[2]=out_freq_scaled*pll_out_freq[2];
++	ms[0]=div64_u64(ms[1],ms[2]);
++	ms[1]-=ms[0]*ms[2];
++	if (int_div){
++		if (ms[1]>(ms[2]>>1)) ms[0]++;
++		ms[1]=0;
++		ms[2]=1;
++	}
++	dev_dbg(&client->dev, "MS%d divider: %llu+%llu/%llu\n",chn,ms[0],ms[1],ms[2]);
++	/* set up registers */
++	ms_to_p123(ms,p123);
++	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
++	return 0;
++}
 +
 +/* ----------- Input section ----------------- */
 +
