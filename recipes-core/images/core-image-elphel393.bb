@@ -11,6 +11,7 @@ IMAGE_INSTALL_append = " python-core \
                          net-tools \
                          ntp \
                          sntp \
+                         ntpdate \
                          openssh \
                          nano \
                          lighttpd \
