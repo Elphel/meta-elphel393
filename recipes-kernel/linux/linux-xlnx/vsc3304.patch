@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-03 15:26:18.686938629 -0700
-+++ git/drivers/misc/Kconfig	2013-12-03 15:26:21.590938659 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-03 22:30:26.775202584 -0700
++++ git/drivers/misc/Kconfig	2013-12-03 22:30:29.923202617 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-03 15:26:18.686938629 -0700
-+++ git/drivers/misc/Makefile	2013-12-03 15:26:21.590938659 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-03 22:30:26.775202584 -0700
++++ git/drivers/misc/Makefile	2013-12-03 22:30:29.923202617 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-12-03 15:26:21.594938659 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-03 22:30:29.927202617 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-12-03 22:08:01.215188627 -0700
-@@ -0,0 +1,1759 @@
++++ git/drivers/misc/si5338.c	2013-12-04 00:39:19.615282791 -0700
+@@ -0,0 +1,1794 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -957,7 +957,7 @@ Index: git/drivers/misc/si5338.c
 +#define REG5338_DEV_CONFIG2          2
 +#define REG5338_DEV_CONFIG2_MASK  0x3f
 +#define REG5338_DEV_CONFIG2_VAL    38 /* last 2 digits of part number */
-+
++#define LAST_REG                   347
 +
 +#define FVCOMIN                    2200000000LL
 +#define FVCOMAX                    2840000000LL
@@ -1080,6 +1080,23 @@ Index: git/drivers/misc/si5338.c
 +#define AWE_MISC_06A               0x06e0 /* write 0x0 */
 +#define AWE_MISC_06B               0x0602 /* write 0x0 */
 +#define AWE_MISC_28                0x1cc0 /* write 0x0 */
++
++#define CACHE_INIT                      1
++#define CACHE_VOLAT                     2
++
++struct si5338_cache_t {
++	u8 flags;
++	u8 data;
++};
++struct si5338_data_t {
++	u64 input_frequency;
++//	u64 pll_frequency;
++	int reg_addr;   /* used for raw register r/w */
++	int last_page;  /* value of last page accessed (bit 0 of register 255) */
++	struct mutex lock;
++	struct si5338_cache_t cache[LAST_REG+1];
++};
++
 +
 +static void si5338_init_of(struct i2c_client *client);
 +
@@ -1337,15 +1354,6 @@ Index: git/drivers/misc/si5338.c
 +};
 +
 +
-+struct si5338_data_t {
-+	u64 input_frequency;
-+	u64 pll_frequency;
-+	int reg_addr;   /* used for raw register r/w */
-+	int last_page;  /* value of last page accessed (bit 0 of register 255) */
-+	struct mutex lock;
-+};
-+
-+
 +static int si5338_sysfs_register(struct device *dev)
 +{
 +//	struct i2c_client *client = to_i2c_client(dev);
@@ -1422,10 +1430,10 @@ Index: git/drivers/misc/si5338.c
 +
 +static ssize_t raw_hex_all_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int low_addr=0,reg,data,rc,high_addr=348,len=0, count=PAGE_SIZE;
++	int low_addr=0,reg,data,rc,len=0, count=PAGE_SIZE;
 +	struct i2c_client *client =       to_i2c_client(dev);
 +//	struct si5338_data_t *clientdata= i2c_get_clientdata(client);
-+	for (reg=low_addr;reg<high_addr;reg++) if (count>10){
++	for (reg=low_addr;reg<=LAST_REG;reg++) if (count>10){
 +		if ((reg & 0xf) ==0){
 +			rc=sprintf(buf, "%03x: ",reg);
 +		    buf+=rc;
@@ -1437,7 +1445,7 @@ Index: git/drivers/misc/si5338.c
 +	    buf+=rc;
 +	    len+=rc;
 +	    count-=rc;
-+		if (((reg & 0xf) == 0xf) || (reg==(high_addr-1))){
++		if (((reg & 0xf) == 0xf) || (reg==LAST_REG)){
 +			rc=sprintf(buf, "\n");
 +		} else {
 +			rc=sprintf(buf, " ");
@@ -1932,7 +1940,7 @@ Index: git/drivers/misc/si5338.c
 +	 */
 +	u64 d;
 +	u64 ms_denom=ms[2], ms_nom=ms[1], ms_int=ms[0];
-+	while (ms_denom >= (1<<30)) { /* will not happen with current frequency values specified in integer Hz */
++	while ((ms_denom >= (1<<30))| (((ms_denom | ms_nom) &1) == 0)) {
 +		ms_denom >>= 1;
 +		ms_nom >>= 1;
 +	}
@@ -2088,8 +2096,8 @@ Index: git/drivers/misc/si5338.c
 +	/* use r-divider if the output frequency is too low (less than 5 MHz) */
 +	u64 out_int=out_freq[0],out_nom=out_freq[1],out_denom=out_freq[2],
 +			pll_out_freq[3], scaled_max,scaled_min,d;
-+	s64 pll_freq_scaled, out_freq_scaled,err,best_err=-1,out_div,pll_in_freq,in_div,best_in_div,
-+			pll_in_freq_scaled,synth_out_scaled;
++	s64 pll_freq_scaled, out_freq_scaled,err,best_err=-1,center_scaled,center_diff,best_center_diff,
++			out_div,pll_in_freq,in_div,best_in_div, pll_in_freq_scaled,synth_out_scaled;
 +	int r_div=1;
 +	if (out_denom==0){
 +		dev_err(&client->dev, "Denominator should not be 0 in %lld+%lld/%lld\n",
@@ -2142,29 +2150,34 @@ Index: git/drivers/misc/si5338.c
 +					out_int, out_nom,out_denom);
 +			return -EINVAL;
 +		}
-+//		pll_out_freq=div64_u64(out_freq_scaled*out_div+(out_denom>>1),out_denom);
 +		pll_out_freq[0]=div64_u64(out_freq_scaled*out_div,out_denom);
 +		pll_out_freq[1]=(out_freq_scaled*out_div)-pll_out_freq[0]*out_denom;
 +		pll_out_freq[2]=out_denom;
-+
 +		dev_dbg(&client->dev, "PLL output divider by %llu, pll frequency: %llu+%llu/%llu Hz\n",
 +				out_div,pll_out_freq[0],pll_out_freq[1],pll_out_freq[2]);
 +		return set_pll_freq(client, pll_out_freq, 0);
-+	} else { /* if (int_msn_div==0), find the best pair of integer coefficients */
++	} else { /* if (int_msn_div==0), find the best pair of integer coefficients, try closest to the center, if possible */
 +		pll_in_freq=get_pll_in_frequency(client);
 +		pll_in_freq_scaled=pll_in_freq*out_denom;
++		center_scaled=((FVCOMAX+FVCOMIN)>>1)*out_denom;
 +		if (pll_in_freq<0) return (int) pll_in_freq;
 +		best_in_div=0;
 +		for (out_div=4;out_div<=MSINT_MAX;out_div++) if ((out_div!=5) && (out_div!=7)){
 +			pll_freq_scaled=out_freq_scaled*out_div; /* here scaled by denominator */
 +			if ((pll_freq_scaled>=scaled_min) && (pll_freq_scaled<=scaled_max)) {
 +				in_div=div64_u64(pll_freq_scaled+(pll_in_freq_scaled>>1),pll_in_freq_scaled); // round
-+				synth_out_scaled=div64_u64(pll_in_freq_scaled*in_div+ (out_div>>1),out_div);
++				d=pll_in_freq_scaled*in_div; /* actual pll frequency scaled by out_denom */
++				synth_out_scaled=div64_u64(d + (out_div>>1),out_div);
++				center_diff=d-center_scaled;
++				if (center_diff<0) center_diff=-center_diff;
 +				err=synth_out_scaled-out_freq_scaled;
 +				if (err<0) err=-err;
-+				if ((best_in_div==0) || (err < best_err)){
++				if ((best_in_div==0) || (err < best_err) || ((err == best_err) && (center_diff<best_center_diff))){
++					dev_dbg(&client->dev, "synth_out_scaled: %lld center_scaled: %lld out_freq_scaled:%lld err: %lld (%lld) center_diff:%lld(%lld)\n",
++							synth_out_scaled, center_scaled, out_freq_scaled,err,best_err,center_diff,best_center_diff);
 +					best_err=err;
 +					best_in_div=in_div;
++					best_center_diff=center_diff;
 +				}
 +			}
 +		}
@@ -2173,15 +2186,15 @@ Index: git/drivers/misc/si5338.c
 +					pll_in_freq);
 +
 +		}
-+//		pll_out_freq=div64_u64(pll_in_freq_scaled*best_in_div+(out_denom>>1),out_denom);
 +		pll_out_freq[0]=div64_u64(pll_in_freq_scaled*best_in_div,out_denom);
 +		pll_out_freq[1]=(pll_in_freq_scaled*best_in_div)-pll_out_freq[0]*out_denom;
 +		pll_out_freq[2]=out_denom;
 +		dev_dbg(&client->dev, "PLL output frequency: %llu+%llu/%llu Hz, MS input divider: %lld, MS output divider: %lld\n",
 +				pll_out_freq[0],pll_out_freq[1],pll_out_freq[2], best_in_div, out_div);
-+		return set_pll_freq(client, pll_out_freq, 0); /* integer result */
++		return set_pll_freq(client, pll_out_freq, 1); /* integer result */
 +	}
 +}
++
 +static int get_pll_ms_freq(struct i2c_client *client, u64 *out_freq, int chn)
 +{
 +	int rc;
@@ -2207,6 +2220,7 @@ Index: git/drivers/misc/si5338.c
 +	out_freq[2]=ms[0]*pll_out_freq[2];
 +	out_freq[0]=div64_u64(out_freq[1],out_freq[2]);
 +	out_freq[1]-=out_freq[0]*out_freq[2];
++	if (out_freq[1]==0) out_freq[2]=1;
 +	dev_dbg(&client->dev, "MS%d output frequency: %llu+%llu/%llu Hz\n",chn,out_freq[0],out_freq[1],out_freq[2]);
 +	return 0;
 +}
@@ -2234,6 +2248,9 @@ Index: git/drivers/misc/si5338.c
 +		d=div64_u64(out_nom,out_denom);
 +		out_int+=d;
 +		out_nom-=d*out_denom;
++	}
++	if (out_nom==0){
++		out_denom=1;
 +	}
 +	if (out_int<(FVCOMAX/MSINT_MAX)){
 +		while ((r_div < 32) && (out_int<(FVCOMAX/MSINT_MAX))){
@@ -2507,6 +2524,10 @@ Index: git/drivers/misc/si5338.c
 +//		dev_dbg(&client->dev,"changing page: new=0x%x, was=0x%x\n",val & REG5338_PAGE_MASK,clientdata->last_page);
 +		clientdata->last_page=val & REG5338_PAGE_MASK;
 +	}
++	if (clientdata && (reg<=LAST_REG) ){
++		clientdata->cache[reg].data= val;
++		clientdata->cache[reg].flags |= CACHE_INIT;
++	}
 +	return i2c_smbus_write_byte_data(client, reg, val);
 +}
 +
@@ -2532,6 +2553,10 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int rc,page;
 +	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
++	if (clientdata && (reg<=LAST_REG) && (clientdata->cache[reg].flags & CACHE_INIT) && !(clientdata->cache[reg].flags & CACHE_VOLAT)){
++		dev_dbg(&client->dev,"Using cached register: reg=0x%x -> 0x%x\n",reg,(int) clientdata->cache[reg].data);
++		return clientdata->cache[reg].data;
++	}
 +	page=(reg >> 8) & REG5338_PAGE_MASK;
 +//	dev_dbg(&client->dev,"reading i2c device : slave=0x%x, reg=0x%x page=0x%x, last_page=0x%x\n",(int) (client->addr),reg,page,clientdata->last_page);
 +	if (clientdata && (reg!=REG5338_PAGE) && (page != clientdata->last_page)) { /* set page if needed */
@@ -2543,8 +2568,14 @@ Index: git/drivers/misc/si5338.c
 +	if (clientdata && (reg==REG5338_PAGE)) {
 +		clientdata->last_page= rc & REG5338_PAGE_MASK;
 +	}
++	if (clientdata && (reg<=LAST_REG)){
++		clientdata->cache[reg].data= (u8) rc;
++		clientdata->cache[reg].flags |= CACHE_INIT;
++	}
 +	return rc;
 +}
++//#define CACHE_INIT=1;
++//#define CACHE_VOLAT=2;
 +
 +static void si5338_init_of(struct i2c_client *client)
 +{
@@ -2621,7 +2652,7 @@ Index: git/drivers/misc/si5338.c
 +static int si5338_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
 +{
-+	int rc=0;
++	int i,rc=0;
 +	struct si5338_data_t *clientdata = NULL;
 +	/* initialize i2c ... */
 +//#define REG5338_DEV_CONFIG2          2
@@ -2639,13 +2670,17 @@ Index: git/drivers/misc/si5338.c
 +	dev_info(&client->dev,
 +		 "Chip %s is found, driver version %s\n", id->name, DRV_VERSION);
 +	clientdata = devm_kzalloc(&client->dev, sizeof(*clientdata), GFP_KERNEL);
++	for (i=0;i<=LAST_REG;i++){
++		clientdata->cache[i].flags=0;
++		clientdata->cache[i].data=0;
++	}
 +	i2c_set_clientdata(client, clientdata);
 +	if (((rc=read_reg(client, REG5338_PAGE)))<0) return rc; // will set clientdata->last_page
 +	si5338_sysfs_register(&client->dev);
 +	mutex_init(&clientdata->lock);
 +
 +	clientdata->input_frequency=0;
-+	clientdata->pll_frequency=0;
++//	clientdata->pll_frequency=0;
 +
 +	si5338_init_of(client);
 +	return 0;
