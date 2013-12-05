@@ -8,9 +8,16 @@ IMAGE_CLASSES += "image_types_uboot"
 # Kernel Configuration
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
 PREFERRED_VERSION_linux-xlnx ?= "3.10%"
+<<<<<<< HEAD
+
+# U-Boot Configuration
+#PREFERRED_PROVIDER_u-boot ?= "u-boot-xlnx"
+#PREFERRED_VERSION_u-boot-xlnx ?= "v2013.01%"
+=======
 PREFERRED_VERSION_linux-yocto ?= "3.8%"
 PREFERRED_VERSION_linux-yocto-tiny ?= "3.8%"
 
 # U-Boot Configuration
 PREFERRED_PROVIDER_u-boot ?= "u-boot-xlnx"
 PREFERRED_VERSION_u-boot-xlnx ?= "v2013.01%"
+>>>>>>> 772ca92533ec8b3afb28c43f9fc0df764372683f
