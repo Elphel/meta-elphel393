@@ -179,17 +179,22 @@
 			si5338@70 {
 				compatible = "sil,si5338";
 				reg = <0x70>;
+				/* low-level masked register writes, may be uaed to load frequency plan */
 				si5338,configuration_data=<
 				0x1ffcf0 /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
 				0x20a0f0 /* just for testing: write data 0xa0 with write enable mask 0xf0 to register 0x020 */
 				>;
-				si5338,in_pfd_ref=<0>; /* p1div_in (input divisors not used) */
-				si5338,in_pfd_fb= <0>; /* unused */
-				si5338,in_p1_div= <0>; /* unused */
-				si5338,in_p2_div= <0>; /* unused */
-				si5338,in_mux= <1>; /* in-3 */
-				si5338,fb_mux= <2>; /* no clock */
-				si5338,in_frequency= <25000000>; /* 25MHz */
+
+				si5338,in_frequency3= < 25000000>; /* 25MHz */
+				/* PLL may be set either directly (pll_freq_fract,pll_freq_int) or to match some output (pll_by_out_fract, pll_by_out_int)
+				 * _int suffix forces to find integer divisors, _fract - allows fractional ones */
+				si5338,pll_by_out_int=<150000000>;  /* 150Mhz May have 3 values: integer, nominator and denominator */
+				si5338,out3_freq_int= <150000000>;  /* 150Mhz. May have 3 values: integer, nominator and denominator */
+				si5338,out2_select= "in3/2/32";  /* connect out2 to IN3, divided by 2 (input stage) and then by 32 (output stage)*/
+
+				si5338,2V5_LVPECL=  <1 2>; /* set output standard for channels 1 and 2 */
+				si5338,1V5_HSTL_A+= <0>;   /* set output standard for channel 0, only A output is used (noninverted) */
+				si5338,1V8_LVDS=    <3>;
 			};
 			gpio@20{
 				compatible = "ti,tca6408";

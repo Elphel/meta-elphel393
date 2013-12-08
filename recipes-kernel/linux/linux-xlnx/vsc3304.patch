@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-04 18:55:05.243964726 -0700
-+++ git/drivers/misc/Kconfig	2013-12-04 18:55:08.191964756 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-07 11:59:45.450394753 -0700
++++ git/drivers/misc/Kconfig	2013-12-07 11:59:48.558394785 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-04 18:55:05.243964726 -0700
-+++ git/drivers/misc/Makefile	2013-12-04 18:55:08.191964756 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-07 11:59:45.450394753 -0700
++++ git/drivers/misc/Makefile	2013-12-07 11:59:48.558394785 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-12-04 18:55:08.191964756 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-07 11:59:48.558394785 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-12-05 01:46:25.412220716 -0700
-@@ -0,0 +1,3360 @@
++++ git/drivers/misc/si5338.c	2013-12-08 01:27:57.338897726 -0700
+@@ -0,0 +1,3542 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -963,6 +963,8 @@ Index: git/drivers/misc/si5338.c
 +#define FVCOMAX                    2840000000LL
 +#define INFREQMIN                     5000000LL
 +#define INFREQMAX                   710000000LL
++#define INFREQDIV                    40000000LL /* divide input frequency if above */
++
 +#define MSINT_MIN                  8 /* not considering 4,6 */
 +#define MSINT_MAX                  567
 +
@@ -1153,13 +1155,102 @@ Index: git/drivers/misc/si5338.c
 +	struct si5338_cache_t cache[LAST_REG+1];
 +};
 +
-+static const struct i2c_device_id si5338_id[] = {
++struct si5338_drv_t {
++	const char * description;
++	u8 fmt;
++	u8 vdd;
++	u8 trim;
++	u8 invert; /* bits [1:0} data, [3:2] - don't care ([3]==1 - [1] - any, [2]==1 - [0] - any */
++};
++
++static struct i2c_device_id si5338_id[] = {
 +	{ "si5338", 0 },
 +	{ }
 +};
 +
++static const struct si5338_drv_t drv_configs []={
++		{"3V3_CMOS_A+",  0x1,0x0,0x17,0x8}, /* bX0 */
++		{"3V3_CMOS_A-",  0x1,0x0,0x17,0x9}, /* bX1 */
++		{"3V3_CMOS_B+",  0x2,0x0,0x17,0x4}, /* b0X */
++		{"3V3_CMOS_B-",  0x2,0x0,0x17,0x6}, /* b1X */
++		{"3V3_CMOS_A+B+",0x3,0x0,0x17,0x8},
++		{"3V3_CMOS_A-B+",0x3,0x0,0x17,0x9},
++		{"3V3_CMOS_A+B-",0x3,0x0,0x17,0x4},
++		{"3V3_CMOS_A-B-",0x3,0x0,0x17,0x6},
++
++		{"2V5_CMOS_A+",  0x1,0x1,0x13,0x8},
++		{"2V5_CMOS_A-",  0x1,0x1,0x13,0x9},
++		{"2V5_CMOS_B+",  0x2,0x1,0x13,0x4},
++		{"2V5_CMOS_B-",  0x2,0x1,0x13,0x6},
++		{"2V5_CMOS_A+B+",0x3,0x1,0x13,0x8},
++		{"2V5_CMOS_A-B+",0x3,0x1,0x13,0x9},
++		{"2V5_CMOS_A+B-",0x3,0x1,0x13,0x4},
++		{"2V5_CMOS_A-B-",0x3,0x1,0x13,0x6},
++
++		{"1V8_CMOS_A+",  0x1,0x2,0x15,0x8},
++		{"1V8_CMOS_A-",  0x1,0x2,0x15,0x9},
++		{"1V8_CMOS_B+",  0x2,0x2,0x15,0x4},
++		{"1V8_CMOS_B-",  0x2,0x2,0x15,0x6},
++		{"1V8_CMOS_A+B+",0x3,0x2,0x15,0x8},
++		{"1V8_CMOS_A-B+",0x3,0x2,0x15,0x9},
++		{"1V8_CMOS_A+B-",0x3,0x2,0x15,0x4},
++		{"1V8_CMOS_A-B-",0x3,0x2,0x15,0x6},
++
++		{"1V5_HSTL_A+",  0x1,0x3,0x1f,0x8},
++		{"1V5_HSTL_A-",  0x1,0x3,0x1f,0x9},
++		{"1V5_HSTL_B+",  0x2,0x3,0x1f,0x4},
++		{"1V5_HSTL_B-",  0x2,0x3,0x1f,0x6},
++		{"1V5_HSTL_A+B+",0x3,0x3,0x1f,0x8},
++		{"1V5_HSTL_A-B+",0x3,0x3,0x1f,0x9},
++		{"1V5_HSTL_A+B-",0x3,0x3,0x1f,0x4},
++		{"1V5_HSTL_A-B-",0x3,0x3,0x1f,0x6},
++
++		{"3V3_SSTL_A+",  0x1,0x0,0x04,0x8},
++		{"3V3_SSTL_A-",  0x1,0x0,0x04,0x9},
++		{"3V3_SSTL_B+",  0x2,0x0,0x04,0x4},
++		{"3V3_SSTL_B-",  0x2,0x0,0x04,0x6},
++		{"3V3_SSTL_A+B+",0x3,0x0,0x04,0x8},
++		{"3V3_SSTL_A-B+",0x3,0x0,0x04,0x9},
++		{"3V3_SSTL_A+B-",0x3,0x0,0x04,0x5},
++		{"3V3_SSTL_A-B-",0x3,0x0,0x04,0x6},
++
++		{"2V5_SSTL_A+",  0x1,0x1,0x0d,0x8},
++		{"2V5_SSTL_A-",  0x1,0x1,0x0d,0x9},
++		{"2V5_SSTL_B+",  0x2,0x1,0x0d,0x4},
++		{"2V5_SSTL_B-",  0x2,0x1,0x0d,0x6},
++		{"2V5_SSTL_A+B+",0x3,0x1,0x0d,0x8},
++		{"2V5_SSTL_A-B+",0x3,0x1,0x0d,0x9},
++		{"2V5_SSTL_A+B-",0x3,0x1,0x0d,0x5},
++		{"2V5_SSTL_A-B-",0x3,0x1,0x0d,0x6},
++
++		{"1V8_SSTL_A+",  0x1,0x2,0x17,0x8},
++		{"1V8_SSTL_A-",  0x1,0x2,0x17,0x9},
++		{"1V8_SSTL_B+",  0x2,0x2,0x17,0x4},
++		{"1V8_SSTL_B-",  0x2,0x2,0x17,0x6},
++		{"1V8_SSTL_A+B+",0x3,0x2,0x17,0x8},
++		{"1V8_SSTL_A-B+",0x3,0x2,0x17,0x9},
++		{"1V8_SSTL_A+B-",0x3,0x2,0x17,0x4},
++		{"1V8_SSTL_A-B-",0x3,0x2,0x17,0x6},
++
++		{"3V3_LVPECL",   0x4,0x0,0x0f,0xc},
++		{"2V5_LVPECL",   0x4,0x1,0x10,0xc},
++		{"3V3_LVDS",     0x6,0x0,0x03,0xc},
++		{"2V5_LVDS",     0x6,0x1,0x04,0xc},
++		{"1V8_LVDS",     0x6,0x2,0x04,0xc},
++
++		{NULL,           0x0,0x0,0x0,0x0},
++};
++static const int volatile_registers[]={218,-1};
++static const char *out_names[]={"output0","output1","output2","output3","outputs", NULL};
++static const char *in_freq_names[]={"in_frequency12", "in_frequency3", "in_frequency4", "in_frequency56", "in_frequency12xo", NULL};
++static const char *pll_setup_names[]={"pll_freq_fract", "pll_freq_int", "pll_by_out_fract", "pll_by_out_int", NULL};
++static const char *out_freq_setup_names[]={
++		"out0_freq_fract", "out1_freq_fract", "out2_freq_fract", "out3_freq_fract",
++		"out0_freq_int",   "out1_freq_int",   "out2_freq_int",   "out3_freq_int", NULL};
++
 +static void si5338_init_of(struct i2c_client *client);
 +
++static int get_chn_from_name(const char * name);
 +
 +static ssize_t raw_address_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t raw_address_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
@@ -1181,15 +1272,12 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t in_frequency4_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t in_frequency56_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t in_frequency12_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_frequency12xo_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_frequency3_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_frequency4_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_frequency56_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn);
-+static ssize_t _in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t in_p1_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t in_p1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t in_p2_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t in_p2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_mux_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t in_mux_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_mux_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
@@ -1199,205 +1287,73 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t in_pfd_ref_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t in_pfd_ref_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_pfd_ref_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t fb_external_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t fb_external_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_pfd_fb_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t in_pfd_fb_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_pfd_fb_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t pll_ref_frequency_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
-+static ssize_t _msx_p123_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _msx_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t _msx_abc_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _msx_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t ms0_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms0_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms0_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms0_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms1_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms1_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms1_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms1_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms2_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms2_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms2_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms2_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms3_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms3_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms3_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms3_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t msn_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t msn_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t msn_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t msn_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _ms_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _ms_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t ms0_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms1_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms2_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms3_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t ms0_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms1_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms2_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t ms3_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t ms_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t ms_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t ms_abc_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t ms_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++
++static ssize_t ms_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t ms_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++
 +static ssize_t pll_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _pll_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int by_out);
-+static ssize_t pll_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_by_out_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_by_out_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int chn);
-+static ssize_t pll_ms0_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t pll_ms1_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t pll_ms2_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t pll_ms3_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t pll_ms0_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms1_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms2_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms3_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms0_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms1_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms2_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t pll_ms3_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
-+static ssize_t _out_source_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _out_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t _out_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _out_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t out0_source_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out1_source_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out2_source_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out3_source_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out0_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out1_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out2_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out3_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out0_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out1_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out2_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out3_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out0_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out1_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out2_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out3_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _out_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn);
-+static ssize_t _out_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t out0_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out1_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out2_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out3_div_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out0_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out3_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _out_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _out_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t out0_freq_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out1_freq_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out2_freq_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out3_freq_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t out0_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out1_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out2_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t out3_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t out_source_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t out_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t out_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t out_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t out_div_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t out_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t out_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t out_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t out_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++
++static ssize_t drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_invert_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_type_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_vdd_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_trim_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t drv_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static ssize_t drv_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
 +
-+static ssize_t _drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_disable_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_invert_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_invert_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_invert_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_invert_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_invert_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t drv0_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _drv_type_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_type_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_type_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_type_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_type_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t drv0_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _drv_vdd_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t _drv_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_vdd_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_vdd_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_vdd_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_vdd_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv0_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t drv0_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _drv_trim_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t drv0_trim_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_trim_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_trim_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_trim_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t _update_drv_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn);
-+static ssize_t drv0_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv1_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv2_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t drv3_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
-+static ssize_t _drv_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn);
-+static ssize_t drv0_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv1_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv2_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
-+static ssize_t drv3_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static int make_config_out (struct device *dev,
++		ssize_t (*show_output)(struct device *dev, struct device_attribute *attr, char *buf),
++		ssize_t (*store_config)(struct device *dev, struct device_attribute *attr,
++				const char *buf, size_t count));
++static ssize_t output_description_show (struct device *dev, struct device_attribute *attr, char *buf);
++
++static ssize_t output_route_show(struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t output_route_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static int get_output_description (struct device *dev, char * buf, int chn);
++static int get_out_frequency_txt(struct device *dev, char *buf, int chn);
++static ssize_t output_config_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static int configure_output_driver(struct device *dev, const char * name, int chn);
++
 +
 +/* -------------------------------------- */
++static int remove_common_factor(u64 * num_denom);
 +static int _verify_output_channel(struct i2c_client *client,int chn);
 +static int get_drv_powerdown(struct i2c_client *client, int chn);
 +static int set_drv_powerdown(struct i2c_client *client, int typ, int chn);
@@ -1421,6 +1377,10 @@ Index: git/drivers/misc/si5338.c
 +static int get_out_frequency(struct i2c_client *client, u64* out_freq, int chn); /*chn =0..3 */
 +static int get_out_source(struct i2c_client *client, int chn);
 +static int set_out_source(struct i2c_client *client, int chn, int src);
++
++static int get_out_route(struct i2c_client *client, char* buf, int chn);
++static int set_out_route(struct i2c_client *client, const char* route, int chn);
++static int set_out_frequency_and_route (struct i2c_client *client, u64 *out_freq, int chn, int int_div);
 +static s64 get_output_src_frequency(struct i2c_client *client, u64 *out_freq, int chn);
 +
 +
@@ -1452,7 +1412,9 @@ Index: git/drivers/misc/si5338.c
 +static int get_in_pdiv(struct i2c_client *client, int chn); /*chn =0,1 */
 +static int set_in_pfd_ref_fb(struct i2c_client *client, u8 val, int chn); /*chn =0 - ref, 1 - fb*/
 +static int get_in_pfd_ref_fb(struct i2c_client *client, int chn); /*chn =0,1 */
-+static int set_in_frequency(struct i2c_client *client, u64 frequency,int src); /* 0 - 12, 1 - 3, 2 - 4, 3 - 5,6 */
++static int set_fb_external(struct i2c_client *client, u8 val);
++static int get_fb_external(struct i2c_client *client);
++static int set_in_frequency(struct i2c_client *client, u64 frequency,int src); /* 0 - 12, 1 - 3, 2 - 4, 3 - 5,6, 4 - 12 XO */
 +static u64 get_in_frequency(struct i2c_client *client,int src);
 +
 +
@@ -1488,15 +1450,15 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "raw",
 +};
 +
-+
 +//static DEVICE_ATTR(xtal_freq,    SYSFS_PERMISSIONS,  input_xtal_freq_show, input_xtal_freq_store);
 +static DEVICE_ATTR(xtal_freq_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  input_xtal_freq_txt_show, NULL);
 +static DEVICE_ATTR(in_frequency12,   SYSFS_PERMISSIONS,                   in_frequency12_show, in_frequency12_store);
++static DEVICE_ATTR(in_frequency12xo, SYSFS_PERMISSIONS,                   in_frequency12_show, in_frequency12xo_store);
 +static DEVICE_ATTR(in_frequency3,   SYSFS_PERMISSIONS,                    in_frequency3_show,  in_frequency3_store);
 +static DEVICE_ATTR(in_frequency4,   SYSFS_PERMISSIONS,                    in_frequency4_show,  in_frequency4_store);
 +static DEVICE_ATTR(in_frequency56,   SYSFS_PERMISSIONS,                   in_frequency56_show, in_frequency56_store);
-+static DEVICE_ATTR(in_p1_div,        SYSFS_PERMISSIONS,                   in_p1_div_show,   in_p1_div_store);
-+static DEVICE_ATTR(in_p2_div,        SYSFS_PERMISSIONS,                   in_p2_div_show,   in_p2_div_store);
++static DEVICE_ATTR(in_p1_div,        SYSFS_PERMISSIONS,                   in_p12_div_show,   in_p12_div_store);
++static DEVICE_ATTR(in_p2_div,        SYSFS_PERMISSIONS,                   in_p12_div_show,   in_p12_div_store);
 +static DEVICE_ATTR(in_mux,           SYSFS_PERMISSIONS,                   in_mux_show, in_mux_store);
 +static DEVICE_ATTR(in_mux_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  in_mux_txt_show, NULL);
 +static DEVICE_ATTR(fb_mux,           SYSFS_PERMISSIONS,                   fb_mux_show, fb_mux_store);
@@ -1506,12 +1468,13 @@ Index: git/drivers/misc/si5338.c
 +static DEVICE_ATTR(in_pfd_fb,        SYSFS_PERMISSIONS,                   in_pfd_fb_show, in_pfd_fb_store);
 +static DEVICE_ATTR(in_pfd_fb_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  in_pfd_fb_txt_show, NULL);
 +static DEVICE_ATTR(pll_ref_frequency,SYSFS_PERMISSIONS & SYSFS_READONLY,  pll_ref_frequency_show, NULL);
-+
++static DEVICE_ATTR(fb_external,      SYSFS_PERMISSIONS,                   fb_external_show, fb_external_store);
 +
 +static struct attribute *input_dev_attrs[] = {
 +//	&dev_attr_xtal_freq.attr,
 +	&dev_attr_xtal_freq_txt.attr,
 +	&dev_attr_in_frequency12.attr,
++	&dev_attr_in_frequency12xo.attr,
 +	&dev_attr_in_frequency3.attr,
 +	&dev_attr_in_frequency4.attr,
 +	&dev_attr_in_frequency56.attr,
@@ -1526,6 +1489,7 @@ Index: git/drivers/misc/si5338.c
 +	&dev_attr_in_pfd_fb.attr,
 +	&dev_attr_in_pfd_fb_txt.attr,
 +	&dev_attr_pll_ref_frequency.attr,
++	&dev_attr_fb_external.attr,
 +	NULL
 +};
 +
@@ -1534,20 +1498,20 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "input",
 +};
 +
-+static DEVICE_ATTR(ms0_p123, SYSFS_PERMISSIONS,  ms0_p123_show, ms0_p123_store);
-+static DEVICE_ATTR(ms0_abc,  SYSFS_PERMISSIONS,  ms0_abc_show,  ms0_abc_store);
-+static DEVICE_ATTR(ms1_p123, SYSFS_PERMISSIONS,  ms1_p123_show, ms1_p123_store);
-+static DEVICE_ATTR(ms1_abc,  SYSFS_PERMISSIONS,  ms1_abc_show,  ms1_abc_store);
-+static DEVICE_ATTR(ms2_p123, SYSFS_PERMISSIONS,  ms2_p123_show, ms2_p123_store);
-+static DEVICE_ATTR(ms2_abc,  SYSFS_PERMISSIONS,  ms2_abc_show,  ms2_abc_store);
-+static DEVICE_ATTR(ms3_p123, SYSFS_PERMISSIONS,  ms3_p123_show, ms3_p123_store);
-+static DEVICE_ATTR(ms3_abc,  SYSFS_PERMISSIONS,  ms3_abc_show,  ms3_abc_store);
-+static DEVICE_ATTR(msn_p123, SYSFS_PERMISSIONS,  msn_p123_show, msn_p123_store);
-+static DEVICE_ATTR(msn_abc,  SYSFS_PERMISSIONS,  msn_abc_show,  msn_abc_store);
-+static DEVICE_ATTR(ms0_powerdown,  SYSFS_PERMISSIONS,  ms0_powerdown_show,  ms0_powerdown_store);
-+static DEVICE_ATTR(ms1_powerdown,  SYSFS_PERMISSIONS,  ms1_powerdown_show,  ms1_powerdown_store);
-+static DEVICE_ATTR(ms2_powerdown,  SYSFS_PERMISSIONS,  ms2_powerdown_show,  ms2_powerdown_store);
-+static DEVICE_ATTR(ms3_powerdown,  SYSFS_PERMISSIONS,  ms3_powerdown_show,  ms3_powerdown_store);
++static DEVICE_ATTR(ms0_p123, SYSFS_PERMISSIONS,  ms_p123_show, ms_p123_store);
++static DEVICE_ATTR(ms0_abc,  SYSFS_PERMISSIONS,  ms_abc_show,  ms_abc_store);
++static DEVICE_ATTR(ms1_p123, SYSFS_PERMISSIONS,  ms_p123_show, ms_p123_store);
++static DEVICE_ATTR(ms1_abc,  SYSFS_PERMISSIONS,  ms_abc_show,  ms_abc_store);
++static DEVICE_ATTR(ms2_p123, SYSFS_PERMISSIONS,  ms_p123_show, ms_p123_store);
++static DEVICE_ATTR(ms2_abc,  SYSFS_PERMISSIONS,  ms_abc_show,  ms_abc_store);
++static DEVICE_ATTR(ms3_p123, SYSFS_PERMISSIONS,  ms_p123_show, ms_p123_store);
++static DEVICE_ATTR(ms3_abc,  SYSFS_PERMISSIONS,  ms_abc_show,  ms_abc_store);
++static DEVICE_ATTR(msn_p123, SYSFS_PERMISSIONS,  ms_p123_show, ms_p123_store);
++static DEVICE_ATTR(msn_abc,  SYSFS_PERMISSIONS,  ms_abc_show,  ms_abc_store);
++static DEVICE_ATTR(ms0_powerdown,  SYSFS_PERMISSIONS,  ms_powerdown_show,  ms_powerdown_store);
++static DEVICE_ATTR(ms1_powerdown,  SYSFS_PERMISSIONS,  ms_powerdown_show,  ms_powerdown_store);
++static DEVICE_ATTR(ms2_powerdown,  SYSFS_PERMISSIONS,  ms_powerdown_show,  ms_powerdown_store);
++static DEVICE_ATTR(ms3_powerdown,  SYSFS_PERMISSIONS,  ms_powerdown_show,  ms_powerdown_store);
 +
 +static struct attribute *multisynth_attrs[] = {
 +	&dev_attr_ms0_p123.attr,
@@ -1570,20 +1534,20 @@ Index: git/drivers/misc/si5338.c
 +	.attrs = multisynth_attrs,
 +	.name  = "multiSynth",
 +};
-+static DEVICE_ATTR(pll_freq_fract,  SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_fract_store);
-+static DEVICE_ATTR(pll_freq_int,    SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_int_store);
-+static DEVICE_ATTR(pll_by_out_fract,SYSFS_PERMISSIONS,  pll_freq_show,  pll_by_out_fract_store);
-+static DEVICE_ATTR(pll_by_out_int,  SYSFS_PERMISSIONS,  pll_freq_show,  pll_by_out_int_store);
++static DEVICE_ATTR(pll_freq_fract,  SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_store);
++static DEVICE_ATTR(pll_freq_int,    SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_store);
++static DEVICE_ATTR(pll_by_out_fract,SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_store);
++static DEVICE_ATTR(pll_by_out_int,  SYSFS_PERMISSIONS,  pll_freq_show,  pll_freq_store);
 +
-+
-+static DEVICE_ATTR(pll_ms0_freq_fract,SYSFS_PERMISSIONS,  pll_ms0_freq_show,  pll_ms0_freq_fract_store);
-+static DEVICE_ATTR(pll_ms0_freq_int,  SYSFS_PERMISSIONS,  pll_ms0_freq_show,  pll_ms0_freq_int_store);
-+static DEVICE_ATTR(pll_ms1_freq_fract,SYSFS_PERMISSIONS,  pll_ms1_freq_show,  pll_ms1_freq_fract_store);
-+static DEVICE_ATTR(pll_ms1_freq_int,  SYSFS_PERMISSIONS,  pll_ms1_freq_show,  pll_ms1_freq_int_store);
-+static DEVICE_ATTR(pll_ms2_freq_fract,SYSFS_PERMISSIONS,  pll_ms2_freq_show,  pll_ms2_freq_fract_store);
-+static DEVICE_ATTR(pll_ms2_freq_int,  SYSFS_PERMISSIONS,  pll_ms2_freq_show,  pll_ms2_freq_int_store);
-+static DEVICE_ATTR(pll_ms3_freq_fract,SYSFS_PERMISSIONS,  pll_ms3_freq_show,  pll_ms3_freq_fract_store);
-+static DEVICE_ATTR(pll_ms3_freq_int,  SYSFS_PERMISSIONS,  pll_ms3_freq_show,  pll_ms3_freq_int_store);
++/* has to have/not have '_fract' in the name */
++static DEVICE_ATTR(pll_ms0_freq_fract,SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms0_freq_int,  SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms1_freq_fract,SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms1_freq_int,  SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms2_freq_fract,SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms2_freq_int,  SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms3_freq_fract,SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
++static DEVICE_ATTR(pll_ms3_freq_int,  SYSFS_PERMISSIONS,  pll_ms_freq_show,  pll_ms_freq_store);
 +
 +
 +static struct attribute *pll_dev_attrs[] = {
@@ -1608,32 +1572,42 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "pll",
 +};
 +
-+static DEVICE_ATTR(out0_source,     SYSFS_PERMISSIONS,                   out0_source_show,     out0_source_store);
-+static DEVICE_ATTR(out0_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out0_source_txt_show, NULL);
-+static DEVICE_ATTR(out1_source,     SYSFS_PERMISSIONS,                   out1_source_show,     out1_source_store);
-+static DEVICE_ATTR(out1_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out1_source_txt_show, NULL);
-+static DEVICE_ATTR(out2_source,     SYSFS_PERMISSIONS,                   out2_source_show,     out2_source_store);
-+static DEVICE_ATTR(out2_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out2_source_txt_show, NULL);
-+static DEVICE_ATTR(out3_source,     SYSFS_PERMISSIONS,                   out3_source_show,     out3_source_store);
-+static DEVICE_ATTR(out3_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out3_source_txt_show, NULL);
-+static DEVICE_ATTR(out0_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out0_source_freq_show, NULL);
-+static DEVICE_ATTR(out1_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out1_source_freq_show, NULL);
-+static DEVICE_ATTR(out2_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out2_source_freq_show, NULL);
-+static DEVICE_ATTR(out3_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out3_source_freq_show, NULL);
++static DEVICE_ATTR(out0_source,     SYSFS_PERMISSIONS,                   out_source_show,     out_source_store);
++static DEVICE_ATTR(out0_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_txt_show, NULL);
++static DEVICE_ATTR(out1_source,     SYSFS_PERMISSIONS,                   out_source_show,     out_source_store);
++static DEVICE_ATTR(out1_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_txt_show, NULL);
++static DEVICE_ATTR(out2_source,     SYSFS_PERMISSIONS,                   out_source_show,     out_source_store);
++static DEVICE_ATTR(out2_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_txt_show, NULL);
++static DEVICE_ATTR(out3_source,     SYSFS_PERMISSIONS,                   out_source_show,     out_source_store);
++static DEVICE_ATTR(out3_source_txt, SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_txt_show, NULL);
++static DEVICE_ATTR(out0_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_freq_show, NULL);
++static DEVICE_ATTR(out1_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_freq_show, NULL);
++static DEVICE_ATTR(out2_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_freq_show, NULL);
++static DEVICE_ATTR(out3_source_freq,SYSFS_PERMISSIONS & SYSFS_READONLY,  out_source_freq_show, NULL);
 +
-+static DEVICE_ATTR(out0_div,        SYSFS_PERMISSIONS,                   out0_div_show,     out0_div_store);
-+static DEVICE_ATTR(out1_div,        SYSFS_PERMISSIONS,                   out1_div_show,     out1_div_store);
-+static DEVICE_ATTR(out2_div,        SYSFS_PERMISSIONS,                   out2_div_show,     out2_div_store);
-+static DEVICE_ATTR(out3_div,        SYSFS_PERMISSIONS,                   out3_div_show,     out3_div_store);
++static DEVICE_ATTR(out0_div,        SYSFS_PERMISSIONS,                   out_div_show,     out_div_store);
++static DEVICE_ATTR(out1_div,        SYSFS_PERMISSIONS,                   out_div_show,     out_div_store);
++static DEVICE_ATTR(out2_div,        SYSFS_PERMISSIONS,                   out_div_show,     out_div_store);
++static DEVICE_ATTR(out3_div,        SYSFS_PERMISSIONS,                   out_div_show,     out_div_store);
 +
-+static DEVICE_ATTR(out0_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out0_div_by_freq_store);
-+static DEVICE_ATTR(out0_freq,       SYSFS_PERMISSIONS & SYSFS_READONLY,  out0_freq_show, NULL);
-+static DEVICE_ATTR(out1_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out1_div_by_freq_store);
-+static DEVICE_ATTR(out1_freq,       SYSFS_PERMISSIONS & SYSFS_READONLY,  out1_freq_show, NULL);
-+static DEVICE_ATTR(out2_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out2_div_by_freq_store);
-+static DEVICE_ATTR(out2_freq,       SYSFS_PERMISSIONS & SYSFS_READONLY,  out2_freq_show, NULL);
-+static DEVICE_ATTR(out3_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out3_div_by_freq_store);
-+static DEVICE_ATTR(out3_freq,       SYSFS_PERMISSIONS & SYSFS_READONLY,  out3_freq_show, NULL);
++static DEVICE_ATTR(out0_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out_div_by_freq_store);
++static DEVICE_ATTR(out0_freq_int,   SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out0_freq_fract, SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out1_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out_div_by_freq_store);
++static DEVICE_ATTR(out1_freq_int,   SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out1_freq_fract, SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out2_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out_div_by_freq_store);
++static DEVICE_ATTR(out2_freq_int,   SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out2_freq_fract, SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out3_div_by_freq,SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,           out_div_by_freq_store);
++static DEVICE_ATTR(out3_freq_int,   SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++static DEVICE_ATTR(out3_freq_fract, SYSFS_PERMISSIONS,                   out_freq_show,  out_freq_store);
++
++static DEVICE_ATTR(out0_route,      SYSFS_PERMISSIONS,                   output_route_show,    output_route_store);
++static DEVICE_ATTR(out1_route,      SYSFS_PERMISSIONS,                   output_route_show,    output_route_store);
++static DEVICE_ATTR(out2_route,      SYSFS_PERMISSIONS,                   output_route_show,    output_route_store);
++static DEVICE_ATTR(out3_route,      SYSFS_PERMISSIONS,                   output_route_show,    output_route_store);
++//output_route_show
 +
 +static struct attribute *output_dev_attrs[] = {
 +	&dev_attr_out0_source.attr,
@@ -1656,10 +1630,18 @@ Index: git/drivers/misc/si5338.c
 +	&dev_attr_out1_div_by_freq.attr,
 +	&dev_attr_out2_div_by_freq.attr,
 +	&dev_attr_out3_div_by_freq.attr,
-+	&dev_attr_out0_freq.attr,
-+	&dev_attr_out1_freq.attr,
-+	&dev_attr_out2_freq.attr,
-+	&dev_attr_out3_freq.attr,
++	&dev_attr_out0_freq_int.attr,
++	&dev_attr_out1_freq_int.attr,
++	&dev_attr_out2_freq_int.attr,
++	&dev_attr_out3_freq_int.attr,
++	&dev_attr_out0_freq_fract.attr,
++	&dev_attr_out1_freq_fract.attr,
++	&dev_attr_out2_freq_fract.attr,
++	&dev_attr_out3_freq_fract.attr,
++	&dev_attr_out0_route.attr,
++	&dev_attr_out1_route.attr,
++	&dev_attr_out2_route.attr,
++	&dev_attr_out3_route.attr,
 +	NULL
 +};
 +
@@ -1670,65 +1652,65 @@ Index: git/drivers/misc/si5338.c
 +
 +/* output drivers */
 +
-+static DEVICE_ATTR(drv0_powerdown,     SYSFS_PERMISSIONS,                   drv0_powerdown_show,      drv0_powerdown_store);
-+static DEVICE_ATTR(drv1_powerdown,     SYSFS_PERMISSIONS,                   drv1_powerdown_show,      drv1_powerdown_store);
-+static DEVICE_ATTR(drv2_powerdown,     SYSFS_PERMISSIONS,                   drv2_powerdown_show,      drv2_powerdown_store);
-+static DEVICE_ATTR(drv3_powerdown,     SYSFS_PERMISSIONS,                   drv3_powerdown_show,      drv3_powerdown_store);
++static DEVICE_ATTR(drv0_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
++static DEVICE_ATTR(drv1_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
++static DEVICE_ATTR(drv2_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
++static DEVICE_ATTR(drv3_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
 +
-+static DEVICE_ATTR(drv0_disable,       SYSFS_PERMISSIONS,                   drv0_disable_show,        drv0_disable_store);
-+static DEVICE_ATTR(drv1_disable,       SYSFS_PERMISSIONS,                   drv1_disable_show,        drv1_disable_store);
-+static DEVICE_ATTR(drv2_disable,       SYSFS_PERMISSIONS,                   drv2_disable_show,        drv2_disable_store);
-+static DEVICE_ATTR(drv3_disable,       SYSFS_PERMISSIONS,                   drv3_disable_show,        drv3_disable_store);
++static DEVICE_ATTR(drv0_disable,       SYSFS_PERMISSIONS,                   drv_disable_show,        drv_disable_store);
++static DEVICE_ATTR(drv1_disable,       SYSFS_PERMISSIONS,                   drv_disable_show,        drv_disable_store);
++static DEVICE_ATTR(drv2_disable,       SYSFS_PERMISSIONS,                   drv_disable_show,        drv_disable_store);
++static DEVICE_ATTR(drv3_disable,       SYSFS_PERMISSIONS,                   drv_disable_show,        drv_disable_store);
 +
-+static DEVICE_ATTR(drv0_disabled_state,SYSFS_PERMISSIONS,                   drv0_disabled_state_show, drv0_disabled_state_store);
-+static DEVICE_ATTR(drv1_disabled_state,SYSFS_PERMISSIONS,                   drv1_disabled_state_show, drv1_disabled_state_store);
-+static DEVICE_ATTR(drv2_disabled_state,SYSFS_PERMISSIONS,                   drv2_disabled_state_show, drv2_disabled_state_store);
-+static DEVICE_ATTR(drv3_disabled_state,SYSFS_PERMISSIONS,                   drv3_disabled_state_show, drv3_disabled_state_store);
++static DEVICE_ATTR(drv0_disabled_state,SYSFS_PERMISSIONS,                   drv_disabled_state_show, drv_disabled_state_store);
++static DEVICE_ATTR(drv1_disabled_state,SYSFS_PERMISSIONS,                   drv_disabled_state_show, drv_disabled_state_store);
++static DEVICE_ATTR(drv2_disabled_state,SYSFS_PERMISSIONS,                   drv_disabled_state_show, drv_disabled_state_store);
++static DEVICE_ATTR(drv3_disabled_state,SYSFS_PERMISSIONS,                   drv_disabled_state_show, drv_disabled_state_store);
 +
-+static DEVICE_ATTR(drv0_invert,        SYSFS_PERMISSIONS,                   drv0_invert_show,         drv0_invert_store);
-+static DEVICE_ATTR(drv1_invert,        SYSFS_PERMISSIONS,                   drv1_invert_show,         drv1_invert_store);
-+static DEVICE_ATTR(drv2_invert,        SYSFS_PERMISSIONS,                   drv2_invert_show,         drv2_invert_store);
-+static DEVICE_ATTR(drv3_invert,        SYSFS_PERMISSIONS,                   drv3_invert_show,         drv3_invert_store);
++static DEVICE_ATTR(drv0_invert,        SYSFS_PERMISSIONS,                   drv_invert_show,         drv_invert_store);
++static DEVICE_ATTR(drv1_invert,        SYSFS_PERMISSIONS,                   drv_invert_show,         drv_invert_store);
++static DEVICE_ATTR(drv2_invert,        SYSFS_PERMISSIONS,                   drv_invert_show,         drv_invert_store);
++static DEVICE_ATTR(drv3_invert,        SYSFS_PERMISSIONS,                   drv_invert_show,         drv_invert_store);
 +
-+static DEVICE_ATTR(drv0_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv0_invert_txt_show, NULL);
-+static DEVICE_ATTR(drv1_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv1_invert_txt_show, NULL);
-+static DEVICE_ATTR(drv2_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv2_invert_txt_show, NULL);
-+static DEVICE_ATTR(drv3_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv3_invert_txt_show, NULL);
++static DEVICE_ATTR(drv0_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_invert_txt_show, NULL);
++static DEVICE_ATTR(drv1_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_invert_txt_show, NULL);
++static DEVICE_ATTR(drv2_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_invert_txt_show, NULL);
++static DEVICE_ATTR(drv3_invert_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_invert_txt_show, NULL);
 +
-+static DEVICE_ATTR(drv0_type,          SYSFS_PERMISSIONS,                   drv0_type_show,           drv0_type_store);
-+static DEVICE_ATTR(drv1_type,          SYSFS_PERMISSIONS,                   drv1_type_show,           drv1_type_store);
-+static DEVICE_ATTR(drv2_type,          SYSFS_PERMISSIONS,                   drv2_type_show,           drv2_type_store);
-+static DEVICE_ATTR(drv3_type,          SYSFS_PERMISSIONS,                   drv3_type_show,           drv3_type_store);
++static DEVICE_ATTR(drv0_type,          SYSFS_PERMISSIONS,                   drv_type_show,           drv_type_store);
++static DEVICE_ATTR(drv1_type,          SYSFS_PERMISSIONS,                   drv_type_show,           drv_type_store);
++static DEVICE_ATTR(drv2_type,          SYSFS_PERMISSIONS,                   drv_type_show,           drv_type_store);
++static DEVICE_ATTR(drv3_type,          SYSFS_PERMISSIONS,                   drv_type_show,           drv_type_store);
 +
-+static DEVICE_ATTR(drv0_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv0_type_txt_show, NULL);
-+static DEVICE_ATTR(drv1_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv1_type_txt_show, NULL);
-+static DEVICE_ATTR(drv2_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv2_type_txt_show, NULL);
-+static DEVICE_ATTR(drv3_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv3_type_txt_show, NULL);
++static DEVICE_ATTR(drv0_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_type_txt_show, NULL);
++static DEVICE_ATTR(drv1_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_type_txt_show, NULL);
++static DEVICE_ATTR(drv2_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_type_txt_show, NULL);
++static DEVICE_ATTR(drv3_type_txt,      SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_type_txt_show, NULL);
 +
-+static DEVICE_ATTR(drv0_vdd,           SYSFS_PERMISSIONS,                   drv0_vdd_show,            drv0_vdd_store);
-+static DEVICE_ATTR(drv1_vdd,           SYSFS_PERMISSIONS,                   drv1_vdd_show,            drv1_vdd_store);
-+static DEVICE_ATTR(drv2_vdd,           SYSFS_PERMISSIONS,                   drv2_vdd_show,            drv2_vdd_store);
-+static DEVICE_ATTR(drv3_vdd,           SYSFS_PERMISSIONS,                   drv3_vdd_show,            drv3_vdd_store);
++static DEVICE_ATTR(drv0_vdd,           SYSFS_PERMISSIONS,                   drv_vdd_show,            drv_vdd_store);
++static DEVICE_ATTR(drv1_vdd,           SYSFS_PERMISSIONS,                   drv_vdd_show,            drv_vdd_store);
++static DEVICE_ATTR(drv2_vdd,           SYSFS_PERMISSIONS,                   drv_vdd_show,            drv_vdd_store);
++static DEVICE_ATTR(drv3_vdd,           SYSFS_PERMISSIONS,                   drv_vdd_show,            drv_vdd_store);
 +
-+static DEVICE_ATTR(drv0_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv0_vdd_txt_show, NULL);
-+static DEVICE_ATTR(drv1_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv1_vdd_txt_show, NULL);
-+static DEVICE_ATTR(drv2_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv2_vdd_txt_show, NULL);
-+static DEVICE_ATTR(drv3_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv3_vdd_txt_show, NULL);
++static DEVICE_ATTR(drv0_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_vdd_txt_show, NULL);
++static DEVICE_ATTR(drv1_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_vdd_txt_show, NULL);
++static DEVICE_ATTR(drv2_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_vdd_txt_show, NULL);
++static DEVICE_ATTR(drv3_vdd_txt,       SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_vdd_txt_show, NULL);
 +
-+static DEVICE_ATTR(drv0_trim,          SYSFS_PERMISSIONS,                   drv0_trim_show,           drv0_trim_any_store);
-+static DEVICE_ATTR(drv1_trim,          SYSFS_PERMISSIONS,                   drv1_trim_show,           drv1_trim_any_store);
-+static DEVICE_ATTR(drv2_trim,          SYSFS_PERMISSIONS,                   drv2_trim_show,           drv2_trim_any_store);
-+static DEVICE_ATTR(drv3_trim,          SYSFS_PERMISSIONS,                   drv3_trim_show,           drv3_trim_any_store);
++static DEVICE_ATTR(drv0_trim,          SYSFS_PERMISSIONS,                   drv_trim_show,           drv_trim_any_store);
++static DEVICE_ATTR(drv1_trim,          SYSFS_PERMISSIONS,                   drv_trim_show,           drv_trim_any_store);
++static DEVICE_ATTR(drv2_trim,          SYSFS_PERMISSIONS,                   drv_trim_show,           drv_trim_any_store);
++static DEVICE_ATTR(drv3_trim,          SYSFS_PERMISSIONS,                   drv_trim_show,           drv_trim_any_store);
 +
-+static DEVICE_ATTR(drv0_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv0_auto_trim_store);
-+static DEVICE_ATTR(drv1_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv1_auto_trim_store);
-+static DEVICE_ATTR(drv2_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv2_auto_trim_store);
-+static DEVICE_ATTR(drv3_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv3_auto_trim_store);
++static DEVICE_ATTR(drv0_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv_auto_trim_store);
++static DEVICE_ATTR(drv1_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv_auto_trim_store);
++static DEVICE_ATTR(drv2_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv_auto_trim_store);
++static DEVICE_ATTR(drv3_auto_trim,     SYSFS_PERMISSIONS & SYSFS_WRITEONLY, NULL,                     drv_auto_trim_store);
 +
-+static DEVICE_ATTR(drv0_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv0_txt_show, NULL);
-+static DEVICE_ATTR(drv1_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv1_txt_show, NULL);
-+static DEVICE_ATTR(drv2_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv2_txt_show, NULL);
-+static DEVICE_ATTR(drv3_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv3_txt_show, NULL);
++static DEVICE_ATTR(drv0_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
++static DEVICE_ATTR(drv1_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
++static DEVICE_ATTR(drv2_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
++static DEVICE_ATTR(drv3_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
 +
 +static struct attribute *output_drivers_dev_attrs[] = {
 +	&dev_attr_drv0_powerdown.attr,
@@ -1798,22 +1780,203 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "output_drivers",
 +};
 +
++static int get_chn_from_name(const char * name)
++{
++	char * cp = strpbrk(name,"0123456789");
++	return (cp)?(cp[0]-'0'):-1;
++}
++
++static int make_config_out (struct device *dev,
++		ssize_t (*show_output)(struct device *dev, struct device_attribute *attr, char *buf),
++		ssize_t (*store_config)(struct device *dev, struct device_attribute *attr,
++				const char *buf, size_t count))
++{
++	int retval=-1;
++	int index,iout,num_types,num_files;
++	struct attribute **pattrs; /* array of pointers to attibutes */
++	struct device_attribute *dev_attrs;
++	struct attribute_group *attr_group;
++	for (num_types=0;drv_configs[num_types].description;num_types++);
++	num_files=num_types;
++	for (iout=0;out_names[iout];iout++) num_files++;
++
++	pattrs = devm_kzalloc(dev,(num_files+1)*sizeof(pattrs[0]), GFP_KERNEL);
++	if (!pattrs) return -ENOMEM;
++	dev_attrs = devm_kzalloc(dev, num_files*sizeof(dev_attrs[0]), GFP_KERNEL);
++	if (!dev_attrs) return -ENOMEM;
++	attr_group = devm_kzalloc(dev, sizeof(*attr_group), GFP_KERNEL);
++	if (!attr_group) return -ENOMEM;
++	memset(dev_attrs,  0, num_files*sizeof(dev_attrs[0]));
++	memset(attr_group, 0, sizeof(*attr_group));
++	for (index=0;index<num_types;index++) {
++		dev_attrs[index].attr.name=drv_configs[index].description;
++		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_WRITEONLY;
++		dev_attrs[index].show= NULL;
++		dev_attrs[index].store=store_config;
++		pattrs[index]=&(dev_attrs[index].attr);
++	}
++	/*  add outputs (readonly) */
++	for (iout=0;out_names[iout];iout++) {
++		dev_attrs[index].attr.name=out_names[iout];
++		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_READONLY;
++		dev_attrs[index].show=show_output;
++		dev_attrs[index].store=NULL;
++		pattrs[index]=&(dev_attrs[index].attr);
++		index++;
++	}
++	pattrs[index]=NULL;
++	attr_group->name  = "output_standard";
++	attr_group->attrs =pattrs;
++	dev_dbg(dev,"name=%s, &dev->kobj=0x%08x\n",attr_group->name, (int) (&dev->kobj));
++	index=0;
++	while ((*attr_group).attrs[index]){
++		dev_dbg(dev,"attr=%s\n",attr_group->attrs[index]->name);
++		index++;
++	}
++	if (&dev->kobj) {
++		retval = sysfs_create_group(&dev->kobj, attr_group);
++	}
++	return retval;
++}
++
++static ssize_t output_description_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int i,i1,rc,len=0,show_number;
++	struct i2c_client *client =       to_i2c_client(dev);
++	for (i=0; out_names[i]; i++)	if (strcmp(attr->attr.name,out_names[i]) == 0) break;
++	if (!out_names[i]) return -EINVAL;
++	if (i==4) { /* all outputs */
++		i=0;
++		i1=4;
++		show_number=1;
++	} else {
++		i1=i+1;
++		show_number=0;
++	}
++	for (;i<i1;i++){
++		if (show_number){
++			rc=sprintf(buf,"%d: ",i);
++			buf+=rc;
++			len+=rc;
++		}
++		if (((rc=get_output_description(dev, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++		rc=sprintf(buf,", output frequency: ");
++		buf+=rc;
++		len+=rc;
++		if (((rc=get_out_frequency_txt(dev, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++		rc=sprintf(buf,", output route: ");
++		buf+=rc;
++		len+=rc;
++		if (((rc=get_out_route(client, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++		rc=sprintf(buf,"\n");
++		buf+=rc;
++		len+=rc;
++	}
++	return len;
++}
++
++static ssize_t output_route_show(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int chn,rc,len=0;
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name);
++	if (((rc=get_out_route(client, buf,chn)))<0) return rc;
++	buf+=rc;
++	len+=rc;
++	rc=sprintf(buf,"\n");
++	buf+=rc;
++	len+=rc;
++	return len;
++}
++static ssize_t output_route_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int chn, rc;
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name);
++	if (((rc=set_out_route(client, buf, chn)))<0) return rc;
++    return count;
++}
++
++
++static int get_output_description (struct device *dev, char * buf, int chn)
++{
++	int drv_type, drv_vdd, drv_trim, drv_invert,i;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((i=_verify_output_channel(client,chn)))<0) return i;
++	if (((drv_type=  get_drv_type    (client,  chn)))<0) return drv_type;
++	if (((drv_vdd=   get_drv_vdd     (client,  chn)))<0) return drv_vdd;
++	if (((drv_trim=  get_drv_trim    (client,  chn)))<0) return drv_trim;
++	if (((drv_invert=get_drv_invert  (client,  chn)))<0) return drv_invert;
++	for (i=0; drv_configs[i].description; i++)	{
++		if ((drv_configs[i].fmt==drv_type) &&
++			(drv_configs[i].vdd==drv_vdd) &&
++			(drv_configs[i].trim==drv_trim) &&
++			((drv_invert |(drv_configs[i].invert>>2)) == ((drv_configs[i].invert & 3) | (drv_configs[i].invert>>2)))){
++			return sprintf (buf,drv_configs[i].description);
++		}
++	}
++	return sprintf (buf,"Invalid output configuration: type = %d, vdd=%d, trim=%d, invert=%d",drv_type,drv_vdd,drv_trim,drv_invert);
++}
++
++static int get_out_frequency_txt(struct device *dev, char *buf, int chn)
++{
++	int rc;
++	u64 out_freq[3];
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((rc=get_out_frequency(client, out_freq, chn)))<0) return sprintf (buf,"Not set");
++	if (out_freq[1]==0) return sprintf(buf, "%lld Hz",out_freq[0]);
++    return sprintf(buf, "%lld-%lld/%lld Hz",out_freq[0],out_freq[1],out_freq[2]);
++}
++
++static ssize_t output_config_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int chn, num_bytes,rc;
++	while ((rc=sscanf(buf, "%d%n", &chn,&num_bytes))){
++		dev_dbg(dev,"buf=%s rc==%d chn=%d num_bytes=%d", buf, rc,chn,num_bytes);
++		buf+=num_bytes;
++		if (((rc=configure_output_driver(dev, attr->attr.name, chn)))<0) return rc;
++	}
++    return count;
++}
++
++
++static int configure_output_driver(struct device *dev, const char * name, int chn)
++{
++	int i,rc;
++	struct i2c_client *client =       to_i2c_client(dev);
++	dev_dbg(dev,"name=%s chn=%d", name,chn);
++
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	for (i=0; drv_configs[i].description; i++)	if (strcmp(name,drv_configs[i].description) == 0) {
++		if (((rc=set_drv_type    (client, drv_configs[i].fmt,      chn)))<0) return rc;
++		if (((rc=set_drv_vdd     (client, drv_configs[i].vdd,      chn)))<0) return rc;
++		if (((rc=set_drv_trim_any(client, drv_configs[i].trim,     chn)))<0) return rc;
++		if (((rc=set_drv_invert  (client, drv_configs[i].invert&3, chn)))<0) return rc;
++		return 0;
++	}
++	return -EINVAL;
++}
 +
 +
 +static int si5338_sysfs_register(struct device *dev)
 +{
-+//	struct i2c_client *client = to_i2c_client(dev);
-+//	struct vsc330x_data_t *clientdata = i2c_get_clientdata(client);
-+    int retval=0;
-+    if (&dev->kobj) {
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_raw_group)))<0) return retval;
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_input_group)))<0) return retval;
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_multisynth_group)))<0) return retval;
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_pll_group)))<0) return retval;
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_group)))<0) return retval;
-+    	if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_drivers_group)))<0) return retval;
-+    }
-+    return retval;
++	int retval=0;
++	if (&dev->kobj) {
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_raw_group)))<0) return retval;
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_input_group)))<0) return retval;
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_multisynth_group)))<0) return retval;
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_pll_group)))<0) return retval;
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_group)))<0) return retval;
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_drivers_group)))<0) return retval;
++		if (((retval = make_config_out (dev, output_description_show, output_config_store)))<0) return retval;
++	}
++	return retval;
 +}
 +
 +
@@ -1888,8 +2051,9 @@ Index: git/drivers/misc/si5338.c
 +		    len+=rc;
 +		    count-=rc;
 +		}
-+		if (((data= read_reg(client, reg)))<0) return data;
-+		rc=sprintf(buf, "%02x",data);
++		data= read_reg(client, reg); //ignore errors
++		if (data<0) rc=sprintf(buf, "??");
++		else        rc=sprintf(buf, "%02x",data);
 +	    buf+=rc;
 +	    len+=rc;
 +	    count-=rc;
@@ -1986,6 +2150,15 @@ Index: git/drivers/misc/si5338.c
 +    if (((rc=set_in_frequency (client, freq,0)))<0) return rc;
 +    return count;
 +}
++static ssize_t in_frequency12xo_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int rc;
++	u64 freq;
++	struct i2c_client *client =       to_i2c_client(dev);
++    sscanf(buf, "%lld", &freq);
++    if (((rc=set_in_frequency (client, freq,4)))<0) return rc;
++    return count;
++}
 +static ssize_t in_frequency3_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
 +	int rc;
@@ -2014,38 +2187,22 @@ Index: git/drivers/misc/si5338.c
 +    return count;
 +}
 +
-+static ssize_t _in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn)
++static ssize_t in_p12_div_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int div;
++	int div, chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name)+1;
 +	if (((div=get_in_pdiv(client,chn)))<0) return div;
 +    return sprintf(buf, "%d\n",div);
 +}
-+static ssize_t _in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t in_p12_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int div,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int div,rc;
++	chn=get_chn_from_name(attr->attr.name)+1;
 +    sscanf(buf, "%d", &div);
 +    if (((rc=set_in_pdiv(client, div,chn)))<0) return rc;
 +    return count;
-+}
-+
-+static ssize_t in_p1_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{
-+	return _in_p12_div_show (dev, attr, buf, 0);
-+}
-+static ssize_t in_p1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{
-+	return _in_p12_div_store(dev, attr, buf, count, 0);
-+}
-+
-+static ssize_t in_p2_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{
-+	return _in_p12_div_show (dev, attr, buf, 1);
-+}
-+static ssize_t in_p2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{
-+	return _in_p12_div_store(dev, attr, buf, count, 1);
 +}
 +
 +static ssize_t in_mux_show (struct device *dev, struct device_attribute *attr, char *buf)
@@ -2119,6 +2276,22 @@ Index: git/drivers/misc/si5338.c
 +    return sprintf(buf, "%s\n",pfd_ref_txt[data]);
 +}
 +
++static ssize_t fb_external_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	int data;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((data= get_fb_external(client)))<0) return data;
++    return sprintf(buf, "%d\n",data);
++}
++static ssize_t fb_external_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int data,rc;
++	sscanf(buf, "%d", &data);
++    if (((rc=set_fb_external(client, data)))<0) return rc;
++    return count;
++}
++
 +static ssize_t in_pfd_fb_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
 +	int data;
@@ -2150,22 +2323,25 @@ Index: git/drivers/misc/si5338.c
 +	if (pll_in_freq<0) return (int) pll_in_freq;
 +    return sprintf(buf, "%lld\n",pll_in_freq);
 +}
-+static ssize_t _msx_p123_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t ms_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int rc;
++	int rc,chn;
 +	u32 p123[3];
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++	if (attr->attr.name[2]=='n') chn=4; /* exception for msn */
 +	if (((rc=get_ms_p123(client,p123, chn)))<0) return rc;
 +//    return sprintf(buf, "%ld %ld %ld\n",p123[0],p123[1],p123[2]);
 +    return sprintf(buf, "%u %u %u\n",p123[0],p123[1],p123[2]);
 +}
-+static ssize_t _msx_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int chn)
++static ssize_t ms_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,chn;
 +	u32 p123[3];
 +	int num_items;
-+//	num_items=sscanf(buf, "%ld %ld %ld", &p123[0], &p123[1], &p123[2]);
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++	if (attr->attr.name[2]=='n') chn=4; /* exception for msn */
 +	num_items=sscanf(buf, "%u %u %u", &p123[0], &p123[1], &p123[2]);
 +	if (num_items<3){
 +		p123[1]=0;
@@ -2174,106 +2350,56 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t _msx_abc_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t ms_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int rc;
++	int rc,chn;
 +	u32 p123[3];
 +	u64 ms[3];
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++	if (chn<0) chn=4; /* exception for msn - should have no digits*/
 +	if (((rc=get_ms_p123(client,p123, chn)))<0) return rc;
 +	p123_to_ms(ms,p123);
 +    return sprintf(buf, "%lld %lld %lld\n",ms[0],ms[1],ms[2]);
 +}
-+static ssize_t _msx_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int chn)
++static ssize_t ms_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,chn;
 +	u32 p123[3];
 +	u64 ms[3];
 +	int num_items;
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++	if (chn<0) chn=4; /* exception for msn - should have no digits*/
 +	num_items=sscanf(buf, "%lld %lld %lld", &ms[0], &ms[1], &ms[2]);
 +	if (num_items<3){
 +		ms[1]=0;
 +		ms[2]=1;
++	} else {
++		remove_common_factor(&ms[1]);
 +	}
 +	ms_to_p123(ms,p123);
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t ms0_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_p123_show(dev, attr, buf, 0);}
-+static ssize_t ms0_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_p123_store(dev, attr, buf, count,0);}
-+static ssize_t ms0_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_abc_show(dev, attr, buf, 0);}
-+static ssize_t ms0_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_abc_store(dev, attr, buf, count,0);}
 +
-+static ssize_t ms1_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_p123_show(dev, attr, buf, 1);}
-+static ssize_t ms1_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_p123_store(dev, attr, buf, count,1);}
-+static ssize_t ms1_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_abc_show(dev, attr, buf, 1);}
-+static ssize_t ms1_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_abc_store(dev, attr, buf, count,1);}
-+
-+static ssize_t ms2_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_p123_show(dev, attr, buf, 2);}
-+static ssize_t ms2_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_p123_store(dev, attr, buf, count,2);}
-+static ssize_t ms2_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_abc_show(dev, attr, buf, 2);}
-+static ssize_t ms2_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_abc_store(dev, attr, buf, count,2);}
-+
-+static ssize_t ms3_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_p123_show(dev, attr, buf, 3);}
-+static ssize_t ms3_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_p123_store(dev, attr, buf, count,3);}
-+static ssize_t ms3_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_abc_show(dev, attr, buf, 3);}
-+static ssize_t ms3_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_abc_store(dev, attr, buf, count,3);}
-+static ssize_t msn_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_p123_show(dev, attr, buf, 4);}
-+static ssize_t msn_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_p123_store(dev, attr, buf, count,4);}
-+static ssize_t msn_abc_show(struct device *dev, struct device_attribute *attr, char *buf)
-+	{return _msx_abc_show(dev, attr, buf, 4);}
-+static ssize_t msn_abc_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _msx_abc_store(dev, attr, buf, count,4);}
-+static ssize_t _ms_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t ms_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_ms_powerdown(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _ms_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t ms_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_ms_powerdown(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t ms0_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _ms_powerdown_show (dev, attr, buf, 0); }
-+static ssize_t ms1_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _ms_powerdown_show (dev, attr, buf, 1); }
-+static ssize_t ms2_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _ms_powerdown_show (dev, attr, buf, 2); }
-+static ssize_t ms3_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _ms_powerdown_show (dev, attr, buf, 3); }
-+static ssize_t ms0_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _ms_powerdown_store(dev, attr, buf,count, 0);}
-+static ssize_t ms1_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _ms_powerdown_store(dev, attr, buf,count, 1);}
-+static ssize_t ms2_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _ms_powerdown_store(dev, attr, buf,count, 2);}
-+static ssize_t ms3_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _ms_powerdown_store(dev, attr, buf,count, 3);}
 +
 +static ssize_t pll_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
@@ -2285,12 +2411,15 @@ Index: git/drivers/misc/si5338.c
 +    return sprintf(buf, "%lld %lld %lld\n",pll_freq[0],pll_freq[1],pll_freq[2]);
 +}
 +
-+static ssize_t _pll_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int by_out)
++static ssize_t pll_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,int_div,by_out;
 +	u64 freq[3];
 +	int num_items;
++    int_div=(strstr(attr->attr.name,"_fract"))?0:1; /* if filename contains '_fract' - 0, not - 1 */
++    by_out=(strstr(attr->attr.name,"_by_out"))?1:0; /* if filename contains '_by_out' - 1, not - 0 */
++
 +	num_items=sscanf(buf, "%lld %lld %lld", &freq[0], &freq[1], &freq[2]);
 +	if (num_items<3){
 +		freq[1]=0;
@@ -2298,40 +2427,32 @@ Index: git/drivers/misc/si5338.c
 +	}
 +	if (by_out) {
 +		if (((rc=set_pll_freq_by_out(client, freq, int_div)))<0) return rc;
-+		if (((rc=set_pll_paremeters(client)))<0) return rc;
-+		if (((rc=set_misc_registers(client)))<0) return rc;
-+
 +	} else {
 +		if (((rc=set_pll_freq       (client, freq, int_div)))<0) return rc;
-+		if (((rc=set_pll_paremeters(client)))<0) return rc;
-+		if (((rc=set_misc_registers(client)))<0) return rc;
 +	}
++	if (((rc=set_pll_paremeters(client)))<0) return rc;
++	if (((rc=set_misc_registers(client)))<0) return rc;
 +    return count;
 +}
-+static ssize_t pll_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _pll_freq_store(dev, attr, buf, count, 0, 0);}
-+static ssize_t pll_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _pll_freq_store(dev, attr, buf, count, 1, 0);}
-+static ssize_t pll_by_out_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _pll_freq_store(dev, attr, buf, count, 0, 1);}
-+static ssize_t pll_by_out_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+	{return _pll_freq_store(dev, attr, buf, count, 1, 1);}
 +
-+static ssize_t _pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++
++static ssize_t pll_ms_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int rc;
++	int rc,chn;
 +	u64 ms_freq[3];
 +	struct i2c_client *client =       to_i2c_client(dev);
-+
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((rc=get_pll_ms_freq(client, ms_freq, chn)))<0) return rc;
 +    return sprintf(buf, "%lld %lld %lld\n",ms_freq[0],ms_freq[1],ms_freq[2]);
 +}
-+static ssize_t _pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count,int int_div, int chn)
++static ssize_t pll_ms_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,chn,int_div;
 +	u64 freq[3];
 +	int num_items;
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++    int_div=(strstr(attr->attr.name,"_fract"))?0:1; /* if includes 'fract' - 0, not - 1 */
 +	num_items=sscanf(buf, "%lld %lld %lld", &freq[0], &freq[1], &freq[2]);
 +	if (num_items<3){
 +		freq[1]=0;
@@ -2340,52 +2461,31 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=set_pll_ms_by_out(client, freq, chn, int_div)))<0) return rc;
 +    return count;
 +}
-+static ssize_t pll_ms0_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _pll_ms_freq_show(dev, attr, buf, 0);}
-+static ssize_t pll_ms1_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _pll_ms_freq_show(dev, attr, buf, 1);}
-+static ssize_t pll_ms2_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _pll_ms_freq_show(dev, attr, buf, 2);}
-+static ssize_t pll_ms3_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _pll_ms_freq_show(dev, attr, buf, 3);}
-+static ssize_t pll_ms0_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 0, 0);}
-+static ssize_t pll_ms1_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 0, 1);}
-+static ssize_t pll_ms2_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 0, 2);}
-+static ssize_t pll_ms3_freq_fract_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 0, 3);}
-+static ssize_t pll_ms0_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 1, 0);}
-+static ssize_t pll_ms1_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 1, 1);}
-+static ssize_t pll_ms2_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 1, 2);}
-+static ssize_t pll_ms3_freq_int_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _pll_ms_freq_store(dev, attr, buf, count, 1, 3);}
 +
 +/* -----------Output section--------------------------- */
-+static ssize_t _out_source_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t out_source_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int out_src;
++	int out_src,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((out_src=get_out_source(client, chn)))<0) return out_src;
 +    return sprintf(buf, "%d\n",out_src);
 +}
-+static ssize_t _out_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t out_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,chn;
 +	int out_src;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &out_src);
 +	if (((rc=set_out_source(client, chn, out_src)))<0) return rc;
 +    return count;
 +}
-+static ssize_t _out_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t out_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int out_src;
++	int out_src,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((out_src=get_out_source(client, chn)))<0) return out_src;
 +	switch (out_src){
 +	case 0: return sprintf(buf, "p2div_in\n");
@@ -2400,99 +2500,69 @@ Index: git/drivers/misc/si5338.c
 +    return -EINVAL;
 +}
 +
-+static ssize_t _out_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t out_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int rc;
++	int rc,chn;
 +	u64 out_source_freq[3];
 +	struct i2c_client *client =       to_i2c_client(dev);
-+
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((rc=get_output_src_frequency(client, out_source_freq, chn)))<0) return rc;
 +    return sprintf(buf, "%lld %lld %lld\n",out_source_freq[0],out_source_freq[1],out_source_freq[2]);
 +}
 +
-+static ssize_t out0_source_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_show(dev, attr, buf, 0);}
-+static ssize_t out1_source_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_show(dev, attr, buf, 1);}
-+static ssize_t out2_source_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_show(dev, attr, buf, 2);}
-+static ssize_t out3_source_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_show(dev, attr, buf, 3);}
-+
-+static ssize_t out0_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _out_source_store(dev, attr, buf, count, 0);}
-+static ssize_t out1_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _out_source_store(dev, attr, buf, count, 1);}
-+static ssize_t out2_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _out_source_store(dev, attr, buf, count, 2);}
-+static ssize_t out3_source_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _out_source_store(dev, attr, buf, count, 3);}
-+
-+static ssize_t out0_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_txt_show(dev, attr, buf, 0);}
-+static ssize_t out1_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_txt_show(dev, attr, buf, 1);}
-+static ssize_t out2_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_txt_show(dev, attr, buf, 2);}
-+static ssize_t out3_source_txt_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_txt_show(dev, attr, buf, 3);}
-+
-+static ssize_t out0_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_freq_show(dev, attr, buf, 0);}
-+static ssize_t out1_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_freq_show(dev, attr, buf, 1);}
-+static ssize_t out2_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_freq_show(dev, attr, buf, 2);}
-+static ssize_t out3_source_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
-+{return _out_source_freq_show(dev, attr, buf, 3);}
-+
-+static ssize_t _out_div_show (struct device *dev, struct device_attribute *attr, char *buf,  int chn)
++static ssize_t out_div_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int div;
++	int div,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((div=get_out_div(client,chn)))<0) return div;
 +    return sprintf(buf, "%d\n",div);
 +}
-+static ssize_t _out_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t out_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int div,rc;
++	int div,rc,chn;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +    sscanf(buf, "%d", &div);
 +    if (((rc=set_out_div(client, div,chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t out0_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_div_show (dev, attr, buf, 0);}
-+static ssize_t out1_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_div_show (dev, attr, buf, 1);}
-+static ssize_t out2_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_div_show (dev, attr, buf, 2);}
-+static ssize_t out3_div_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_div_show (dev, attr, buf, 3);}
-+static ssize_t out0_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_store(dev, attr, buf, count, 0);}
-+static ssize_t out1_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_store(dev, attr, buf, count, 1);}
-+static ssize_t out2_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_store(dev, attr, buf, count, 2);}
-+static ssize_t out3_div_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_store(dev, attr, buf, count, 3);}
-+//static int set_out_div_by_frequency(struct i2c_client *client, u64* out_freq, int chn); /*chn =0..3 */
 +
-+static ssize_t _out_freq_show(struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t out_freq_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int rc;
++	int rc,chn;
 +	u64 out_freq[3];
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((rc=get_out_frequency(client, out_freq, chn)))<0) return rc;
 +    return sprintf(buf, "%lld %lld %lld\n",out_freq[0],out_freq[1],out_freq[2]);
 +}
-+static ssize_t _out_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++
++static ssize_t out_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
-+	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
++	int rc,int_div,chn;
 +	u64 freq[3];
 +	int num_items;
++	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
++    int_div=(strstr(attr->attr.name,"_fract"))?0:1; /* if filename contains '_fract' - 0, not - 1 */
++
++	num_items=sscanf(buf, "%lld %lld %lld", &freq[0], &freq[1], &freq[2]);
++	if (num_items<3){
++		freq[1]=0;
++		freq[2]=1;
++	}
++	if (((rc=set_out_frequency_and_route (client, freq, chn, int_div)))<0) return rc;
++    return count;
++}
++
++static ssize_t out_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	int rc,chn;
++	u64 freq[3];
++	int num_items;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	num_items=sscanf(buf, "%lld %lld %lld", &freq[0], &freq[1], &freq[2]);
 +	if (num_items<3){
 +		freq[1]=0;
@@ -2501,156 +2571,80 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=set_out_div_by_frequency(client, freq, chn)))<0) return rc;
 +	return count;
 +}
-+static ssize_t out0_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_freq_show (dev, attr, buf, 0);}
-+static ssize_t out1_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_freq_show (dev, attr, buf, 1);}
-+static ssize_t out2_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_freq_show (dev, attr, buf, 2);}
-+static ssize_t out3_freq_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{ return _out_freq_show (dev, attr, buf, 3);}
-+static ssize_t out0_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_by_freq_store(dev, attr, buf, count, 0);}
-+static ssize_t out1_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_by_freq_store(dev, attr, buf, count, 1);}
-+static ssize_t out2_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_by_freq_store(dev, attr, buf, count, 2);}
-+static ssize_t out3_div_by_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{ return _out_div_by_freq_store(dev, attr, buf, count, 3);}
 +
-+
-+static ssize_t _drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_powerdown(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_powerdown(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_powerdown_show (dev, attr, buf, 0); }
-+static ssize_t drv1_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_powerdown_show (dev, attr, buf, 1); }
-+static ssize_t drv2_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_powerdown_show (dev, attr, buf, 2); }
-+static ssize_t drv3_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_powerdown_show (dev, attr, buf, 3); }
-+static ssize_t drv0_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_powerdown_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_powerdown_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_powerdown_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_powerdown_store(dev, attr, buf,count, 3);}
-+
-+static ssize_t _drv_disable_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_disable_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_disable(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_disable(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_disable_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disable_show (dev, attr, buf, 0); }
-+static ssize_t drv1_disable_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disable_show (dev, attr, buf, 1); }
-+static ssize_t drv2_disable_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disable_show (dev, attr, buf, 2); }
-+static ssize_t drv3_disable_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disable_show (dev, attr, buf, 3); }
-+static ssize_t drv0_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disable_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disable_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disable_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_disable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disable_store(dev, attr, buf,count, 3);}
-+
-+static ssize_t _drv_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_disabled_state(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_disabled_state(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disabled_state_show (dev, attr, buf, 0); }
-+static ssize_t drv1_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disabled_state_show (dev, attr, buf, 1); }
-+static ssize_t drv2_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disabled_state_show (dev, attr, buf, 2); }
-+static ssize_t drv3_disabled_state_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_disabled_state_show (dev, attr, buf, 3); }
-+static ssize_t drv0_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disabled_state_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disabled_state_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disabled_state_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_disabled_state_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_disabled_state_store(dev, attr, buf,count, 3);}
-+
-+static ssize_t _drv_invert_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_invert_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_invert(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_invert(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_invert_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_show (dev, attr, buf, 0); }
-+static ssize_t drv1_invert_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_show (dev, attr, buf, 1); }
-+static ssize_t drv2_invert_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_show (dev, attr, buf, 2); }
-+static ssize_t drv3_invert_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_show (dev, attr, buf, 3); }
-+static ssize_t drv0_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_invert_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_invert_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_invert_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_invert_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_invert_store(dev, attr, buf,count, 3);}
-+
-+static ssize_t _drv_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_invert(client,chn)))<0) return data;
 +	switch (data) {
 +	case 0:return sprintf(buf, "No inversion\n");
@@ -2660,53 +2654,30 @@ Index: git/drivers/misc/si5338.c
 +	}
 +    return 0; /* never */
 +}
-+static ssize_t drv0_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_txt_show (dev, attr, buf, 0); }
-+static ssize_t drv1_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_txt_show (dev, attr, buf, 1); }
-+static ssize_t drv2_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_txt_show (dev, attr, buf, 2); }
-+static ssize_t drv3_invert_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_invert_txt_show (dev, attr, buf, 3); }
 +
-+
-+
-+static ssize_t _drv_type_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_type_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_type(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_type(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_type_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_show (dev, attr, buf, 0); }
-+static ssize_t drv1_type_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_show (dev, attr, buf, 1); }
-+static ssize_t drv2_type_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_show (dev, attr, buf, 2); }
-+static ssize_t drv3_type_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_show (dev, attr, buf, 3); }
-+static ssize_t drv0_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_type_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_type_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_type_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_type_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_type_store(dev, attr, buf,count, 3);}
 +
-+static ssize_t _drv_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_type(client,chn)))<0) return data;
 +	switch (data) {
 +	case 0:return sprintf(buf, "reserved\n");
@@ -2720,51 +2691,29 @@ Index: git/drivers/misc/si5338.c
 +	}
 +    return 0; /* never */
 +}
-+static ssize_t drv0_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_txt_show (dev, attr, buf, 0); }
-+static ssize_t drv1_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_txt_show (dev, attr, buf, 1); }
-+static ssize_t drv2_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_txt_show (dev, attr, buf, 2); }
-+static ssize_t drv3_type_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_type_txt_show (dev, attr, buf, 3); }
 +
-+static ssize_t _drv_vdd_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_vdd_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_vdd(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t _drv_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_vdd(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_vdd_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_show (dev, attr, buf, 0); }
-+static ssize_t drv1_vdd_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_show (dev, attr, buf, 1); }
-+static ssize_t drv2_vdd_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_show (dev, attr, buf, 2); }
-+static ssize_t drv3_vdd_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_show (dev, attr, buf, 3); }
-+static ssize_t drv0_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_vdd_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_vdd_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_vdd_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_vdd_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_vdd_store(dev, attr, buf,count, 3);}
-+
-+static ssize_t _drv_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_vdd(client,chn)))<0) return data;
 +	switch (data) {
 +	case 0:return sprintf(buf, "3.3V\n");
@@ -2774,99 +2723,83 @@ Index: git/drivers/misc/si5338.c
 +	}
 +    return 0; /* never */
 +}
-+static ssize_t drv0_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_txt_show (dev, attr, buf, 0); }
-+static ssize_t drv1_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_txt_show (dev, attr, buf, 1); }
-+static ssize_t drv2_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_txt_show (dev, attr, buf, 2); }
-+static ssize_t drv3_vdd_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_vdd_txt_show (dev, attr, buf, 3); }
-+
-+static ssize_t _drv_trim_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_trim_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
-+	int data;
++	int data,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_trim(client,chn)))<0) return data;
 +    return sprintf(buf, "%d\n",data);
 +}
-+static ssize_t drv0_trim_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_trim_show (dev, attr, buf, 0); }
-+static ssize_t drv1_trim_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_trim_show (dev, attr, buf, 1); }
-+static ssize_t drv2_trim_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_trim_show (dev, attr, buf, 2); }
-+static ssize_t drv3_trim_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_trim_show (dev, attr, buf, 3); }
 +
-+static ssize_t _update_drv_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=update_drv_trim(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _update_drv_trim_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _update_drv_trim_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _update_drv_trim_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _update_drv_trim_store(dev, attr, buf,count, 3);}
-+static ssize_t _drv_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count, int chn)
++static ssize_t drv_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int data,rc,chn;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int data,rc;
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	sscanf(buf, "%d", &data);
 +    if (((rc=set_drv_trim_any(client, data, chn)))<0) return rc;
 +    return count;
 +}
-+static ssize_t drv0_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_trim_any_store(dev, attr, buf,count, 0);}
-+static ssize_t drv1_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_trim_any_store(dev, attr, buf,count, 1);}
-+static ssize_t drv2_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_trim_any_store(dev, attr, buf,count, 2);}
-+static ssize_t drv3_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-+{return _drv_trim_any_store(dev, attr, buf,count, 3);}
 +
-+static ssize_t _drv_txt_show (struct device *dev, struct device_attribute *attr, char *buf, int chn)
++static ssize_t drv_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
++	int chn;
 +	char * data;
 +	struct i2c_client *client =       to_i2c_client(dev);
++	chn=get_chn_from_name(attr->attr.name); /* uses first digit in the name */
 +	if (((data=get_drv_txt(client,chn)))==NULL) return -EINVAL;
 +    return sprintf(buf, "%s\n",data);
 +}
-+static ssize_t drv0_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_txt_show (dev, attr, buf, 0); }
-+static ssize_t drv1_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_txt_show (dev, attr, buf, 1); }
-+static ssize_t drv2_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_txt_show (dev, attr, buf, 2); }
-+static ssize_t drv3_txt_show (struct device *dev, struct device_attribute *attr, char *buf)
-+{return _drv_txt_show (dev, attr, buf, 3); }
 +
 +/* -----------Output section--------------------------- */
 +
-+static const u32 awe_rdiv_in[]=  {AWE_R0DIV_IN,AWE_R1DIV_IN,AWE_R1DIV_IN,AWE_R1DIV_IN};
-+static const u32 awe_rdiv_k[]=   {AWE_R0DIV,   AWE_R1DIV,   AWE_R1DIV,   AWE_R1DIV};
-+static const u32 awe_drv_fmt[]=  {AWE_DRV0_FMT, AWE_DRV1_FMT,AWE_DRV2_FMT,AWE_DRV3_FMT};
-+static const u32 awe_drv_vddo[]= {AWE_DRV0_VDDO, AWE_DRV1_VDDO, AWE_DRV2_VDDO, AWE_DRV3_VDDO};
++static const u32 awe_rdiv_in[]=      {AWE_R0DIV_IN,  AWE_R1DIV_IN,  AWE_R2DIV_IN,  AWE_R3DIV_IN};
++static const u32 awe_rdiv_k[]=       {AWE_R0DIV,     AWE_R1DIV,     AWE_R2DIV,     AWE_R3DIV};
++static const u32 awe_drv_fmt[]=      {AWE_DRV0_FMT,  AWE_DRV1_FMT,  AWE_DRV2_FMT,  AWE_DRV3_FMT};
++static const u32 awe_drv_vddo[]=     {AWE_DRV0_VDDO, AWE_DRV1_VDDO, AWE_DRV2_VDDO, AWE_DRV3_VDDO};
 +static const u32 awe_drv_trim[][4]= {{AWE_DRV0_TRIM,0,0}, {AWE_DRV1_TRIM_A,AWE_DRV1_TRIM_B,0},{AWE_DRV2_TRIM,0,0},{AWE_DRV3_TRIM,0,0}};
-+static const u32 awe_drv_powerdown[]={AWE_DRV0_PDN, AWE_DRV1_PDN, AWE_DRV2_PDN, AWE_DRV2_PDN};
-+static const u32 awe_drv_disable[]={AWE_OUT0_DIS, AWE_OUT1_DIS, AWE_OUT2_DIS, AWE_OUT3_DIS, AWE_OUT_ALL_DIS};
++static const u32 awe_drv_powerdown[]={AWE_DRV0_PDN,  AWE_DRV1_PDN,  AWE_DRV2_PDN,  AWE_DRV3_PDN};
++static const u32 awe_drv_disable[]=  {AWE_OUT0_DIS,  AWE_OUT1_DIS,  AWE_OUT2_DIS,  AWE_OUT3_DIS, AWE_OUT_ALL_DIS};
 +static const u32 awe_drv_dis_state[]={AWE_OUT0_DIS_STATE, AWE_OUT1_DIS_STATE, AWE_OUT2_DIS_STATE, AWE_OUT3_DIS_STATE};
-+static const u32 awe_drv_invert[]={AWE_DRV0_INV, AWE_DRV1_INV, AWE_DRV1_INV, AWE_DRV3_INV};
++static const u32 awe_drv_invert[]=   {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
 +
-+
-+
-+
-+static const u32 awe_drv_inv[]=  {AWE_DRV0_INV, AWE_DRV1_INV, AWE_DRV2_INV, AWE_DRV3_INV};
++static const u32 awe_drv_inv[]=      {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
 +
 +
 +static const u8 out_div_values[]={1,2,4,8,16,32};
++static int remove_common_factor(u64 * num_denom)
++{
++	u64 a,b,r;
++	if (num_denom[1]==0) return -1; /* zero denominator */
++	if (num_denom[0]==0) {
++		num_denom[1]=1;
++		return 1;
++	}
++	a=max(num_denom[0],num_denom[1]);
++	b=min(num_denom[0],num_denom[1]);
++	r=b;
++	while (r>1) {
++		r=a-b*div64_u64(a,b);
++		if (r==0){
++			num_denom[0]=div64_u64(num_denom[0],b);
++			num_denom[1]=div64_u64(num_denom[1],b);
++			return 1;
++		}
++		a=b;
++		b=r;
++	}
++	return 0; /* nothing done */
++}
 +static int _verify_output_channel(struct i2c_client *client,int chn)
 +{
 +	if ((chn<0) || (chn>3)){
@@ -3145,39 +3078,42 @@ Index: git/drivers/misc/si5338.c
 +static int set_out_div_by_frequency(struct i2c_client *client, u64* out_freq, int chn) /*chn =0..3 */
 +{
 +	int rc,i,idiv;
-+	u64 out_src_freq[3],div, div15, out_src_nom,out_src_denom,out_nom,out_denom;
++	u64 out_src_freq[3],div, div15, out_src_num,out_src_denom,out_num,out_denom;
 +	if (((rc=get_output_src_frequency(client, out_src_freq, chn)))<0) return rc;
-+	out_src_nom=out_src_freq[0]*out_src_freq[2]+out_src_freq[1];
++	out_src_num=out_src_freq[0]*out_src_freq[2]+out_src_freq[1];
 +	out_src_denom=out_src_freq[2];
-+	out_nom=out_freq[0]*out_freq[2]+out_freq[1];
++	out_num=out_freq[0]*out_freq[2]+out_freq[1];
 +	out_denom=out_freq[2];
-+	if (out_nom==0){
++	if (out_num==0){
 +		dev_err(&client->dev, "Zero output frequency for channel: %d\n",chn);
 +		return - EINVAL;
 +	}
-+	while ((out_src_denom>0x1000) || (((out_src_denom | out_src_nom) &1)==0)){
++	while ((out_src_denom>0x1000) || (((out_src_denom | out_src_num) &1)==0)){
 +		out_src_denom>>=1;
-+		out_src_nom>>=  1;
++		out_src_num>>=  1;
 +	}
-+	while ((out_denom>0x1000) || (((out_denom | out_nom) &1)==0)){
++	while ((out_denom>0x1000) || (((out_denom | out_num) &1)==0)){
 +		out_denom>>=1;
-+		out_nom>>=  1;
++		out_num>>=  1;
 +	}
-+	out_src_nom*=out_denom;
-+	out_src_denom*=out_nom;
-+	div=div64_u64(out_src_nom + (out_src_denom>>1), out_src_denom);
++	dev_dbg(&client->dev, "out_src_num=%lld, out_src_denom=%lld, out_num=%lld, out_denom=%lld, \n",
++			out_src_num, out_src_denom, out_num, out_denom);
++	out_src_num*=out_denom;
++	out_src_denom*=out_num;
++	div=div64_u64(out_src_num + (out_src_denom>>1), out_src_denom);
 +	div15=div+(div>>1);
++	dev_dbg(&client->dev, "out_src_num*out_denom=%lld, out_src_denom*out_num=%lld, div=%lld, div15=%lld \n",
++			out_src_num, out_src_denom, div, div15);
 +	if ((div15<1) || (div15>=64)) {
 +		dev_err(&client->dev, "Output divider (%d) out of 1..32 range for output %d \n",(int) div,chn);
 +		return - EINVAL;
 +	}
 +	idiv=(int) div15;
-+    for (i=5;i>=0;i++) if ((1<<i) & idiv){
++    for (i=5;i>=0;i--) if ((1<<i) & idiv){
 +    	return  set_out_div(client, (1<<i), chn);
 +    }
 +	return - EINVAL; /* should not happen */
 +}
-+
 +static int get_out_frequency(struct i2c_client *client, u64* out_freq, int chn) /*chn =0..3 */
 +{
 +	int rc,div;
@@ -3189,10 +3125,7 @@ Index: git/drivers/misc/si5338.c
 +	out_freq[0]=div64_u64(out_freq[1],out_freq[2]);
 +	out_freq[1]-=out_freq[0]*out_freq[2];
 +	if (out_freq[1]==0) out_freq[2]=1;
-+	while (((out_freq[1] | out_freq[2]) &1) == 0) {
-+		out_freq[1] >>= 1;
-+		out_freq[2] >>= 1;
-+	}
++	remove_common_factor(&out_freq[1]);
 +	return 0;
 +}
 +static int get_out_source(struct i2c_client *client, int chn)
@@ -3211,6 +3144,189 @@ Index: git/drivers/misc/si5338.c
 +		return - EINVAL;
 +	}
 +	return write_field (client, (u8) src, awe_rdiv_in[chn]);
++}
++/* Examples:
++ * "IN12:2:4"
++ * "XO:1:1"
++ * "MS0:16"
++ * "NO"
++ */
++static int get_out_route(struct i2c_client *client, char* buf, int chn)
++{
++	int rc;
++	int out_src,div1=-1,div2=-1,src_group, src;
++	const int in_numbers[]={12,3,4,56};
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if (((out_src=get_out_source(client, chn)))<0) return out_src;
++	if (((div2=get_out_div(client,chn)))<0) return div2; /* 1/2/4/8/16/32 */
++	switch (out_src){
++	case 0: /* p2div in */
++	case 2: /* p2div out */
++		if (out_src & 2) {
++			if (((div1=get_in_pdiv(client,1)))<0) return div1; /* 1/2/4/8/16/32 */
++		} else div1=1;
++		if (((src=get_fb_mux(client)))<0) return src;
++		src_group=0;
++		src=(src)?2:3; /* mod src: 0 - IN56, 1 - IN4 */
++		break;
++	case 1: /* p1div in */
++	case 3: /* p1div out */
++		if (out_src & 2) {
++			if (((div1=get_in_pdiv(client,0)))<0) return div1; /* 1/2/4/8/16/32 */
++		} else div1=1;
++		if (((src=get_in_mux(client)))<0) return src;
++		if (src==2){
++			src_group=1;
++			src=0;
++		} else {
++			src_group=0; /* keep src: 0 - IN12, 1 - IN3 */
++		}
++		break;
++	case 4: src_group=1; div1=1;  break;
++	case 5: src_group=2; src=0;   break;
++	case 6: src_group=2; src=chn; break;
++	case 7: src_group=3;          break;
++	}
++	dev_dbg(&client->dev, "out_src=%d, src_group=%d, src=%d, div1=%d, div2=%d\n",out_src,src_group,src,div1,div2);
++	switch (src_group) {
++	case 0: return sprintf(buf,"IN%d:%d:%d",in_numbers[src],div1,div2);
++	case 1: return sprintf(buf,"XO:%d:%d",div1,div2);
++	case 2: return sprintf(buf,"MS%d:%d",src,div2);
++	case 3: return sprintf(buf,"No clock");
++	}
++	return 0;
++}
++
++static int set_out_route(struct i2c_client *client, const char* route, int chn)
++{
++	int src_group, src, div1, div2, out_src, mux1=-1,mux2=-1;
++	const char *cp=route;
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	/* parse string */
++	if ((strnicmp(cp,"in",2)==0)) {
++		cp+=2;
++		if ((strncmp(cp,"12",2)==0)) {
++			cp+=2;
++			src=0;
++		} else if ((strncmp(cp,"3", 1)==0)) {
++			cp+=1;
++			src=1;
++		} else if ((strncmp(cp,"4", 1)==0)) {
++			cp+=1;
++			src=2;
++		} else if ((strncmp(cp,"56",2)==0)){
++			cp+=2;
++			src=3;
++		} else return -EINVAL; /* invalid input number(s) */
++		src_group=0;
++	} else if ((strnicmp(cp,"xo",2)==0)) {
++		cp+=2;
++		src_group=1;
++		src=0;
++	} else if ((strnicmp(cp,"ms",2)==0)) {
++		cp+=2;
++		src=cp[0]-'0';
++		cp++;
++		if ((src!=0) && (src!=chn)){
++			return -EINVAL; /* invalid MS channel */
++		}
++		src_group=2;
++		div1=-1;
++	} else if ((strnicmp(cp,"no",2)==0)) {
++		cp+=2;
++		src_group=3;
++	} else return -EINVAL;
++	/* for IN and XO - find input divisor */
++	if (src_group<2){
++		if ((cp[0]=='/') || (cp[0]==':')){
++			cp++;
++			if      ((strncmp(cp,"32",2)==0)) {
++				div1=5;
++				cp++;
++			} else if ((strncmp(cp,"16",2)==0)) {
++				div1=4;
++				cp++;
++			} else if ((strncmp(cp,"8",1)==0)) div1=3;
++			else if   ((strncmp(cp,"4",1)==0)) div1=2;
++			else if   ((strncmp(cp,"2",1)==0)) div1=1;
++			else if   ((strncmp(cp,"1",1)==0)) div1=0;
++			else return -EINVAL;
++			cp++;
++		} else return -EINVAL; /* divisor expected */
++	}
++	/* get output divisor */
++	if (src_group<3){
++		if ((cp[0]=='/') || (cp[0]==':')){
++			cp++;
++			if      ((strncmp(cp,"32",2)==0)) {
++				div2=5;
++				cp++;
++			} else if ((strncmp(cp,"16",2)==0)) {
++				div2=4;
++				cp++;
++			} else if ((strncmp(cp,"8",1)==0)) div2=3;
++			else if   ((strncmp(cp,"4",1)==0)) div2=2;
++			else if   ((strncmp(cp,"2",1)==0)) div2=1;
++			else if   ((strncmp(cp,"1",1)==0)) div2=0;
++			else return -EINVAL;
++			cp++;
++		} else return -EINVAL; /* divisor expected */
++	}
++
++	/* apply */
++	if (((rc==set_out_div(client, 1<<div2, chn)))<0) return rc;
++	if (src_group==3){
++		out_src = 7; /* No clock */
++	} else	if (src_group==2){
++		out_src = (src==0)?5:6; /* MS0/MSn */
++	} else	if ((src_group==1) && (div1==0))  { /* xo, no divisor */
++		out_src = 4;
++	} else {
++		if (div1==0){
++			out_src=(src>1)?0:1; /* p2div_in / p1div_in */
++		} else {
++			out_src=(src>1)?2:3; /* p2div_out / p1div_out */
++			if (src_group==1){ /* xo, but with division */
++				mux1=2;
++			} else {
++				switch (src){
++				case 0: mux1=0; break; /* in1/in2 */
++				case 1: mux1=1; break; /* in3 */
++				case 2: mux2=1; break; /* in4 */
++				case 3: mux2=0; break; /* in5/in6 */
++				}
++			}
++		}
++	}
++	dev_dbg(&client->dev, "src_group=%d, src=%d, div1=%d, div2=%d, mux1=%d,mux2=%d, out_src=%d \n",src_group, src, div1, div2, mux1,mux2,out_src);
++	if (((rc==set_out_source(client, chn,out_src)))<0) return rc;
++	if (div1>0){ /* only set p1div/p2div if needed */
++		if (((rc==set_in_pdiv(client, 1<<div1, (out_src==2)?1:0)))<0) return rc; /* set p2div or p1div - as needed */
++	}
++	if (mux1>=0){
++		if (((rc==set_in_mux(client, mux1)))<0) return rc; /* set imput mux if it is used */
++	}
++	if (mux2>=0){
++		if (((rc==set_fb_mux(client, mux2)))<0) return rc; /* set fb mux if it is used */
++	}
++	return 0;
++}
++
++static int set_out_frequency_and_route (struct i2c_client *client, u64 *out_freq, int chn, int int_div)
++{
++	/* using MS with the same number as the output, enabling power to that MS */
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	/* setup MSn division */
++	if (((rc=set_pll_ms_by_out(client, out_freq, chn, int_div)))<0) return rc;
++	/* enable power for selected MS */
++	if (((rc=set_ms_powerdown(client, 1, chn)))<0) return rc;
++	/* route MSn to the output (6 - use 'own' MS) */
++	if (((rc=set_out_source(client, chn, 6)))<0) return rc;
++	/* setup output (R) division - by 1/2/4/8/16/32 */
++	if (((rc=set_out_div_by_frequency(client, out_freq, chn)))<0) return rc;
++	return 0; /* all done */
 +}
 +
 +static s64 get_output_src_frequency(struct i2c_client *client, u64 *out_freq, int chn)
@@ -3253,15 +3369,12 @@ Index: git/drivers/misc/si5338.c
 +	if (rc<0)       return rc;
 +	if (freq[0]<0) return freq[0];
 +	if (div<0)  return div;
-+	out_freq[1]=freq[0]+freq[1]*freq[2];
++	out_freq[1]=freq[0]*freq[2]+freq[1];
 +	out_freq[2]=freq[2]*div;
 +	out_freq[0]=div64_u64(out_freq[1],out_freq[2]);
 +	out_freq[1]-=out_freq[0]*out_freq[2];
 +	if (out_freq[1]==0) out_freq[2]=1;
-+	while (((out_freq[1] | out_freq[2]) &1) == 0) {
-+		out_freq[1] >>= 1;
-+		out_freq[2] >>= 1;
-+	}
++	remove_common_factor(&out_freq[1]);
 +	return 0;
 +}
 +
@@ -3271,7 +3384,7 @@ Index: git/drivers/misc/si5338.c
 +	int rc;
 +	s64 pll_in_freq;
 +	u64 pll_out_freq[3];
-+	s64 K,Q,kphi_nom,kphi_denom,fvco_mhz, fpfd_mhz;
++	s64 K,Q,kphi_num,kphi_denom,fvco_mhz, fpfd_mhz;
 +	int rsel,bwsel,vco_gain,pll_kphi,mscal,ms_pec;
 +	if (((pll_in_freq=get_pll_in_frequency(client)))<0) return (int) pll_in_freq;
 +	if (((rc=get_pll_freq(client,pll_out_freq)))<0) return rc;
@@ -3297,9 +3410,9 @@ Index: git/drivers/misc/si5338.c
 +		Q=4;
 +		vco_gain=1;
 +	}
-+	kphi_nom=  K*2500LL*2500LL*2500LL;
++	kphi_num=  K*2500LL*2500LL*2500LL;
 +	kphi_denom=533LL*Q*fpfd_mhz*fvco_mhz*fvco_mhz;
-+	pll_kphi=(int) div64_u64(kphi_nom + (kphi_denom>>1),kphi_denom);
++	pll_kphi=(int) div64_u64(kphi_num + (kphi_denom>>1),kphi_denom);
 +	if ((pll_kphi<1) || (pll_kphi>127)) {
 +		dev_err(&client->dev, "Calculated PLL_KPHI does not fit 1<=%d<=127\n",pll_kphi);
 +		if (pll_kphi<1) pll_kphi=1;
@@ -3382,20 +3495,22 @@ Index: git/drivers/misc/si5338.c
 +	 * p3=c
 +	 */
 +	u64 d;
-+	u64 ms_denom=ms[2], ms_nom=ms[1], ms_int=ms[0];
-+	while ((ms_denom >= (1<<30))| (((ms_denom | ms_nom) &1) == 0)) {
++	u64 ms_denom=ms[2], ms_num=ms[1], ms_int=ms[0];
++	while ((ms_denom >= (1<<30))| (((ms_denom | ms_num) &1) == 0)) {
 +		ms_denom >>= 1;
-+		ms_nom >>= 1;
++		ms_num >>= 1;
 +	}
-+	if ((ms_nom==0) || (ms_denom==0)){
++	if ((ms_num==0) || (ms_denom==0)){
 +		ms_denom = 1;
-+		ms_nom = 0;
++		ms_num = 0;
 +	}
-+	d= (ms_int * ms_denom + ms_nom)<<7;
++	d= (ms_int * ms_denom + ms_num)<<7;
 +	p123[0]= (u32) (div64_u64(d,ms_denom) -512);
-+	d=div64_u64((ms_nom<<7),ms_denom);
-+	p123[1]= (u32) ((ms_nom<<7)-d*ms_denom);
++	d=div64_u64((ms_num<<7),ms_denom);
++	p123[1]= (u32) ((ms_num<<7)-d*ms_denom);
 +	p123[2]=ms_denom;
++	pr_debug("ms[]=%llu + %llu/%llu Hz, ms_int=%llu, ms_num=%llu, ms_denom=%llu p123=%u %u %u\n",
++			ms[0],ms[1],ms[2],ms_int,ms_num,ms_denom,p123[0],p123[1],p123[2]);
 +	return 0;
 +}
 +static int p123_to_ms(u64* ms,u32 * p123)
@@ -3416,6 +3531,8 @@ Index: git/drivers/misc/si5338.c
 +	ms[2]=p123[2]; /* c= p3 */
 +	ms[1]=(ms[2]*(p123[0] & 0x7f) + p123[1]) >>7; /* b= (c*(p1 & 0x7f) + p2) >>7 */
 +	ms[0]=(p123[0]>>7)+4; /* a= (p1>>7)+4 */
++	pr_debug("ms[]=%llu + %llu/%llu, p123=%u %u %u\n",
++			ms[0],ms[1],ms[2],p123[0],p123[1],p123[2]);
 +	return 0;
 +}
 +
@@ -3458,15 +3575,15 @@ Index: git/drivers/misc/si5338.c
 +	s64 pll_in_freq, pll_in_freq_scaled,pll_out_freq_scaled,d;
 +	u32 msn_p123[3];
 +    u64 msn[]={0,0,1};
-+    s64 vco_int=vco_freq[0],vco_nom=vco_freq[1],vco_denom=vco_freq[2];
-+    if ((vco_nom==0) || (vco_denom==0)){
-+    	vco_nom=0;
++    s64 vco_int=vco_freq[0],vco_num=vco_freq[1],vco_denom=vco_freq[2];
++    if ((vco_num==0) || (vco_denom==0)){
++    	vco_num=0;
 +    	vco_denom=1;
 +    }
-+    if (vco_nom>=vco_denom){ /* normalize */
-+		d=div64_u64(vco_nom,vco_denom);
++    if (vco_num>=vco_denom){ /* normalize */
++		d=div64_u64(vco_num,vco_denom);
 +		vco_int+=d;
-+		vco_nom-=d*vco_denom;
++		vco_num-=d*vco_denom;
 +    }
 +	if (vco_int < FVCOMIN){
 +		dev_err(&client->dev, "Specified PLL frequency is too low: %llu < %llu\n",vco_int, FVCOMIN);
@@ -3481,7 +3598,7 @@ Index: git/drivers/misc/si5338.c
 +	if (pll_in_freq<0) return (int) pll_in_freq;
 +	pll_in_freq_scaled=pll_in_freq*vco_denom;
 +//	pll_out_freq_scaled=pll_out_freq*vco_denom;
-+	pll_out_freq_scaled=vco_int*vco_denom+vco_nom;
++	pll_out_freq_scaled=vco_int*vco_denom+vco_num;
 +	msn[0]=div64_u64(pll_out_freq_scaled,pll_in_freq_scaled);
 +	msn[1]=pll_out_freq_scaled-pll_in_freq_scaled*msn[0];
 +	msn[2]=pll_in_freq_scaled;
@@ -3502,6 +3619,8 @@ Index: git/drivers/misc/si5338.c
 +		if (msn[1]>=(msn[2]>>1)) msn[0]++; // round
 +		msn[1] = 0;
 +		msn[2] = 1;
++	} else {
++		remove_common_factor(&msn[1]);
 +	}
 +	ms_to_p123(msn, msn_p123);
 +	return set_ms_p123(client,msn_p123, 4); // MSN
@@ -3512,71 +3631,60 @@ Index: git/drivers/misc/si5338.c
 +	int rc;
 +	s64 pll_in_freq;
 +	u32 p123[3];
-+	s64 d;
 +	pll_in_freq=get_pll_in_frequency(client);
-+	if (pll_in_freq<=0) return (int) pll_in_freq;
++	if (pll_in_freq<=0) return (int) pll_in_freq; // return 0 if in frequency==0
 +	if (((rc=get_ms_p123(client,p123,4)))<0) return rc; /* channel4 - MSN */
 +	p123_to_ms(pll_freq,p123);
 +	if (pll_freq[2]<=0) return -EINVAL; /* 0 denominator */
-+	pll_freq[0]*=pll_in_freq;
-+	pll_freq[1]*=pll_in_freq;
-+	if (pll_freq[1]>=pll_freq[0]){ /* normalize */
-+		d=div64_u64(pll_freq[1],pll_freq[2]);
-+		pll_freq[0]+=d;
-+		pll_freq[1]-=d*pll_freq[2];
++	pll_freq[1] =(pll_freq[0]*pll_freq[2]+pll_freq[1])*pll_in_freq;
++	pll_freq[0] =div64_u64(pll_freq[1],pll_freq[2]);
++	pll_freq[1]-=pll_freq[0]*pll_freq[2];
++	if (pll_freq[1]==0){
++		pll_freq[2]=1;
++	} else {
++		remove_common_factor(&pll_freq[1]);
 +	}
 +	return 0;
 +}
 +
-+
-+
 +/*
 + *  Calculate pll output frequency to match specified output frequency
-+ *  out_freq as int,nom,denom
++ *  out_freq as int,num,denom
 + */
 +static int set_pll_freq_by_out(struct i2c_client *client, u64 *out_freq, int int_msn_div)
 +{
 +	/* use r-divider if the output frequency is too low (less than 5 MHz) */
-+	u64 out_int=out_freq[0],out_nom=out_freq[1],out_denom=out_freq[2],
++	u64 out_int=out_freq[0],out_num=out_freq[1],out_denom=out_freq[2],
 +			pll_out_freq[3], scaled_max,scaled_min,d;
 +	s64 pll_freq_scaled, out_freq_scaled,err,best_err=-1,center_scaled,center_diff,best_center_diff,
 +			out_div,pll_in_freq,in_div,best_in_div, pll_in_freq_scaled,synth_out_scaled;
 +	int r_div=1;
 +	if (out_denom==0){
-+		dev_err(&client->dev, "Denominator should not be 0 in %lld+%lld/%lld\n",
-+				out_int,out_nom,out_denom);
++		dev_err(&client->dev, "denominator should not be 0 in %lld+%lld/%lld\n",
++				out_int,out_num,out_denom);
 +		return -EINVAL;
 +	}
-+	if (out_nom>=out_denom){ /* normalize */
-+		d=div64_u64(out_nom,out_denom);
-+		out_int+=d;
-+		out_nom-=d*out_denom;
++	out_freq_scaled=out_denom*out_int+out_num;
++	scaled_max=(FVCOMAX/MSINT_MAX)*out_denom;
++	while ((r_div < 32) && (out_freq_scaled<scaled_max)){
++		out_freq_scaled<<=1;
++		r_div<<=1;
 +	}
-+	if (out_int<(FVCOMAX/MSINT_MAX)){
-+		while ((r_div < 32) && (out_int<(FVCOMAX/MSINT_MAX))){
-+			out_int<<=1;
-+			out_nom<<=1;
-+			r_div<<=1;
-+			if (out_nom>out_denom) {
-+				out_int++;
-+				out_nom-=out_denom;
-+			}
++	if (out_freq_scaled<scaled_max){
++		dev_err(&client->dev, "Specified output frequency is too low: %lld < %lld\n",
++				out_freq[0], FVCOMAX/MSINT_MAX/32);
++		return -EINVAL;
 +
-+		}
-+		if (out_int<(FVCOMAX/MSINT_MAX)){
-+			dev_err(&client->dev, "Specified output frequency is too low: %lld < %lld\n",
-+					out_freq[0], FVCOMAX/MSINT_MAX/32);
-+			return -EINVAL;
-+		}
 +	}
 +	dev_dbg(&client->dev, "Output divider by %u, Output frequency before divider: %llu+%llu/%llu Hz\n",
-+			r_div,out_int, out_nom,out_denom);
-+
-+	out_freq_scaled=out_int*out_denom+out_nom;
++			r_div, div64_u64(out_freq_scaled,out_denom),
++			out_freq_scaled-out_denom*div64_u64(out_freq_scaled,out_denom),out_denom);
 +	scaled_max=FVCOMAX*out_denom;
 +	scaled_min=FVCOMIN*out_denom;
 +	if (int_msn_div==0){
-+		out_div=div64_u64( (FVCOMAX+FVCOMIN/2)*out_denom+(out_freq_scaled>>1),out_freq_scaled);
++		out_div=div64_u64( ((FVCOMAX+FVCOMIN)/2)*out_denom+(out_freq_scaled>>1),out_freq_scaled);
++		dev_dbg(&client->dev, "out_div=%llu out_freq_scaled=%llu out_denom= %llu scaled_max=%llu scaled_min=%lld\n",
++				out_div, out_freq_scaled, out_denom,scaled_max, scaled_min);
 +		if ((out_div==7) || (out_div==5) || (out_div==3)){
 +			if (out_freq_scaled*(out_div+1)<scaled_max){
 +				out_div++;
@@ -3586,11 +3694,13 @@ Index: git/drivers/misc/si5338.c
 +				out_div=0;
 +			}
 +		}
++		dev_dbg(&client->dev, "modified out_div=%lld\n",	out_div);
 +		if ((out_div<4) || (out_div > MSINT_MAX) ||
 +		    (out_freq_scaled*out_div < scaled_min) ||
 +		    (out_freq_scaled*out_div > scaled_max)){
 +			dev_err(&client->dev, "Can not find suitable divisor for output frequency %lld+%lld/%lld Hz\n",
-+					out_int, out_nom,out_denom);
++					div64_u64(out_freq_scaled,out_denom),
++								out_freq_scaled-out_denom*div64_u64(out_freq_scaled,out_denom),out_denom);
 +			return -EINVAL;
 +		}
 +		pll_out_freq[0]=div64_u64(out_freq_scaled*out_div,out_denom);
@@ -3660,10 +3770,10 @@ Index: git/drivers/misc/si5338.c
 +	}
 +	ms_scaled=ms[0]*ms[2]+ms[1];
 +	out_freq[1]=pll_freq_scaled*ms[2];
-+	out_freq[2]=ms[0]*pll_out_freq[2];
++	out_freq[2]=ms_scaled*pll_out_freq[2];
 +	out_freq[0]=div64_u64(out_freq[1],out_freq[2]);
 +	out_freq[1]-=out_freq[0]*out_freq[2];
-+	if (out_freq[1]==0) out_freq[2]=1;
++	remove_common_factor(&out_freq[1]);
 +	dev_dbg(&client->dev, "MS%d output frequency: %llu+%llu/%llu Hz\n",chn,out_freq[0],out_freq[1],out_freq[2]);
 +	return 0;
 +}
@@ -3671,38 +3781,38 @@ Index: git/drivers/misc/si5338.c
 +/*
 + *  Adjust MultiSynth divisor (MS0..MS3) for specified output frequency
 + *  MSN, input frequency should be already set
-+ *  out_freq as int,nom,denom
++ *  out_freq as int,num,denom
 + */
 +static int set_pll_ms_by_out(struct i2c_client *client, u64 *out_freq, int chn, int int_div)
 +{
 +	/* use r-divider if the output frequency is too low (less than 5 MHz) */
-+	u64 out_int=out_freq[0],out_nom=out_freq[1],out_denom=out_freq[2],
++	u64 out_int=out_freq[0],out_num=out_freq[1],out_denom=out_freq[2],
 +			pll_out_freq[3],d;
 +	s64 pll_freq_scaled, out_freq_scaled;
 +	u64 ms[3];
 +	u32 p123[3];
 +	int r_div=1,rc;
 +	if (out_denom==0){
-+		dev_err(&client->dev, "Denominator should not be 0 in %lld+%lld/%lld\n",
-+				out_int,out_nom,out_denom);
++		dev_err(&client->dev, "denominator should not be 0 in %lld+%lld/%lld\n",
++				out_int,out_num,out_denom);
 +		return -EINVAL;
 +	}
-+	if (out_nom>=out_denom){ /* normalize */
-+		d=div64_u64(out_nom,out_denom);
++	if (out_num>=out_denom){ /* normalize */
++		d=div64_u64(out_num,out_denom);
 +		out_int+=d;
-+		out_nom-=d*out_denom;
++		out_num-=d*out_denom;
 +	}
-+	if (out_nom==0){
++	if (out_num==0){
 +		out_denom=1;
 +	}
 +	if (out_int<(FVCOMAX/MSINT_MAX)){
 +		while ((r_div < 32) && (out_int<(FVCOMAX/MSINT_MAX))){
 +			out_int<<=1;
-+			out_nom<<=1;
++			out_num<<=1;
 +			r_div<<=1;
-+			if (out_nom>out_denom) {
++			if (out_num>out_denom) {
 +				out_int++;
-+				out_nom-=out_denom;
++				out_num-=out_denom;
 +			}
 +
 +		}
@@ -3713,13 +3823,13 @@ Index: git/drivers/misc/si5338.c
 +		}
 +	}
 +	dev_dbg(&client->dev, "Output divider by %u, Output frequency before divider: %llu+%llu/%llu Hz\n",
-+			r_div,out_int, out_nom,out_denom);
++			r_div,out_int, out_num,out_denom);
 +	/* trim output frequency fraction */
 +	while (out_denom>=0x1000){
-+		out_nom >>= 1;
++		out_num >>= 1;
 +		out_denom >>= 1;
 +	}
-+	out_freq_scaled=out_int*out_denom+out_nom;
++	out_freq_scaled=out_int*out_denom+out_num;
 +	if (((rc=get_pll_freq(client,pll_out_freq)))<0) return rc;
 +	/* trim PLL frequency fraction */
 +	while (pll_out_freq[2]>=0x1000){
@@ -3735,6 +3845,8 @@ Index: git/drivers/misc/si5338.c
 +		if (ms[1]>(ms[2]>>1)) ms[0]++;
 +		ms[1]=0;
 +		ms[2]=1;
++	} else {
++		remove_common_factor(&ms[1]);
 +	}
 +	dev_dbg(&client->dev, "MS%d divider: %llu+%llu/%llu\n",chn,ms[0],ms[1],ms[2]);
 +	/* set up registers */
@@ -3742,7 +3854,6 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
 +	return 0;
 +}
-+
 +/* ----------- Input section ----------------- */
 +
 +static s64 get_pll_in_frequency(struct i2c_client *client)
@@ -3882,7 +3993,7 @@ Index: git/drivers/misc/si5338.c
 +
 +static int get_fb_mux(struct i2c_client *client)
 +{
-+	return read_field(client,AWE_IN_MUX );
++	return read_field(client,AWE_FB_MUX );
 +}
 +
 +
@@ -3927,9 +4038,20 @@ Index: git/drivers/misc/si5338.c
 +	return read_field(client, chn?AWE_PFD_FB:AWE_PFD_REF );
 +}
 +
-+static int set_in_frequency(struct i2c_client *client, u64 frequency,int src) /* 0 - 12, 1 - 3, 2 - 4, 3 - 5,6 */
++static int set_fb_external(struct i2c_client *client, u8 val)
 +{
-+	int xtal_mode;
++	int rc;
++	if (((rc=write_field (client, val?1:0,  AWE_PFD_EXTFB)))<0) return rc;
++	return 0;
++}
++static int get_fb_external(struct i2c_client *client)
++{
++	return read_field(client,AWE_PFD_EXTFB);
++}
++
++static int set_in_frequency(struct i2c_client *client, u64 frequency,int src) /* 0 - 12, 1 - 3, 2 - 4, 3 - 5,6, 4 - 12XO */
++{
++	int xtal_mode,rc,idiv;
 +	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
 +	if (frequency < INFREQMIN){
 +		dev_err(&client->dev, "Input frequency too low: %llu < %llu\n",frequency, INFREQMIN);
@@ -3939,30 +4061,66 @@ Index: git/drivers/misc/si5338.c
 +		dev_err(&client->dev, "Input frequency too high: %llu > %llu\n",frequency, INFREQMAX);
 +		return - EINVAL;
 +	}
++	for (idiv=0;idiv<5;idiv++) if ((frequency >> idiv) <= INFREQDIV) break;
++
 +	switch (src){
-+	case 0:
-+		clientdata->input_frequency12=frequency;
-+		/* set xtal mode */
++	case 4: /* set xtal mode */
 +		xtal_mode=0;
 +		if (frequency>11000000ll) xtal_mode=1;
 +		if (frequency>19000000ll) xtal_mode=2;
 +		if (frequency>26000000ll) xtal_mode=3;
-+		return write_field (client, xtal_mode, AWE_XTAL_FREQ);
++		if (((rc=write_field (client, xtal_mode, AWE_XTAL_FREQ)))<0) return rc;
++		if (((rc=set_in_mux(client, 2)))<0) return rc;  /* in mux to XO */
++		if (((rc=set_in_pfd_ref_fb(client, 4, 0)))<0) return rc; /* set pfd reference to XO  - may use 0 (p1div_in also? )*/
++		clientdata->input_frequency12=frequency;
++		break;
++	case 0:
++		if (((rc=set_in_mux(client, 0)))<0) return rc;  /* in mux to IN12 */
++		if (idiv==0){
++			if (((rc=set_in_pfd_ref_fb(client, 0, 0)))<0) return rc; /* set pfd reference to p1div_in */
++		} else {
++			if (((rc=set_in_pfd_ref_fb(client, 2, 0)))<0) return rc; /* set pfd reference to p1div_out */
++			if (((rc=set_in_pdiv(client, 1<<idiv, 0)))<0) return rc; /* p1div */
++		}
++		clientdata->input_frequency12=frequency;
++		break;
 +	case 1:
++		if (((rc=set_in_mux(client, 1)))<0) return rc;  /* in mux to IN3 */
++		if (idiv==0){
++			if (((rc=set_in_pfd_ref_fb(client, 0, 0)))<0) return rc; /* set pfd reference to p1div_in */
++		} else {
++			if (((rc=set_in_pfd_ref_fb(client, 2, 0)))<0) return rc; /* set pfd reference to p1div_out */
++			if (((rc=set_in_pdiv(client, 1<<idiv, 0)))<0) return rc; /* p1div */
++		}
 +		clientdata->input_frequency3=frequency;
 +		break;
 +	case 2:
++		if (((rc=set_fb_mux(client, 1)))<0) return rc;  /* fb mux to IN4 */
++		if (idiv==0){
++			if (((rc=set_in_pfd_ref_fb(client, 1, 0)))<0) return rc; /* set pfd reference to p2div_in */
++		} else {
++			if (((rc=set_in_pfd_ref_fb(client, 3, 0)))<0) return rc; /* set pfd reference to p2div_out */
++			if (((rc=set_in_pdiv(client, 1<<idiv, 1)))<0) return rc; /* p2div */
++		}
 +		clientdata->input_frequency4=frequency;
 +		break;
 +	case 3:
++		if (((rc=set_fb_mux(client, 0)))<0) return rc;  /* fb mux to IN5/6 */
++		if (idiv==0){
++			if (((rc=set_in_pfd_ref_fb(client, 1, 0)))<0) return rc; /* set pfd reference to p2div_in */
++		} else {
++			if (((rc=set_in_pfd_ref_fb(client, 3, 0)))<0) return rc; /* set pfd reference to p2div_out */
++			if (((rc=set_in_pdiv(client, 1<<idiv, 1)))<0) return rc; /* p2div */
++		}
 +		clientdata->input_frequency56=frequency;
 +		break;
 +	default:
-+		dev_err(&client->dev, "Invalid source %d only 0 (IN1/2), 1 (IN3), 2 (IN4) and 3 (IN4/IN5) are supported\n",src);
++		dev_err(&client->dev, "Invalid source %d only 0 (IN1/2), 1 (IN3), 2 (IN4), 3 (IN4/IN5) and 4 (IN1/2, XO) are supported\n",src);
 +		return - EINVAL;
 +	}
 +	return 0;
 +}
++
 +static u64 get_in_frequency(struct i2c_client *client, int src)
 +{
 +	struct si5338_data_t *clientdata = i2c_get_clientdata(client);
@@ -4097,6 +4255,9 @@ Index: git/drivers/misc/si5338.c
 +	if (mask !=0xff){
 +	    if (((rc=read_reg(client, reg & 0xff)))<0) return rc;
 +	    val=((val ^ rc) & mask)^ rc;
++	    if ((val==rc) && !(clientdata->cache[reg].flags & CACHE_VOLAT)) {
++	    	dev_dbg(&client->dev,"No change and not volatile -> no write\n");
++	    }
 +	}
 +	return  _write_single_reg(client, reg & 0xff, val);
 +}
@@ -4131,19 +4292,21 @@ Index: git/drivers/misc/si5338.c
 +
 +static void si5338_init_of(struct i2c_client *client)
 +{
-+//	struct device *dev=&client->dev;
++	//	struct device *dev=&client->dev;
 +	const __be32 * config_data;
 +	struct device_node *node = client->dev.of_node;
-+    int len,i;
-+    u16 page_reg;
-+    struct si5338_setup_data  {
-+    	u8		page;
-+    	u8		reg;
-+    	u8		data;
-+    	u8		mask;
-+    };
-+    struct si5338_setup_data setup_data;
-+    __be32 * setup_data_be32= (__be32 *) &setup_data;
++	int len,i,n;
++	u16 page_reg;
++	char buf[40];
++	u64 freq[3];
++	struct si5338_setup_data  {
++		u8		page;
++		u8		reg;
++		u8		data;
++		u8		mask;
++	};
++	struct si5338_setup_data setup_data;
++	__be32 * setup_data_be32= (__be32 *) &setup_data;
 +	if (node) {
 +		config_data = of_get_property(client->dev.of_node, "si5338,configuration_data", &len);
 +		if (config_data){
@@ -4153,68 +4316,83 @@ Index: git/drivers/misc/si5338.c
 +			for (i=0;i<len;i++){
 +				*setup_data_be32=config_data[i];
 +				page_reg=setup_data.reg+(setup_data.page<<8);
-+			    dev_dbg(&client->dev,"page_reg=0x%03x, data=0x%02x, mask=0x%02x \n",
-+			    		(int) page_reg,(int)setup_data.data,(int)setup_data.mask);
-+			    if (write_reg(client, page_reg, setup_data.data, setup_data.mask)<0) return;
++				dev_dbg(&client->dev,"page_reg=0x%03x, data=0x%02x, mask=0x%02x \n",
++						(int) page_reg,(int)setup_data.data,(int)setup_data.mask);
++				if (write_reg(client, page_reg, setup_data.data, setup_data.mask)<0) return;
 +			}
-+//		} else {
-+//			dev_info(&client->dev,"'si5338,configuration_data' not found in the Device Tree\n");
 +		}
 +		/* input section */
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_pfd_ref", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_pfd_ref",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_pfd_ref_fb(client, be32_to_cpup(config_data), 0);
++		/* setting input frequency here divides (if needed) and feeds it to the PLL reference. Other variants can use raw register writes */
++		for (n=0;in_freq_names[n];n++){
++			sprintf(buf,"si5338,%s",in_freq_names[n]);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data && (len>0)){
++				dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n",buf,(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
++				if (set_in_frequency(client, be32_to_cpup(config_data),n)<0) return; /* 32 bits are sufficient here */
++			}
 +		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_pfd_fb", &len);
-+		if (config_data && (len>0)){
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_pfd_fb",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_pfd_ref_fb(client, be32_to_cpup(config_data), 1);
++		/* setting PLL for the most important output frequency, sets analog parameters accordingly. Assumes input frequency set above */
++		for (n=0;pll_setup_names[n];n++){
++			sprintf(buf,"si5338,%s",pll_setup_names[n]);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data && (len>0)){
++				len /= sizeof(*config_data);
++				freq[0]=be32_to_cpup(config_data);
++				if (len<3){
++					freq[1]=0;
++					freq[2]=1;
++				} else {
++					freq[1]=be32_to_cpup(&config_data[1]);
++					freq[2]=be32_to_cpup(&config_data[2]);
++				}
++				dev_info(&client->dev,"Found '%s', value = %lld+(%lld/%lld)\n",buf,freq[0],freq[1],freq[2]);
++				if (n & 2){ /* by output */
++					if (set_pll_freq_by_out(client, freq, n & 1)<0) return;
++				} else { /* directly set  PLL frequency */
++					if (set_pll_freq       (client, freq, n & 1)<0) return;
++				}
++				if (set_pll_paremeters(client)<0) return;
++				if (set_misc_registers(client)<0) return;
++			}
 +		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_p1_div", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_p1_div",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_pdiv(client, be32_to_cpup(config_data), 0);
++		/* setting MSn dividers (same channel as output), powering them up, setting output dividers and routing outputs */
++		for (n=0;out_freq_setup_names[n];n++){
++			sprintf(buf,"si5338,%s",out_freq_setup_names[n]);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data && (len>0)){
++				len /= sizeof(*config_data);
++				freq[0]=be32_to_cpup(config_data);
++				if (len<3){
++					freq[1]=0;
++					freq[2]=1;
++				} else {
++					freq[1]=be32_to_cpup(&config_data[1]);
++					freq[2]=be32_to_cpup(&config_data[2]);
++				}
++				dev_info(&client->dev,"Found '%s', value = %lld+(%lld/%lld)\n",buf,freq[0],freq[1],freq[2]);
++				if (set_out_frequency_and_route(client, freq, n&3, n>>2)<0) return;
++			}
 +		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_p2_div", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_p2_div",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_pdiv(client, be32_to_cpup(config_data), 1);
++		/* configure output driver standard */
++		for (n=0;drv_configs[n].description;n++){
++			sprintf(buf,"si5338,%s",drv_configs[n].description);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data){
++				len /= sizeof(*config_data);
++				for (i=0;i<len;i++){
++					*setup_data_be32=config_data[i];
++					dev_info(&client->dev,"Setting '%s', channel %d",buf,setup_data.mask);
++					if (configure_output_driver(&client->dev, drv_configs[n].description, setup_data.mask)<0) return;
++				}
++			}
 +		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_mux", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_mux",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_mux(client, be32_to_cpup(config_data));
-+		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,fb_mux", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,fb_mux",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_fb_mux(client, be32_to_cpup(config_data));
-+		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_frequency12", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_frequency12",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_frequency(client, be32_to_cpup(config_data),0); /* 32 bits are sufficient here */
-+		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_frequency3", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_frequency3",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_frequency(client, be32_to_cpup(config_data),1); /* 32 bits are sufficient here */
-+		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_frequency4", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_frequency4",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_frequency(client, be32_to_cpup(config_data),2); /* 32 bits are sufficient here */
-+		}
-+		config_data = of_get_property(client->dev.of_node, "si5338,in_frequency56", &len);
-+		if (config_data && (len>0)) {
-+			dev_info(&client->dev,"Found '%s', value = %d (0x%x)\n","si5338,in_frequency56",(int)(be32_to_cpup(config_data)),(int)(be32_to_cpup(config_data)));
-+			set_in_frequency(client, be32_to_cpup(config_data),3); /* 32 bits are sufficient here */
-+		}
++
 +	} else {
 +		dev_info(&client->dev,"Device tree data not found for %s\n",client->name);
 +	}
 +}
++
++
 +
 +static int si5338_i2c_probe(struct i2c_client *client,
 +				      const struct i2c_device_id *id)
@@ -4241,6 +4419,10 @@ Index: git/drivers/misc/si5338.c
 +		clientdata->cache[i].flags=0;
 +		clientdata->cache[i].data=0;
 +	}
++	for (i=0;volatile_registers[i]>=0;i++){
++		clientdata->cache[volatile_registers[i]].flags |= CACHE_VOLAT;
++	}
++	//volatile_registers[]
 +	i2c_set_clientdata(client, clientdata);
 +	if (((rc=read_reg(client, REG5338_PAGE)))<0) return rc; // will set clientdata->last_page
 +	si5338_sysfs_register(&client->dev);
