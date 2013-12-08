@@ -8,7 +8,7 @@ IMAGE_CLASSES += "image_types_uboot"
 # Kernel Configuration
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
 PREFERRED_VERSION_linux-xlnx ?= "3.10%"
-<<<<<<< HEAD
+
 
 # U-Boot Configuration
 #PREFERRED_PROVIDER_u-boot ?= "u-boot-xlnx"
