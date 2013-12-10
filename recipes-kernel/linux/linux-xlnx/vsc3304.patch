@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-08 13:24:02.319343372 -0700
-+++ git/drivers/misc/Kconfig	2013-12-08 13:24:46.000000000 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-09 17:36:48.604396849 -0700
++++ git/drivers/misc/Kconfig	2013-12-09 17:36:51.668396881 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-08 13:24:02.319343372 -0700
-+++ git/drivers/misc/Makefile	2013-12-08 13:24:46.000000000 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-09 17:36:48.604396849 -0700
++++ git/drivers/misc/Makefile	2013-12-09 17:36:51.668396881 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-12-08 13:24:46.000000000 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-09 17:36:51.668396881 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-12-09 00:58:03.587775288 -0700
-@@ -0,0 +1,3764 @@
++++ git/drivers/misc/si5338.c	2013-12-09 18:52:10.344443750 -0700
+@@ -0,0 +1,4053 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -944,6 +944,7 @@ Index: git/drivers/misc/si5338.c
 +#include <linux/of.h>
 +#include <linux/math64.h>
 +
++#define GENERATE_EXTRA
 +
 +#define DRV_VERSION "1.0"
 +#define SYSFS_PERMISSIONS         0644 /* default permissions for sysfs files */
@@ -1266,6 +1267,12 @@ Index: git/drivers/misc/si5338.c
 +
 +		{NULL,           0x0,0x0,0x0,0x0},
 +};
++static const char *out_dis_states[]= {"dis_hi-z","dis_low","dis_high","dis_always_on", NULL};
++static const char *out_en_states[]=  {"output_en","output_dis", NULL};
++static const char *out_pwr_states[]= {"output_power_up","output_power_down", NULL};
++
++
++
 +static const int volatile_registers[]={AWE_STATUS, AWE_SOFT_RESET, AWE_FCAL_07_00, AWE_FCAL_15_08, AWE_FCAL_17_16, -1};
 +static const char *out_names[]={"output0","output1","output2","output3","outputs", NULL};
 +static const char *in_freq_names[]={"in_frequency12", "in_frequency3", "in_frequency4", "in_frequency56", "in_frequency12xo", NULL};
@@ -1278,6 +1285,17 @@ Index: git/drivers/misc/si5338.c
 +	 {AWE_MS1_SSUPP3_07_00,AWE_MS1_SSUPP3_14_08,0},
 +	 {AWE_MS2_SSUPP3_07_00,AWE_MS2_SSUPP3_14_08,0},
 +	 {AWE_MS3_SSUPP3_07_00,AWE_MS3_SSUPP3_14_08,0}};
++static const u32 awe_rdiv_in[]=      {AWE_R0DIV_IN,  AWE_R1DIV_IN,  AWE_R2DIV_IN,  AWE_R3DIV_IN};
++static const u32 awe_rdiv_k[]=       {AWE_R0DIV,     AWE_R1DIV,     AWE_R2DIV,     AWE_R3DIV};
++static const u32 awe_drv_fmt[]=      {AWE_DRV0_FMT,  AWE_DRV1_FMT,  AWE_DRV2_FMT,  AWE_DRV3_FMT};
++static const u32 awe_drv_vddo[]=     {AWE_DRV0_VDDO, AWE_DRV1_VDDO, AWE_DRV2_VDDO, AWE_DRV3_VDDO};
++static const u32 awe_drv_trim[][4]= {{AWE_DRV0_TRIM,0,0}, {AWE_DRV1_TRIM_A,AWE_DRV1_TRIM_B,0},{AWE_DRV2_TRIM,0,0},{AWE_DRV3_TRIM,0,0}};
++static const u32 awe_drv_powerdown[]={AWE_DRV0_PDN,  AWE_DRV1_PDN,  AWE_DRV2_PDN,  AWE_DRV3_PDN};
++static const u32 awe_drv_disable[]=  {AWE_OUT0_DIS,  AWE_OUT1_DIS,  AWE_OUT2_DIS,  AWE_OUT3_DIS, AWE_OUT_ALL_DIS};
++static const u32 awe_drv_dis_state[]={AWE_OUT0_DIS_STATE, AWE_OUT1_DIS_STATE, AWE_OUT2_DIS_STATE, AWE_OUT3_DIS_STATE};
++static const u32 awe_drv_invert[]=   {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
++static const u32 awe_drv_inv[]=      {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
++static const u8 out_div_values[]={1,2,4,8,16,32};
 +
 +static void si5338_init_of(struct i2c_client *client);
 +
@@ -1325,6 +1343,7 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t in_pfd_fb_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t in_pfd_fb_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t pll_ref_frequency_show (struct device *dev, struct device_attribute *attr, char *buf);
++static ssize_t pll_fb_frequency_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
 +static ssize_t ms_p123_show(struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t ms_p123_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
@@ -1351,6 +1370,17 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t out_freq_show(struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t out_freq_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +
++static ssize_t out_pwr_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static int set_out_pwr_states(struct device *dev, const char * name, int chn);
++static int get_powerup_state(struct device *dev, char * buf, int chn);
++static ssize_t out_en_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static int set_out_en_states(struct device *dev, const char * name, int chn);
++static int get_enabled_state(struct device *dev, char * buf, int chn);
++static ssize_t out_dis_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
++static int set_out_dis_states(struct device *dev, const char * name, int chn);
++static int get_disabled_state(struct device *dev, char * buf, int chn);
++
++#ifdef GENERATE_EXTRA
 +static ssize_t drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf);
 +static ssize_t drv_powerdown_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t drv_disable_show (struct device *dev, struct device_attribute *attr, char *buf);
@@ -1370,12 +1400,11 @@ Index: git/drivers/misc/si5338.c
 +static ssize_t drv_auto_trim_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t drv_trim_any_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 +static ssize_t drv_txt_show (struct device *dev, struct device_attribute *attr, char *buf);
++static int update_drv_trim(struct i2c_client *client, int novtt, int chn); /* no Vtt - CMOS, no termination, where it matters */
++static char * get_drv_txt(struct i2c_client *client, int chn);
++#endif
 +
-+
-+static int make_config_out (struct device *dev,
-+		ssize_t (*show_output)(struct device *dev, struct device_attribute *attr, char *buf),
-+		ssize_t (*store_config)(struct device *dev, struct device_attribute *attr,
-+				const char *buf, size_t count));
++static int make_config_out (struct device *dev);
 +static ssize_t output_description_show (struct device *dev, struct device_attribute *attr, char *buf);
 +
 +static ssize_t output_route_show(struct device *dev, struct device_attribute *attr, char *buf);
@@ -1386,9 +1415,11 @@ Index: git/drivers/misc/si5338.c
 +static int configure_output_driver(struct device *dev, const char * name, int chn);
 +
 +
++
 +/* -------------------------------------- */
 +static int remove_common_factor(u64 * num_denom);
 +static int _verify_output_channel(struct i2c_client *client,int chn);
++static int disable_spread_spectrum(struct i2c_client *client,int chn);
 +static int get_drv_powerdown(struct i2c_client *client, int chn);
 +static int set_drv_powerdown(struct i2c_client *client, int typ, int chn);
 +static int get_drv_disable(struct i2c_client *client, int chn);
@@ -1402,8 +1433,6 @@ Index: git/drivers/misc/si5338.c
 +static int get_drv_vdd(struct i2c_client *client, int chn);
 +static int set_drv_vdd(struct i2c_client *client, int vdd, int chn);
 +static int get_drv_trim(struct i2c_client *client, int chn);
-+static int update_drv_trim(struct i2c_client *client, int novtt, int chn); /* no Vtt - CMOS, no termination, where it matters */
-+static char * get_drv_txt(struct i2c_client *client, int chn);
 +static int set_drv_trim_any(struct i2c_client *client, int trim, int chn);
 +static int set_out_div(struct i2c_client *client, int div, int chn); /*chn =0..3 */
 +static int get_out_div(struct i2c_client *client, int chn); /*chn =0..3 */
@@ -1417,9 +1446,16 @@ Index: git/drivers/misc/si5338.c
 +static int set_out_frequency_and_route (struct i2c_client *client, u64 *out_freq, int chn, int int_div);
 +static s64 get_output_src_frequency(struct i2c_client *client, u64 *out_freq, int chn);
 +
-+static int pre_init(struct i2c_client *client);
++static int pre_init(struct i2c_client *client, int clear_all);
++
 +static int post_init(struct i2c_client *client, int timeout); /*1 in timeout ~ 0.1ms - i2c read register */
 +static int get_status(struct i2c_client *client);
++static int power_up_down_needed_ms(struct i2c_client *client);
++static int disable_output(struct i2c_client *client, int chn);
++static int disable_pll_in_fb_mux(struct i2c_client *client); /* to be explicitly enabled if needed */
++
++
++
 +static int set_pll_paremeters(struct i2c_client *client);
 +static int set_misc_registers(struct i2c_client *client);
 +static int get_ms_powerdown(struct i2c_client *client, int chn);
@@ -1508,6 +1544,8 @@ Index: git/drivers/misc/si5338.c
 +static DEVICE_ATTR(in_pfd_fb,        SYSFS_PERMISSIONS,                   in_pfd_fb_show, in_pfd_fb_store);
 +static DEVICE_ATTR(in_pfd_fb_txt,    SYSFS_PERMISSIONS & SYSFS_READONLY,  in_pfd_fb_txt_show, NULL);
 +static DEVICE_ATTR(pll_ref_frequency,SYSFS_PERMISSIONS & SYSFS_READONLY,  pll_ref_frequency_show, NULL);
++static DEVICE_ATTR(pll_fb_frequency, SYSFS_PERMISSIONS & SYSFS_READONLY,  pll_fb_frequency_show,  NULL);
++
 +static DEVICE_ATTR(fb_external,      SYSFS_PERMISSIONS,                   fb_external_show, fb_external_store);
 +
 +static struct attribute *input_dev_attrs[] = {
@@ -1529,6 +1567,7 @@ Index: git/drivers/misc/si5338.c
 +	&dev_attr_in_pfd_fb.attr,
 +	&dev_attr_in_pfd_fb_txt.attr,
 +	&dev_attr_pll_ref_frequency.attr,
++	&dev_attr_pll_fb_frequency.attr,
 +	&dev_attr_fb_external.attr,
 +	NULL
 +};
@@ -1575,9 +1614,8 @@ Index: git/drivers/misc/si5338.c
 +	.name  = "multiSynth",
 +};
 +
-+
-+
-+static DEVICE_ATTR(pre_init,   SYSFS_PERMISSIONS & SYSFS_WRITEONLY,  NULL,           pre_init_store);
++static DEVICE_ATTR(pre_init,         SYSFS_PERMISSIONS & SYSFS_WRITEONLY,  NULL,           pre_init_store);
++static DEVICE_ATTR(pre_init_clear,   SYSFS_PERMISSIONS & SYSFS_WRITEONLY,  NULL,           pre_init_store);
 +static DEVICE_ATTR(post_init,  SYSFS_PERMISSIONS & SYSFS_WRITEONLY,  NULL,           post_init_store);
 +static DEVICE_ATTR(pll_freq_fract,  SYSFS_PERMISSIONS,               pll_freq_show,  pll_freq_store);
 +static DEVICE_ATTR(pll_freq_int,    SYSFS_PERMISSIONS,               pll_freq_show,  pll_freq_store);
@@ -1597,6 +1635,7 @@ Index: git/drivers/misc/si5338.c
 +
 +static struct attribute *pll_dev_attrs[] = {
 +	&dev_attr_pre_init.attr,
++	&dev_attr_pre_init_clear.attr,
 +	&dev_attr_post_init.attr,
 +	&dev_attr_pll_ref_frequency.attr,
 +	&dev_attr_pll_freq_fract.attr,
@@ -1694,11 +1733,11 @@ Index: git/drivers/misc/si5338.c
 +
 +static const struct attribute_group dev_attr_output_group = {
 +	.attrs = output_dev_attrs,
-+	.name  = "output",
++	.name  = "output_clocks",
 +};
 +
 +/* output drivers */
-+
++#ifdef GENERATE_EXTRA
 +static DEVICE_ATTR(drv0_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
 +static DEVICE_ATTR(drv1_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
 +static DEVICE_ATTR(drv2_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
@@ -1759,7 +1798,7 @@ Index: git/drivers/misc/si5338.c
 +static DEVICE_ATTR(drv2_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
 +static DEVICE_ATTR(drv3_description,   SYSFS_PERMISSIONS & SYSFS_READONLY,  drv_txt_show, NULL);
 +
-+static struct attribute *output_drivers_dev_attrs[] = {
++static struct attribute *output_extra_dev_attrs[] = {
 +	&dev_attr_drv0_powerdown.attr,
 +	&dev_attr_drv1_powerdown.attr,
 +	&dev_attr_drv2_powerdown.attr,
@@ -1822,22 +1861,20 @@ Index: git/drivers/misc/si5338.c
 +	NULL
 +};
 +
-+static const struct attribute_group dev_attr_output_drivers_group = {
-+	.attrs = output_drivers_dev_attrs,
-+	.name  = "output_drivers",
++static const struct attribute_group dev_attr_output_extra_group = {
++	.attrs = output_extra_dev_attrs,
++	.name  = "output_extra",
 +};
++
++#endif
++
 +
 +static int get_chn_from_name(const char * name)
 +{
 +	char * cp = strpbrk(name,"0123456789");
 +	return (cp)?(cp[0]-'0'):-1;
 +}
-+
-+
-+static int make_config_out (struct device *dev,
-+		ssize_t (*show_output)(struct device *dev, struct device_attribute *attr, char *buf),
-+		ssize_t (*store_config)(struct device *dev, struct device_attribute *attr,
-+				const char *buf, size_t count))
++static int make_config_out(struct device *dev)
 +{
 +	int retval=-1;
 +	int index,iout,num_types,num_files;
@@ -1846,7 +1883,12 @@ Index: git/drivers/misc/si5338.c
 +	struct attribute_group *attr_group;
 +	for (num_types=0;drv_configs[num_types].description;num_types++);
 +	num_files=num_types;
++	for (iout=0;out_dis_states[iout];iout++) num_files++;
++	for (iout=0;out_en_states[iout];iout++) num_files++;
++	for (iout=0;out_pwr_states[iout];iout++) num_files++;
++
 +	for (iout=0;out_names[iout];iout++) num_files++;
++
 +
 +	pattrs = devm_kzalloc(dev,(num_files+1)*sizeof(pattrs[0]), GFP_KERNEL);
 +	if (!pattrs) return -ENOMEM;
@@ -1860,20 +1902,51 @@ Index: git/drivers/misc/si5338.c
 +		dev_attrs[index].attr.name=drv_configs[index].description;
 +		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_WRITEONLY;
 +		dev_attrs[index].show= NULL;
-+		dev_attrs[index].store=store_config;
++		dev_attrs[index].store=output_config_store;
 +		pattrs[index]=&(dev_attrs[index].attr);
 +	}
++	//		if (((retval = make_config_out (dev, output_description_show, output_config_store)))<0) return retval;
++
++	/*  add outputs disabled states (write only) */
++	for (iout=0;out_dis_states[iout];iout++) {
++		dev_attrs[index].attr.name=out_dis_states[iout];
++		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_WRITEONLY;
++		dev_attrs[index].show=NULL;
++		dev_attrs[index].store=out_dis_states_store;
++		pattrs[index]=&(dev_attrs[index].attr);
++		index++;
++	}
++	/*  add outputs enable (write only) */
++	for (iout=0;out_en_states[iout];iout++) {
++		dev_attrs[index].attr.name=out_en_states[iout];
++		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_WRITEONLY;
++		dev_attrs[index].show=NULL;
++		dev_attrs[index].store=out_en_states_store;
++		pattrs[index]=&(dev_attrs[index].attr);
++		index++;
++	}
++	/*  add outputs enable (write only) */
++	for (iout=0;out_pwr_states[iout];iout++) {
++		dev_attrs[index].attr.name=out_pwr_states[iout];
++		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_WRITEONLY;
++		dev_attrs[index].show=NULL;
++		dev_attrs[index].store=out_pwr_states_store;
++		pattrs[index]=&(dev_attrs[index].attr);
++		index++;
++	}
++
++
 +	/*  add outputs (readonly) */
 +	for (iout=0;out_names[iout];iout++) {
 +		dev_attrs[index].attr.name=out_names[iout];
 +		dev_attrs[index].attr.mode=SYSFS_PERMISSIONS & SYSFS_READONLY;
-+		dev_attrs[index].show=show_output;
++		dev_attrs[index].show=output_description_show;
 +		dev_attrs[index].store=NULL;
 +		pattrs[index]=&(dev_attrs[index].attr);
 +		index++;
 +	}
 +	pattrs[index]=NULL;
-+	attr_group->name  = "output_standard";
++	attr_group->name  = "output_drivers";
 +	attr_group->attrs =pattrs;
 +	dev_dbg(dev,"name=%s, &dev->kobj=0x%08x\n",attr_group->name, (int) (&dev->kobj));
 +	index=0;
@@ -1910,18 +1983,42 @@ Index: git/drivers/misc/si5338.c
 +		if (((rc=get_output_description(dev, buf,i)))<0) return rc;
 +		buf+=rc;
 +		len+=rc;
++
 +		rc=sprintf(buf,", output frequency: ");
 +		buf+=rc;
 +		len+=rc;
 +		if (((rc=get_out_frequency_txt(dev, buf,i)))<0) return rc;
 +		buf+=rc;
 +		len+=rc;
++
 +		rc=sprintf(buf,", output route: ");
 +		buf+=rc;
 +		len+=rc;
 +		if (((rc=get_out_route(client, buf,i)))<0) return rc;
 +		buf+=rc;
 +		len+=rc;
++
++		rc=sprintf(buf,", disabled state: ");
++		buf+=rc;
++		len+=rc;
++		if (((rc=get_disabled_state(dev, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++
++		rc=sprintf(buf,", ");
++		buf+=rc;
++		len+=rc;
++		if (((rc=get_powerup_state(dev, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++
++		rc=sprintf(buf,", ");
++		buf+=rc;
++		len+=rc;
++		if (((rc=get_enabled_state(dev, buf,i)))<0) return rc;
++		buf+=rc;
++		len+=rc;
++
 +		rc=sprintf(buf,"\n");
 +		buf+=rc;
 +		len+=rc;
@@ -2024,8 +2121,10 @@ Index: git/drivers/misc/si5338.c
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_multisynth_group)))<0) return retval;
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_pll_group)))<0) return retval;
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_group)))<0) return retval;
-+		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_drivers_group)))<0) return retval;
-+		if (((retval = make_config_out (dev, output_description_show, output_config_store)))<0) return retval;
++#ifdef GENERATE_EXTRA
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_output_extra_group)))<0) return retval;
++#endif
++		if (((retval = make_config_out (dev)))<0) return retval;
 +	}
 +	return retval;
 +}
@@ -2379,6 +2478,13 @@ Index: git/drivers/misc/si5338.c
 +	if (pll_in_freq<0) return (int) pll_in_freq;
 +    return sprintf(buf, "%lld\n",pll_in_freq);
 +}
++static ssize_t pll_fb_frequency_show (struct device *dev, struct device_attribute *attr, char *buf)
++{
++	struct i2c_client *client =       to_i2c_client(dev);
++	s64 pll_fb_freq= get_pll_fb_frequency(client);
++	if (pll_fb_freq<0) return (int) pll_fb_freq;
++    return sprintf(buf, "%lld\n",pll_fb_freq);
++}
 +static ssize_t ms_p123_show(struct device *dev, struct device_attribute *attr, char *buf)
 +{
 +	int rc,chn;
@@ -2405,8 +2511,7 @@ Index: git/drivers/misc/si5338.c
 +	}
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
 +	if (chn<4){
-+	/* disable spread spectrum - only this register was changed to 0 from default 1 */
-+		if (((rc=write_multireg64(client, 0 , awe_msx_ssup3[chn])))<0) return rc;
++		if (((rc=disable_spread_spectrum(client,chn)))<0) return rc;
 +	}
 +    return count;
 +}
@@ -2441,8 +2546,7 @@ Index: git/drivers/misc/si5338.c
 +	ms_to_p123(ms,p123);
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
 +	if (chn<4){
-+	/* disable spread spectrum - only this register was changed to 0 from default 1 */
-+		if (((rc=write_multireg64(client, 0 , awe_msx_ssup3[chn])))<0) return rc;
++		if (((rc=disable_spread_spectrum(client,chn)))<0) return rc;
 +	}
 +    return count;
 +}
@@ -2467,9 +2571,10 @@ Index: git/drivers/misc/si5338.c
 +
 +static ssize_t pre_init_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 +{
++	int rc,clear_all;
 +	struct i2c_client *client =       to_i2c_client(dev);
-+	int rc;
-+	if (((rc=pre_init(client)))<0) return rc;
++	clear_all=strstr(attr->attr.name,"clear")?1:0;
++	if (((rc=pre_init(client,clear_all)))<0) return rc;
 +    return count;
 +}
 +
@@ -2654,6 +2759,103 @@ Index: git/drivers/misc/si5338.c
 +	return count;
 +}
 +
++
++
++static ssize_t out_pwr_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int chn, num_bytes,rc;
++	while ((rc=sscanf(buf, "%d%n", &chn,&num_bytes))){
++		dev_dbg(dev,"buf=%s rc==%d chn=%d num_bytes=%d", buf, rc,chn,num_bytes);
++		buf+=num_bytes;
++		if (((rc=set_out_pwr_states(dev, attr->attr.name, chn)))<0) return rc;
++	}
++    return count;
++}
++
++static int set_out_pwr_states(struct device *dev, const char * name, int chn)
++{
++	int i,rc;
++	struct i2c_client *client =       to_i2c_client(dev);
++	dev_dbg(dev,"name=%s chn=%d", name,chn);
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	for (i=0; out_pwr_states[i]; i++)	if (strcmp(name,out_pwr_states[i]) == 0) {
++	    if (((rc=set_drv_powerdown(client, i, chn)))<0) return rc;
++		return 0;
++	}
++	return -EINVAL;
++}
++
++static int get_powerup_state(struct device *dev, char * buf, int chn)
++{
++	int index;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((index=get_drv_powerdown(client,chn)))<0) return index;
++	return sprintf (buf,out_pwr_states[index]);
++}
++
++static ssize_t out_en_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int chn, num_bytes,rc;
++	while ((rc=sscanf(buf, "%d%n", &chn,&num_bytes))){
++		dev_dbg(dev,"buf=%s rc==%d chn=%d num_bytes=%d", buf, rc,chn,num_bytes);
++		buf+=num_bytes;
++		if (((rc=set_out_en_states(dev, attr->attr.name, chn)))<0) return rc;
++	}
++    return count;
++}
++
++static int set_out_en_states(struct device *dev, const char * name, int chn)
++{
++	int i,rc;
++	struct i2c_client *client =       to_i2c_client(dev);
++	dev_dbg(dev,"name=%s chn=%d", name,chn);
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	for (i=0; out_en_states[i]; i++)	if (strcmp(name,out_en_states[i]) == 0) {
++	    if (((rc=set_drv_disable(client, i, chn)))<0) return rc;
++		return 0;
++	}
++	return -EINVAL;
++}
++
++static int get_enabled_state(struct device *dev, char * buf, int chn)
++{
++	int index;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((index=get_drv_disable(client,chn)))<0) return index;
++	return sprintf (buf,out_en_states[index]);
++}
++
++static ssize_t out_dis_states_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
++{
++	int chn, num_bytes,rc;
++	while ((rc=sscanf(buf, "%d%n", &chn,&num_bytes))){
++		dev_dbg(dev,"buf=%s rc==%d chn=%d num_bytes=%d", buf, rc,chn,num_bytes);
++		buf+=num_bytes;
++		if (((rc=set_out_dis_states(dev, attr->attr.name, chn)))<0) return rc;
++	}
++    return count;
++}
++
++static int set_out_dis_states(struct device *dev, const char * name, int chn)
++{
++	int i,rc;
++	struct i2c_client *client =       to_i2c_client(dev);
++	dev_dbg(dev,"name=%s chn=%d", name,chn);
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	for (i=0; out_dis_states[i]; i++)	if (strcmp(name,out_dis_states[i]) == 0) {
++	    if (((rc=set_drv_disabled_state(client, i, chn)))<0) return rc;
++		return 0;
++	}
++	return -EINVAL;
++}
++static int get_disabled_state(struct device *dev, char * buf, int chn)
++{
++	int index;
++	struct i2c_client *client =       to_i2c_client(dev);
++	if (((index=get_drv_disabled_state(client,chn)))<0) return index;
++	return sprintf (buf,out_dis_states[index]);
++}
++#ifdef GENERATE_EXTRA
 +static ssize_t drv_powerdown_show (struct device *dev, struct device_attribute *attr, char *buf)
 +{
 +	int data,chn;
@@ -2843,161 +3045,6 @@ Index: git/drivers/misc/si5338.c
 +    return sprintf(buf, "%s\n",data);
 +}
 +
-+/* -----------Output section--------------------------- */
-+
-+static const u32 awe_rdiv_in[]=      {AWE_R0DIV_IN,  AWE_R1DIV_IN,  AWE_R2DIV_IN,  AWE_R3DIV_IN};
-+static const u32 awe_rdiv_k[]=       {AWE_R0DIV,     AWE_R1DIV,     AWE_R2DIV,     AWE_R3DIV};
-+static const u32 awe_drv_fmt[]=      {AWE_DRV0_FMT,  AWE_DRV1_FMT,  AWE_DRV2_FMT,  AWE_DRV3_FMT};
-+static const u32 awe_drv_vddo[]=     {AWE_DRV0_VDDO, AWE_DRV1_VDDO, AWE_DRV2_VDDO, AWE_DRV3_VDDO};
-+static const u32 awe_drv_trim[][4]= {{AWE_DRV0_TRIM,0,0}, {AWE_DRV1_TRIM_A,AWE_DRV1_TRIM_B,0},{AWE_DRV2_TRIM,0,0},{AWE_DRV3_TRIM,0,0}};
-+static const u32 awe_drv_powerdown[]={AWE_DRV0_PDN,  AWE_DRV1_PDN,  AWE_DRV2_PDN,  AWE_DRV3_PDN};
-+static const u32 awe_drv_disable[]=  {AWE_OUT0_DIS,  AWE_OUT1_DIS,  AWE_OUT2_DIS,  AWE_OUT3_DIS, AWE_OUT_ALL_DIS};
-+static const u32 awe_drv_dis_state[]={AWE_OUT0_DIS_STATE, AWE_OUT1_DIS_STATE, AWE_OUT2_DIS_STATE, AWE_OUT3_DIS_STATE};
-+static const u32 awe_drv_invert[]=   {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
-+
-+static const u32 awe_drv_inv[]=      {AWE_DRV0_INV,  AWE_DRV1_INV,  AWE_DRV2_INV,  AWE_DRV3_INV};
-+
-+
-+static const u8 out_div_values[]={1,2,4,8,16,32};
-+static int remove_common_factor(u64 * num_denom)
-+{
-+	u64 a,b,r;
-+	if (num_denom[1]==0) return -1; /* zero denominator */
-+	if (num_denom[0]==0) {
-+		num_denom[1]=1;
-+		return 1;
-+	}
-+	a=max(num_denom[0],num_denom[1]);
-+	b=min(num_denom[0],num_denom[1]);
-+	r=b;
-+	while (r>1) {
-+		r=a-b*div64_u64(a,b);
-+		if (r==0){
-+			num_denom[0]=div64_u64(num_denom[0],b);
-+			num_denom[1]=div64_u64(num_denom[1],b);
-+			return 1;
-+		}
-+		a=b;
-+		b=r;
-+	}
-+	return 0; /* nothing done */
-+}
-+static int _verify_output_channel(struct i2c_client *client,int chn)
-+{
-+	if ((chn<0) || (chn>3)){
-+		dev_err(&client->dev, "Invalid output channel: %d (only 0..3 are allowed)\n",chn);
-+		return - EINVAL;
-+	}
-+	return 0;
-+}
-+
-+static int get_drv_powerdown(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return read_field (client, awe_drv_powerdown[chn]);
-+}
-+
-+static int set_drv_powerdown(struct i2c_client *client, int typ, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	if (typ) typ=1;
-+	return write_field (client, (u8) typ, awe_drv_powerdown[chn]);
-+}
-+
-+static int get_drv_disable(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if ((chn!=4) && (((rc=_verify_output_channel(client,chn)))<0)) return rc;
-+	return read_field (client, awe_drv_disable[chn]);
-+}
-+
-+static int set_drv_disable(struct i2c_client *client, int typ, int chn)
-+{
-+	int rc;
-+	if ((chn!=4) && (((rc=_verify_output_channel(client,chn)))<0)) return rc;
-+	if (typ) typ=1;
-+	return write_field (client, (u8) typ, awe_drv_disable[chn]);
-+}
-+
-+
-+static int get_drv_disabled_state(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return read_field (client, awe_drv_dis_state[chn]);
-+}
-+
-+static int set_drv_disabled_state(struct i2c_client *client, int typ, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	if ((typ<0) || (typ>3)){
-+		dev_err(&client->dev, "Invalid disabled state %d. Only 0..3 are supported\n",typ);
-+		return - EINVAL;
-+	}
-+	return write_field (client, (u8) typ, awe_drv_dis_state[chn]);
-+}
-+
-+static int get_drv_invert(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return read_field (client, awe_drv_invert[chn]);
-+}
-+
-+static int set_drv_invert(struct i2c_client *client, int typ, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	if ((typ<0) || (typ>3)){
-+		dev_err(&client->dev, "Invalid invert drivers %d. Only 0..3 are supported\n",typ);
-+		return - EINVAL;
-+	}
-+	return write_field (client, (u8) typ, awe_drv_invert[chn]);
-+}
-+
-+static int get_drv_type(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return read_field (client, awe_drv_fmt[chn]);
-+}
-+
-+static int set_drv_type(struct i2c_client *client, int typ, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	if ((typ<0) || (typ>7)){
-+		dev_err(&client->dev, "Invalid output type %d. Only 0..7 are supported\n",typ);
-+		return - EINVAL;
-+	}
-+	return write_field (client, (u8) typ, awe_drv_fmt[chn]);
-+}
-+static int get_drv_vdd(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return read_field (client, awe_drv_vddo[chn]);
-+}
-+
-+static int set_drv_vdd(struct i2c_client *client, int vdd, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	if ((vdd<0) || (vdd>7)){
-+		dev_err(&client->dev, "Invalid output type %d. Only 0..3 are supported\n",vdd);
-+		return - EINVAL;
-+	}
-+	return write_field (client, (u8) vdd, awe_drv_vddo[chn]);
-+}
-+static int get_drv_trim(struct i2c_client *client, int chn)
-+{
-+	int rc;
-+	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	return (int) read_multireg64 (client, awe_drv_trim[chn]);
-+}
 +/* uses out_type and out_vddo */
 +static int update_drv_trim(struct i2c_client *client, int novtt, int chn) /* no Vtt - CMOS, no termination, where it matters */
 +{
@@ -3121,6 +3168,159 @@ Index: git/drivers/misc/si5338.c
 +	return NULL; /* never */
 +}
 +
++#endif
++
++/* -----------Output section--------------------------- */
++
++static int remove_common_factor(u64 * num_denom)
++{
++	u64 a,b,r;
++	if (num_denom[1]==0) return -1; /* zero denominator */
++	if (num_denom[0]==0) {
++		num_denom[1]=1;
++		return 1;
++	}
++	a=max(num_denom[0],num_denom[1]);
++	b=min(num_denom[0],num_denom[1]);
++	r=b;
++	while (r>1) {
++		r=a-b*div64_u64(a,b);
++		if (r==0){
++			num_denom[0]=div64_u64(num_denom[0],b);
++			num_denom[1]=div64_u64(num_denom[1],b);
++			return 1;
++		}
++		a=b;
++		b=r;
++	}
++	return 0; /* nothing done */
++}
++static int _verify_output_channel(struct i2c_client *client,int chn)
++{
++	if ((chn<0) || (chn>3)){
++		dev_err(&client->dev, "Invalid output channel: %d (only 0..3 are allowed)\n",chn);
++		return - EINVAL;
++	}
++	return 0;
++}
++
++static int disable_spread_spectrum(struct i2c_client *client,int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	/* disable spread spectrum - only this register was changed to 0 from default 1 */
++	if (((rc=write_multireg64(client, 0 , awe_msx_ssup3[chn])))<0) return rc;
++	return 0;
++}
++
++static int get_drv_powerdown(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return read_field (client, awe_drv_powerdown[chn]);
++}
++
++static int set_drv_powerdown(struct i2c_client *client, int typ, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if (typ) typ=1;
++	return write_field (client, (u8) typ, awe_drv_powerdown[chn]);
++}
++
++static int get_drv_disable(struct i2c_client *client, int chn)
++{
++	int rc;
++	if ((chn!=4) && (((rc=_verify_output_channel(client,chn)))<0)) return rc;
++	return read_field (client, awe_drv_disable[chn]);
++}
++
++static int set_drv_disable(struct i2c_client *client, int typ, int chn)
++{
++	int rc;
++	if ((chn!=4) && (((rc=_verify_output_channel(client,chn)))<0)) return rc;
++	if (typ) typ=1;
++	return write_field (client, (u8) typ, awe_drv_disable[chn]);
++}
++
++
++static int get_drv_disabled_state(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return read_field (client, awe_drv_dis_state[chn]);
++}
++
++static int set_drv_disabled_state(struct i2c_client *client, int typ, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if ((typ<0) || (typ>3)){
++		dev_err(&client->dev, "Invalid disabled state %d. Only 0..3 are supported\n",typ);
++		return - EINVAL;
++	}
++	return write_field (client, (u8) typ, awe_drv_dis_state[chn]);
++}
++
++static int get_drv_invert(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return read_field (client, awe_drv_invert[chn]);
++}
++
++static int set_drv_invert(struct i2c_client *client, int typ, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if ((typ<0) || (typ>3)){
++		dev_err(&client->dev, "Invalid invert drivers %d. Only 0..3 are supported\n",typ);
++		return - EINVAL;
++	}
++	return write_field (client, (u8) typ, awe_drv_invert[chn]);
++}
++
++static int get_drv_type(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return read_field (client, awe_drv_fmt[chn]);
++}
++
++static int set_drv_type(struct i2c_client *client, int typ, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if ((typ<0) || (typ>7)){
++		dev_err(&client->dev, "Invalid output type %d. Only 0..7 are supported\n",typ);
++		return - EINVAL;
++	}
++	return write_field (client, (u8) typ, awe_drv_fmt[chn]);
++}
++static int get_drv_vdd(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return read_field (client, awe_drv_vddo[chn]);
++}
++
++static int set_drv_vdd(struct i2c_client *client, int vdd, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if ((vdd<0) || (vdd>7)){
++		dev_err(&client->dev, "Invalid output type %d. Only 0..3 are supported\n",vdd);
++		return - EINVAL;
++	}
++	return write_field (client, (u8) vdd, awe_drv_vddo[chn]);
++}
++static int get_drv_trim(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	return (int) read_multireg64 (client, awe_drv_trim[chn]);
++}
++
 +static int set_drv_trim_any(struct i2c_client *client, int trim, int chn)
 +{
 +	int rc;
@@ -3137,7 +3337,7 @@ Index: git/drivers/misc/si5338.c
 +	int rc;
 +	u8 val;
 +	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
-+	for (val=0;val<(sizeof(out_div_values)/sizeof(out_div_values[0]));val++) if (out_div_values[val]==div) {
++	for (val=0;val<ARRAY_SIZE(out_div_values);val++) if (out_div_values[val]==div) {
 +		if (((rc=write_field (client, val,  awe_rdiv_k[chn] )))<0) return rc;
 +		return 0;
 +	}
@@ -3150,7 +3350,7 @@ Index: git/drivers/misc/si5338.c
 +	int rc;
 +	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
 +	if (((rc=read_field(client, awe_rdiv_k[chn])))<0) return rc;
-+	if (rc>=(sizeof(out_div_values)/sizeof(out_div_values[0]))){
++	if (rc>=ARRAY_SIZE(out_div_values)){
 +		dev_err(&client->dev, "Invalid value for output divider: %d\n",rc);
 +		return - EINVAL;
 +	}
@@ -3338,7 +3538,8 @@ Index: git/drivers/misc/si5338.c
 +		} else return -EINVAL; /* divisor expected */
 +	}
 +	/* get output divisor */
-+	if (src_group<3){
++
++	if (src_group<3){ /* not 'no clock' */
 +		if ((cp[0]=='/') || (cp[0]==':')){
 +			cp++;
 +			if      ((strncmp(cp,"32",2)==0)) {
@@ -3354,10 +3555,10 @@ Index: git/drivers/misc/si5338.c
 +			else return -EINVAL;
 +			cp++;
 +		} else return -EINVAL; /* divisor expected */
++		/* apply output divisor*/
++		if (((rc==set_out_div(client, 1<<div2, chn)))<0) return rc;
 +	}
-+
 +	/* apply */
-+	if (((rc==set_out_div(client, 1<<div2, chn)))<0) return rc;
 +	if (src_group==3){
 +		out_src = 7; /* No clock */
 +	} else	if (src_group==2){
@@ -3387,13 +3588,14 @@ Index: git/drivers/misc/si5338.c
 +		if (((rc==set_in_pdiv(client, 1<<div1, (out_src==2)?1:0)))<0) return rc; /* set p2div or p1div - as needed */
 +	}
 +	if (mux1>=0){
-+		if (((rc==set_in_mux(client, mux1)))<0) return rc; /* set imput mux if it is used */
++		if (((rc==set_in_mux(client, mux1)))<0) return rc; /* set input mux if it is used */
 +	}
 +	if (mux2>=0){
 +		if (((rc==set_fb_mux(client, mux2)))<0) return rc; /* set fb mux if it is used */
 +	}
 +	return 0;
 +}
++
 +
 +static int set_out_frequency_and_route (struct i2c_client *client, u64 *out_freq, int chn, int int_div)
 +{
@@ -3410,6 +3612,7 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=set_out_div_by_frequency(client, out_freq, chn)))<0) return rc;
 +	/* enable power for selected output */
 +	if (((rc=set_drv_powerdown(client, 0, chn)))<0) return rc;
++	/* Note: output is not enabled ! Should it be not powered up too?*/
 +	return 0; /* all done */
 +}
 +
@@ -3465,11 +3668,19 @@ Index: git/drivers/misc/si5338.c
 +/* -----------PLL section--------------------------- */
 +static u32 awe_fcal[]=     {AWE_FCAL_07_00,      AWE_FCAL_15_08,      AWE_FCAL_17_16,      0};
 +static u32 awe_fcal_ovrd[]={AWE_FCAL_OVRD_07_00, AWE_FCAL_OVRD_15_08, AWE_FCAL_OVRD_17_15, 0};
-+static int pre_init(struct i2c_client *client)
++static int pre_init(struct i2c_client *client, int clear_all)
 +{
-+	int rc;
++	int rc,chn;
 +	if (((rc=write_field(client, 1,  AWE_OUT_ALL_DIS )))<0) return rc; /* disable all outputs */
 +	if (((rc=write_field(client, 1,  AWE_DIS_LOS     )))<0) return rc; /* pause LOL */
++	if (clear_all){ /* clears outputs pll input/fb muxes to be set later */
++		/* extra */
++		for (chn=0;chn<4;chn++){
++			if (((rc=disable_output(client, chn)))<0) return rc;
++		}
++		/* to be explicitly enabled if needed */
++		if (((rc=disable_pll_in_fb_mux(client)))<0) return rc;
++	}
 +	return 0;
 +}
 +static int post_init(struct i2c_client *client, int timeout) /*1 in timeout ~ 0.1ms - i2c read register */
@@ -3541,12 +3752,48 @@ Index: git/drivers/misc/si5338.c
 +	if (((rc=write_field(client, 0,  AWE_MS_RESET      )))<0) return rc; /* SET MS RESET=0 */
 +	if (((rc=write_field(client, 0,  AWE_OUT_ALL_DIS )))<0) return rc; /* enable all (enabled individually) outputs */
 +	write_field(client, 0,  AWE_SOFT_RESET       );      /* Not documented - what to do with the soft reset bit - clearing */
++	if (((rc=power_up_down_needed_ms(client)))<0) return rc;
 +	return 0;
 +}
 +
 +static int get_status(struct i2c_client *client)
 +{
 +	return read_field(client,AWE_STATUS);
++}
++
++static int power_up_down_needed_ms(struct i2c_client *client)
++{
++	int rc,chn,out_src;
++	int ms_used=0;
++	for (chn=0;chn<4;chn++){
++		if (((out_src=get_out_source(client, chn)))<0) return out_src;
++		switch (out_src){
++		case 5: ms_used |= 1;   break;
++		case 6: ms_used |= (1<<chn); break;
++		}
++	}
++	for (chn=0;chn<4;chn++){
++		if (((rc=set_ms_powerdown(client, (ms_used & (1<<chn))?0:1,  chn)))<0) return rc;
++	}
++	return 0;
++}
++static int disable_output(struct i2c_client *client, int chn)
++{
++	int rc;
++	if (((rc=_verify_output_channel(client,chn)))<0) return rc;
++	if (((rc=set_out_route(client, "no", chn)))<0) return rc;
++	/* disable power for selected output */
++	if (((rc=set_drv_powerdown(client, 1, chn)))<0) return rc;
++	if (((rc=set_drv_disable(client, 1, chn)))<0) return rc;
++	return 0;
++}
++/* to be explicitly enabled if needed */
++static int disable_pll_in_fb_mux(struct i2c_client *client)
++{
++	int rc;
++	if (((rc=set_in_pfd_ref_fb(client, 5, 0)))<0) return rc; /*chn =0 - ref, 1 - fb, '5' - noclk*/
++	if (((rc=set_in_pfd_ref_fb(client, 5, 1)))<0) return rc; /*chn =0 - ref, 1 - fb, '5' - noclk*/
++    return 0;
 +}
 +
 +
@@ -3745,7 +3992,6 @@ Index: git/drivers/misc/si5338.c
 + */
 +static int set_pll_freq(struct i2c_client *client, u64 *vco_freq, int int_div)
 +{
-+	int rc;
 +	s64 pll_in_freq, pll_in_freq_scaled,pll_out_freq_scaled,d;
 +	u32 msn_p123[3];
 +    u64 msn[]={0,0,1};
@@ -4032,8 +4278,7 @@ Index: git/drivers/misc/si5338.c
 +	/* set up registers */
 +	ms_to_p123(ms,p123);
 +	if (((rc=set_ms_p123(client,p123, chn)))<0) return rc;
-+/* disable spread spectrum - only this register was changed to 0 from default 1 */
-+	if (((rc=write_multireg64(client, 0 , awe_msx_ssup3[chn])))<0) return rc;
++	if (((rc=disable_spread_spectrum(client,chn)))<0) return rc;
 +	return 0;
 +}
 +/* ----------- Input section ----------------- */
@@ -4185,7 +4430,7 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int rc;
 +	u8 val;
-+	for (val=0;val<(sizeof(in_div_values)/sizeof(in_div_values[0]));val++) if (in_div_values[val]==div) {
++	for (val=0;val<ARRAY_SIZE(in_div_values);val++) if (in_div_values[val]==div) {
 +		if (((rc=write_field (client, val,  chn?AWE_P2DIV:AWE_P1DIV )))<0) return rc;
 +		return 0;
 +	}
@@ -4197,7 +4442,7 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int rc;
 +	if (((rc=read_field(client, chn?AWE_P2DIV:AWE_P1DIV )))<0) return rc;
-+	if (rc>=(sizeof(in_div_values)/sizeof(in_div_values[0]))){
++	if (rc>=ARRAY_SIZE(in_div_values)){
 +		dev_err(&client->dev, "Invalid value for input divider: %d\n",rc);
 +		return - EINVAL;
 +	}
@@ -4511,10 +4756,9 @@ Index: git/drivers/misc/si5338.c
 +			dev_err(&client->dev,"Not yet implemented, initializing unconditionally\n");
 +			init_type=1;
 +		case 1:
-+			pre_init(client);
++			pre_init(client,1); // clear outputs and muxes - they will be programmed later
 +			break;
 +		}
-+
 +
 +		config_data = of_get_property(client->dev.of_node, "si5338,configuration_data", &len);
 +		if (config_data){
@@ -4591,6 +4835,51 @@ Index: git/drivers/misc/si5338.c
 +					*setup_data_be32=config_data[i];
 +					dev_info(&client->dev,"Setting '%s', channel %d",buf,setup_data.mask);
 +					if (configure_output_driver(&client->dev, drv_configs[n].description, setup_data.mask)<0) return;
++				}
++			}
++		}
++
++		/* configure disabled state of the output(s) */
++		for (n=0;out_dis_states[n];n++){
++			sprintf(buf,"si5338,%s",out_dis_states[n]);
++			dev_info(&client->dev,"1: Looking for '%s'",buf);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data){
++				len /= sizeof(*config_data);
++				for (i=0;i<len;i++){
++					*setup_data_be32=config_data[i];
++					dev_info(&client->dev,"Setting '%s', channel %d",buf,setup_data.mask);
++					if (set_drv_disable(client, n, setup_data.mask)<0) return;
++				}
++			}
++		}
++
++		/* configure powerdown state of the output(s) */
++		for (n=0;out_pwr_states[n];n++){
++			sprintf(buf,"si5338,%s",out_pwr_states[n]);
++			dev_info(&client->dev,"2: Looking for '%s'",buf);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data){
++				len /= sizeof(*config_data);
++				for (i=0;i<len;i++){
++					*setup_data_be32=config_data[i];
++					dev_info(&client->dev,"Setting '%s', channel %d",buf,setup_data.mask);
++					if (set_drv_powerdown(client, n, setup_data.mask)<0) return;
++				}
++			}
++		}
++
++		/* configure output enable state of the output(s) */
++		for (n=0;out_en_states[n];n++){
++			sprintf(buf,"si5338,%s",out_en_states[n]);
++			dev_info(&client->dev,"3: Looking for '%s'",buf);
++			config_data = of_get_property(client->dev.of_node, buf, &len);
++			if (config_data){
++				len /= sizeof(*config_data);
++				for (i=0;i<len;i++){
++					*setup_data_be32=config_data[i];
++					dev_info(&client->dev,"Setting '%s', channel %d",buf,setup_data.mask);
++					if (set_drv_disable(client, n, setup_data.mask)<0) return;
 +				}
 +			}
 +		}
