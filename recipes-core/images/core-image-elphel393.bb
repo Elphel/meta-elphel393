@@ -14,6 +14,7 @@ IMAGE_INSTALL_append = " python-core \
                          ntpdate \
                          openssh \
                          nano \
+                         tree \
                          lighttpd \
                          lighttpd-module-fastcgi \
                          lighttpd-module-cgi \
