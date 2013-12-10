@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-09 17:36:48.604396849 -0700
-+++ git/drivers/misc/Kconfig	2013-12-09 17:36:51.668396881 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-09 19:04:03.144451143 -0700
++++ git/drivers/misc/Kconfig	2013-12-09 19:04:06.588451179 -0700
 @@ -549,6 +549,19 @@
  	  their requirements.
  
@@ -24,8 +24,8 @@ Index: git/drivers/misc/Kconfig
  source "drivers/misc/eeprom/Kconfig"
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-09 17:36:48.604396849 -0700
-+++ git/drivers/misc/Makefile	2013-12-09 17:36:51.668396881 -0700
+--- git.orig/drivers/misc/Makefile	2013-12-09 19:04:03.144451143 -0700
++++ git/drivers/misc/Makefile	2013-12-09 19:04:06.588451179 -0700
 @@ -55,3 +55,5 @@
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
@@ -35,7 +35,7 @@ Index: git/drivers/misc/Makefile
 Index: git/drivers/misc/vsc330x.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/vsc330x.c	2013-12-09 17:36:51.668396881 -0700
++++ git/drivers/misc/vsc330x.c	2013-12-09 19:04:06.588451179 -0700
 @@ -0,0 +1,872 @@
 +/*!***************************************************************************
 + *! FILE NAME  : vsc330x.c
@@ -912,8 +912,8 @@ Index: git/drivers/misc/vsc330x.c
 Index: git/drivers/misc/si5338.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ git/drivers/misc/si5338.c	2013-12-09 18:52:10.344443750 -0700
-@@ -0,0 +1,4053 @@
++++ git/drivers/misc/si5338.c	2013-12-09 19:50:18.080479926 -0700
+@@ -0,0 +1,4066 @@
 +/*!***************************************************************************
 + *! FILE NAME  : si5338.c
 + *! DESCRIPTION: control of the Silicon Laboratories SI5338 clock generator
@@ -944,7 +944,7 @@ Index: git/drivers/misc/si5338.c
 +#include <linux/of.h>
 +#include <linux/math64.h>
 +
-+#define GENERATE_EXTRA
++#undef GENERATE_EXTRA
 +
 +#define DRV_VERSION "1.0"
 +#define SYSFS_PERMISSIONS         0644 /* default permissions for sysfs files */
@@ -1634,9 +1634,9 @@ Index: git/drivers/misc/si5338.c
 +
 +
 +static struct attribute *pll_dev_attrs[] = {
-+	&dev_attr_pre_init.attr,
++/*	&dev_attr_pre_init.attr,
 +	&dev_attr_pre_init_clear.attr,
-+	&dev_attr_post_init.attr,
++	&dev_attr_post_init.attr, */
 +	&dev_attr_pll_ref_frequency.attr,
 +	&dev_attr_pll_freq_fract.attr,
 +	&dev_attr_pll_freq_int.attr,
@@ -1735,7 +1735,6 @@ Index: git/drivers/misc/si5338.c
 +	.attrs = output_dev_attrs,
 +	.name  = "output_clocks",
 +};
-+
 +/* output drivers */
 +#ifdef GENERATE_EXTRA
 +static DEVICE_ATTR(drv0_powerdown,     SYSFS_PERMISSIONS,                   drv_powerdown_show,      drv_powerdown_store);
@@ -1869,6 +1868,25 @@ Index: git/drivers/misc/si5338.c
 +#endif
 +
 +
++/* root directory */
++static DEVICE_ATTR(outputs,   SYSFS_PERMISSIONS & SYSFS_READONLY,  output_description_show, NULL);
++static struct attribute *root_dev_attrs[] = {
++		&dev_attr_pre_init.attr,
++		&dev_attr_pre_init_clear.attr,
++		&dev_attr_post_init.attr,
++		&dev_attr_outputs.attr,
++	NULL
++};
++static const struct attribute_group dev_attr_root_group = {
++	.attrs = root_dev_attrs,
++	.name  = NULL,
++};
++
++
++
++
++
++
 +static int get_chn_from_name(const char * name)
 +{
 +	char * cp = strpbrk(name,"0123456789");
@@ -1905,7 +1923,6 @@ Index: git/drivers/misc/si5338.c
 +		dev_attrs[index].store=output_config_store;
 +		pattrs[index]=&(dev_attrs[index].attr);
 +	}
-+	//		if (((retval = make_config_out (dev, output_description_show, output_config_store)))<0) return retval;
 +
 +	/*  add outputs disabled states (write only) */
 +	for (iout=0;out_dis_states[iout];iout++) {
@@ -2116,6 +2133,7 @@ Index: git/drivers/misc/si5338.c
 +{
 +	int retval=0;
 +	if (&dev->kobj) {
++		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_root_group)))<0) return retval;
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_raw_group)))<0) return retval;
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_input_group)))<0) return retval;
 +		if (((retval = sysfs_create_group(&dev->kobj, &dev_attr_multisynth_group)))<0) return retval;
@@ -4842,7 +4860,6 @@ Index: git/drivers/misc/si5338.c
 +		/* configure disabled state of the output(s) */
 +		for (n=0;out_dis_states[n];n++){
 +			sprintf(buf,"si5338,%s",out_dis_states[n]);
-+			dev_info(&client->dev,"1: Looking for '%s'",buf);
 +			config_data = of_get_property(client->dev.of_node, buf, &len);
 +			if (config_data){
 +				len /= sizeof(*config_data);
@@ -4857,7 +4874,6 @@ Index: git/drivers/misc/si5338.c
 +		/* configure powerdown state of the output(s) */
 +		for (n=0;out_pwr_states[n];n++){
 +			sprintf(buf,"si5338,%s",out_pwr_states[n]);
-+			dev_info(&client->dev,"2: Looking for '%s'",buf);
 +			config_data = of_get_property(client->dev.of_node, buf, &len);
 +			if (config_data){
 +				len /= sizeof(*config_data);
@@ -4872,7 +4888,6 @@ Index: git/drivers/misc/si5338.c
 +		/* configure output enable state of the output(s) */
 +		for (n=0;out_en_states[n];n++){
 +			sprintf(buf,"si5338,%s",out_en_states[n]);
-+			dev_info(&client->dev,"3: Looking for '%s'",buf);
 +			config_data = of_get_property(client->dev.of_node, buf, &len);
 +			if (config_data){
 +				len /= sizeof(*config_data);
@@ -4883,8 +4898,6 @@ Index: git/drivers/misc/si5338.c
 +				}
 +			}
 +		}
-+
-+
 +	} else {
 +		dev_info(&client->dev,"Device tree data not found for %s\n",client->name);
 +	}
