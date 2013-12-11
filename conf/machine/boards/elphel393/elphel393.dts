@@ -179,22 +179,21 @@
 			si5338@70 {
 				compatible = "sil,si5338";
 				reg = <0x70>;
+				si5338,init="always"; /* initialize PLL, wait for lock. Other (not yet implemented) option is 'if off'*/
 				/* low-level masked register writes, may be uaed to load frequency plan */
-				si5338,configuration_data=<
-				0x1ffcf0 /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
-				0x20a0f0 /* just for testing: write data 0xa0 with write enable mask 0xf0 to register 0x020 */
-				>;
-
-				si5338,in_frequency3= < 25000000>; /* 25MHz */
+				/*si5338,configuration_data=< 0x1ffcf0 >;*/ /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
+				si5338,in_frequency3= < 25000000>; /* 25MHz on input 3 (other inputs are '12",'4','56' and '12xo' */
 				/* PLL may be set either directly (pll_freq_fract,pll_freq_int) or to match some output (pll_by_out_fract, pll_by_out_int)
 				 * _int suffix forces to find integer divisors, _fract - allows fractional ones */
 				si5338,pll_by_out_int=<150000000>;  /* 150Mhz May have 3 values: integer, nominator and denominator */
 				si5338,out3_freq_int= <150000000>;  /* 150Mhz. May have 3 values: integer, nominator and denominator */
 				si5338,out2_select= "in3/2/32";  /* connect out2 to IN3, divided by 2 (input stage) and then by 32 (output stage)*/
-
 				si5338,2V5_LVPECL=  <1 2>; /* set output standard for channels 1 and 2 */
 				si5338,1V5_HSTL_A+= <0>;   /* set output standard for channel 0, only A output is used (noninverted) */
 				si5338,1V8_LVDS=    <3>;
+				/* Disabled state for outputs:  */
+				si5338,dis_hi-z=    <0 1 2 3>; /* Disabled state for listed outputs, also possible: "dis_hi-z","dis_low","dis_high","dis_always_on" */
+				si5338,output_en=   < 3>; /* Which outputs should be initially enabled */
 			};
 			gpio@20{
 				compatible = "ti,tca6408";
