@@ -7,4 +7,3 @@ SRC_URI_append += " file://vsc3304.patch"
 # Kernel version and SRCREV correspond to: 
 # github.com/Xilinx/linux-xlnx.git xilinx-v14.7 tag 
 SRCREV = "efc27505715e64526653f35274717c0fc56491e3"
-LINUX_VERSION = "3.10"
