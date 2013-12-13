@@ -1,0 +1,46 @@
+Index: git/drivers/misc/Kconfig
+===================================================================
+--- git.orig/drivers/misc/Kconfig	2013-12-12 16:39:32.966559148 -0700
++++ git/drivers/misc/Kconfig	2013-12-12 16:52:05.078566949 -0700
+@@ -517,6 +517,13 @@
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called si570
+ 
++config SI5338
++	tristate "Support Silicon Laboratories SI5338 Quad Clock Generator"
++	help
++	  Say Y here if you have a SI5338 Quad Clock Generator IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called si5338.
++
+ config LATTICE_ECP3_CONFIG
+ 	tristate "Lattice ECP3 FPGA bitstream configuration via SPI"
+ 	depends on SPI && SYSFS
+@@ -537,6 +544,13 @@
+ 	  the genalloc API. It is supposed to be used for small on-chip SRAM
+ 	  areas found on many SoCs.
+ 
++config VSC330X
++	tristate "Support VSC330X crosspoint switch"
++	help
++	  Say Y here if you have a VSC30X crosspoint switch IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called vsc330x.
++
+ config XILINX_TRAFGEN
+ 	tristate "Xilinx Traffic Generator"
+ 	depends on MICROBLAZE
+Index: git/drivers/misc/Makefile
+===================================================================
+--- git.orig/drivers/misc/Makefile	2013-12-12 16:39:40.794559230 -0700
++++ git/drivers/misc/Makefile	2013-12-12 16:54:40.410568561 -0700
+@@ -51,7 +51,9 @@
+ obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
+ obj-$(CONFIG_INTEL_MEI)		+= mei/
+ obj-$(CONFIG_SI570)		+= si570.o
++obj-$(CONFIG_SI5338)	        += si5338.o
+ obj-$(CONFIG_VMWARE_VMCI)	+= vmw_vmci/
+ obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
+ obj-$(CONFIG_SRAM)		+= sram.o
+ obj-$(CONFIG_XILINX_TRAFGEN)	+= xilinx_trafgen.o
++obj-$(CONFIG_VSC330X)	        += vsc330x.o
