@@ -195,6 +195,8 @@
 				si5338,dis_hi-z=    <0 1 2 3>; /* Disabled state for listed outputs, also possible: "dis_hi-z","dis_low","dis_high","dis_always_on" */
 				si5338,output_en=   < 3>; /* Which outputs should be initially enabled */
 				si5338,spread_spectrum_3= <1 50 31500>; /* Set spread spectrum for channel3 : enabled, 0.5%, 31.5KHz */
+				si5338,out0_freq_int= <15000000>;  /* 15Mhz to output 0 */
+				si5338,spread_spectrum_0= <1 500 31500>; /* Set spread spectrum for channel0 : enabled, 5%, 31.5KHz - high value, for testing */
 			};
 			gpio@20{
 				compatible = "ti,tca6408";
