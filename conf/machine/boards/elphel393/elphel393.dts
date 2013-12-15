@@ -179,8 +179,8 @@
 			si5338@70 {
 				compatible = "sil,si5338";
 				reg = <0x70>;
-				si5338,init="always"; /* initialize PLL, wait for lock. Other (not yet implemented) option is 'if off'*/
-				/* low-level masked register writes, may be uaed to load frequency plan */
+				si5338,init="if off"; /* initialize PLL if chip was not programmed, wait for lock. Other option is 'always' */
+				/* low-level masked register writes, may be used to load frequency plan */
 				/*si5338,configuration_data=< 0x1ffcf0 >;*/ /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
 				si5338,in_frequency3= < 25000000>; /* 25MHz on input 3 (other inputs are '12",'4','56' and '12xo' */
 				/* PLL may be set either directly (pll_freq_fract,pll_freq_int) or to match some output (pll_by_out_fract, pll_by_out_int)
