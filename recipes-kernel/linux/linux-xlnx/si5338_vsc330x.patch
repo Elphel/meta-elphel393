@@ -1,7 +1,7 @@
 Index: git/drivers/misc/Kconfig
 ===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-12 16:39:32.966559148 -0700
-+++ git/drivers/misc/Kconfig	2013-12-12 16:52:05.078566949 -0700
+--- git.orig/drivers/misc/Kconfig	2013-12-19 20:54:51.004991205 -0700
++++ git/drivers/misc/Kconfig	2013-12-19 21:01:22.152995262 -0700
 @@ -517,6 +517,13 @@
  	  To compile this driver as a module, choose M here: the module
  	  will be called si570
@@ -16,7 +16,7 @@ Index: git/drivers/misc/Kconfig
  config LATTICE_ECP3_CONFIG
  	tristate "Lattice ECP3 FPGA bitstream configuration via SPI"
  	depends on SPI && SYSFS
-@@ -537,6 +544,13 @@
+@@ -537,6 +544,20 @@
  	  the genalloc API. It is supposed to be used for small on-chip SRAM
  	  areas found on many SoCs.
  
@@ -27,14 +27,21 @@ Index: git/drivers/misc/Kconfig
 +	  To compile this driver as a module, choose M here: the
 +	  module will be called vsc330x.
 +
++config LTC3589
++	tristate "Support LTC3589 voltage regulator"
++	help
++	  Say Y here if you have a LTC3589 voltage regulator IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called ltc3589.
++
  config XILINX_TRAFGEN
  	tristate "Xilinx Traffic Generator"
  	depends on MICROBLAZE
 Index: git/drivers/misc/Makefile
 ===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-12 16:39:40.794559230 -0700
-+++ git/drivers/misc/Makefile	2013-12-12 16:54:40.410568561 -0700
-@@ -51,7 +51,9 @@
+--- git.orig/drivers/misc/Makefile	2013-12-19 20:54:51.004991205 -0700
++++ git/drivers/misc/Makefile	2013-12-19 20:59:33.976994140 -0700
+@@ -51,7 +51,11 @@
  obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
  obj-$(CONFIG_INTEL_MEI)		+= mei/
  obj-$(CONFIG_SI570)		+= si570.o
@@ -44,3 +51,5 @@ Index: git/drivers/misc/Makefile
  obj-$(CONFIG_SRAM)		+= sram.o
  obj-$(CONFIG_XILINX_TRAFGEN)	+= xilinx_trafgen.o
 +obj-$(CONFIG_VSC330X)	        += vsc330x.o
++obj-$(CONFIG_LTC3589)	        += ltc3589.o
++

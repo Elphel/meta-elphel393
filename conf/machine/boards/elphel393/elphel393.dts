@@ -198,6 +198,10 @@
 				si5338,out0_freq_int= <15000000>;  /* 15Mhz to output 0 */
 				si5338,spread_spectrum_0= <1 500 31500>; /* Set spread spectrum for channel0 : enabled, 5%, 31.5KHz - high value, for testing */
 			};
+			ltc3589@34 {
+				compatible = "ltc,ltc3589";
+				reg = <0x34>;
+			};
 			gpio@20{
 				compatible = "ti,tca6408";
 				reg = <0x20>;
