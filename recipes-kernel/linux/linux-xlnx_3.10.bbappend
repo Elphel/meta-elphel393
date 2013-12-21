@@ -32,6 +32,10 @@ do_unpack_append() {
         devdir_abspath = os.path.abspath("${DEV_DIR}")
         for path, folders, files in os.walk("${DEV_DIR}"):
             folders[:]=[fd for fd in folders if fd != ".git"]
+            for folder in folders:
+                folder_abspath = os.path.abspath(os.path.join(path, folder))
+                folder_relpath = folder_abspath.replace(devdir_abspath+"/", '')
+                os.system("cd ${S};mkdir "+folder_relpath)
             for filename in files:
                 file_abspath = os.path.abspath(os.path.join(path, filename))
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
