@@ -202,6 +202,7 @@
 				compatible = "ltc,ltc3589";
 				reg = <0x34>;
 			};
+
 			gpio@20{
 				compatible = "ti,tca6408";
 				reg = <0x20>;
@@ -249,9 +250,6 @@
 			interrupts = <0 2 4>;
 			reg = <0xf8f02000 0x1000>;
 		} ;
-
-
-
 		ps7_ram_0: ps7-ram@0 {
 			compatible = "xlnx,ps7-ram-1.00.a", "xlnx,ps7-ocm";
 			interrupt-parent = <&ps7_scugic_0>;
@@ -394,5 +392,9 @@
 			interrupts = <0 7 4>;
 			reg = <0xf8007100 0x20>;
 		} ;
+	} ;
+	elphel393_pwr: elphel393-pwr@0 {
+		compatible = "elphel,elphel393-pwr-1.00";
+		elphel393_pwr,i2c_chips=<0x20 0x21 0x34>;
 	} ;
 } ;
