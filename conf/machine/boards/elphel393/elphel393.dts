@@ -10,6 +10,7 @@
 		serial0 = &ps7_uart_0;
 	} ;
 	chosen {
+/*		bootargs = "console=ttyPS0,115200 debug root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=131072";*/
 		bootargs = "console=ttyPS0,115200 root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=131072";
 		linux,stdout-path = "/amba@0/serial@e0000000";
 	} ;
@@ -179,7 +180,7 @@
 			si5338@70 {
 				compatible = "sil,si5338";
 				reg = <0x70>;
-				si5338,init="if off"; /* initialize PLL if chip was not programmed, wait for lock. Other option is 'always' */
+				si5338,init="always"; /* initialize PLL if chip was not programmed, wait for lock. Other option is 'if off' */
 				/* low-level masked register writes, may be used to load frequency plan */
 				/*si5338,configuration_data=< 0x1ffcf0 >;*/ /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
 				si5338,in_frequency3= < 25000000>; /* 25MHz on input 3 (other inputs are '12",'4','56' and '12xo' */
@@ -395,6 +396,25 @@
 	} ;
 	elphel393_pwr: elphel393-pwr@0 {
 		compatible = "elphel,elphel393-pwr-1.00";
-		elphel393_pwr,i2c_chips=<0x20 0x21 0x34>;
+		elphel393_pwr,simulate=          <0>;
+		elphel393_pwr,i2c_chips=         <0x20 0x21 0x34>;
+		elphel393_pwr,vp15.r1=           <357000>;
+		elphel393_pwr,vp15.r2=           <287000>;
+		elphel393_pwr,vcc_sens01.r1=     <787000>;
+		elphel393_pwr,vcc_sens01.r2=     <287000>;
+		elphel393_pwr,vcc_sens23.r1=     <787000>;
+		elphel393_pwr,vcc_sens23.r2=     <287000>;
+		elphel393_pwr,vp5.r1=            <523000>;
+		elphel393_pwr,vp5.r2=            <100000>;
+		elphel393_pwr,vldo18.r1=         <357000>;
+		elphel393_pwr,vldo18.r2=         <287000>;
+
+		elphel393_pwr,channels_disable= "vcc_sens23 vp33sens23";
+
+		elphel393_pwr,pinstrapped_oven=  <1>;
+		elphel393_pwr,vcc_sens01_mv=     <2800>; /* set sensor intreface voltage to 2.8V */
+
+		elphel393_pwr,channels_enable=  "vcc_sens01 vp33sens01";
+
 	} ;
 } ;
