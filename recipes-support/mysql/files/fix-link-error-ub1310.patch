@@ -1,0 +1,13 @@
+diff --git a/libmysqld/Makefile.am b/libmysqld/Makefile.am
+index 7a2c92e..eee501e 100644
+--- a/libmysqld/Makefile.am
++++ b/libmysqld/Makefile.am
+@@ -92,7 +92,7 @@ INC_LIB=	$(top_builddir)/regex/libregex.la \
+                 @ndbcluster_libs@ @NDB_SCI_LIBS@ \
+ 		@mysql_embedded_plugin_libs@ \
+ 		$(libevent_inc_libs) \
+-		$(yassl_inc_libs)
++		$(yassl_inc_libs) @LIBDL@
+ 
+ if HAVE_YASSL
+ yassl_inc_libs=	$(top_builddir)/extra/yassl/src/libyassl.la \ 
