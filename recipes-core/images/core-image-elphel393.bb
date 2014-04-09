@@ -5,6 +5,7 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 # remove not needed ipkg informations
 IMAGE_INSTALL_append = "u-boot-ezynq"
 IMAGE_INSTALL_append += " python-core \
+                         python-numpy \
                          htop \
                          i2c-tools \
                          mtd-utils \
