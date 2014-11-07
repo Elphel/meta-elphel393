@@ -30,8 +30,8 @@ do_fetch_append() {
 do_unpack_append() {
     if os.path.isdir("${DEV_DIR}"):
         print("DEV_DIR exists - creating links...")
-        devdir_abspath = os.path.abspath("${DEV_DIR}")
-        for path, folders, files in os.walk("${DEV_DIR}"):
+        devdir_abspath = os.path.abspath("${DEV_DIR}/src")
+        for path, folders, files in os.walk("${DEV_DIR}/src"):
             folders[:]=[fd for fd in folders if fd != ".git"]
             for folder in folders:
                 folder_abspath = os.path.abspath(os.path.join(path, folder))
@@ -43,5 +43,5 @@ do_unpack_append() {
                 os.system("cd ${S};ln -s "+file_abspath+" "+file_relpath)
     else:
         print("Copying ${linux-elphel_gitdir} over ${S}\n")
-        os.system("cp -rf ${linux-elphel_gitdir}/* ${S}")
+        os.system("cp -rf ${linux-elphel_gitdir}/src/* ${S}")
 }
