@@ -44,6 +44,6 @@ do_unpack_append() {
         os.system("cd ${DEV_DIR}; ln -sf ${S} linux") 
         os.system("cd ${DEV_DIR}; ln -sf ${TOPDIR}/tmp/sysroots sysroots") 
     else:
-        print("Copying ${linux-elphel_gitdir} over ${S}\n")
-        os.system("cp -rf ${linux-elphel_gitdir}/src/* ${S}")
+        print("Copying ${linux-elphel_gitdir}/src/ over ${S}\n")
+        os.system("cp -rfv ${linux-elphel_gitdir}/src/* ${S}")
 }
