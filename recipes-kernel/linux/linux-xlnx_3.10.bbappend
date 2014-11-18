@@ -36,11 +36,12 @@ do_unpack_append() {
             for folder in folders:
                 folder_abspath = os.path.abspath(os.path.join(path, folder))
                 folder_relpath = folder_abspath.replace(devdir_abspath+"/", '')
-                os.system("cd ${S};mkdir "+folder_relpath)
+                os.system("cd ${S};mkdir -p "+folder_relpath)
             for filename in files:
                 file_abspath = os.path.abspath(os.path.join(path, filename))
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
                 os.system("cd ${S};ln -s "+file_abspath+" "+file_relpath)
+        os.system("cd ${DEV_DIR}; ln -sf ${S} linux") 
     else:
         print("Copying ${linux-elphel_gitdir} over ${S}\n")
         os.system("cp -rf ${linux-elphel_gitdir}/src/* ${S}")
