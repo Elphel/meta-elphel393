@@ -20,7 +20,7 @@ SRC_URI = "file://init_elphel393 \
 S = "${WORKDIR}/"
 
 INITSCRIPT_NAME = "init_elphel393"
-INITSCRIPT_PARAMS = "defaults 75"
+INITSCRIPT_PARAMS = "defaults 95"
 
 #This needs to get the script into rc?.d/
 inherit update-rc.d

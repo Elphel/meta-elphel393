@@ -5,22 +5,44 @@ DAEMON=/usr/sbin/init_elphel393
 NAME=init_elphel393
 DESC="extra init scripts"
 
+MNTPOINT=/mnt/mmc
+MMCDEV=/dev/mmcblk0p1
+SOME_SCRIPT=test_elphel393.sh
+
 case "$1" in
   start)
 	echo -n "Starting $DESC: "
-	echo "$NAME."
+	echo "$NAME:"
+	#mount here
+	echo "    Mounting Memory Card to $MNTPOINT"
+	mkdir $MNTPOINT 
+	mount $MMCDEV $MNTPOINT
+	if [ -f $MNTPOINT/$SOME_SCRIPT ]; then
+	    echo "    Launching $SOME_SCRIPT"
+	    $MNTPOINT/$SOME_SCRIPT
+	else
+	    echo "    $SOME_SCRIPT not found. Nothing to launch."
+	fi
 	;;
   stop)
 	echo -n "Stopping $DESC: "
 	echo "$NAME."
 	;;
-  restart|force-reload)
+  restart)
 	echo -n "Restarting $DESC: "
 	echo "$NAME."
 	;;
+  status)
+	echo -n "$NAME status:"
+	if [ -f /var/run/$NAME ]; then
+	  echo -n "Running"
+	else
+	  echo -n "Not running"
+	fi
+	;;
   *)
 	N=/etc/init.d/$NAME
-	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	echo "Usage: $N {start|stop|restart|status}" >&2
 	exit 1
 	;;
 esac
