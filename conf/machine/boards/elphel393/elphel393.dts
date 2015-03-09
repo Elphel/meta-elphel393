@@ -294,6 +294,7 @@
 			xlnx,has-power = <0x0>;
 			xlnx,has-wp = <0x1>;
 			xlnx,sdio-clk-freq-hz = <0x3f93e10>;
+			wp-inverted;
 		} ;
 		ps7_slcr_0: ps7-slcr@f8000000 {
 			compatible = "xlnx,ps7-slcr-1.00.a", "xlnx,zynq-slcr";
