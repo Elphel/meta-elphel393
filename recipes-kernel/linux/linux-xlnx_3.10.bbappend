@@ -17,6 +17,12 @@ linux-elphel_srcrev= ""
 #linux-elphel_srcrev= "0ca36687a400fd9a5c4510295ae5be88aac77fa4"
 
 DEV_DIR ?= "${TOPDIR}/../linux-elphel"
+# set output for Eclipse project setup parser:
+#EXTRA_OEMAKE += "-s -w -j1 -B KCFLAGS='-v'"
+# or use a variable:
+#export _MAKEFLAGS="-s -w -j1 -B KCFLAGS='-v'"
+#export BB_ENV_EXTRAWHITE="$BB_ENV_EXTRAWHITE _MAKEFLAGS"
+EXTRA_OEMAKE = "${_MAKEFLAGS}"
 
 do_fetch_append() {
     if os.path.isdir("${DEV_DIR}"):
