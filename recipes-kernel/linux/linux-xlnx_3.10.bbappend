@@ -53,3 +53,4 @@ do_unpack_append() {
         print("Copying ${linux-elphel_gitdir}/src/ over ${S}\n")
         os.system("cp -rfv ${linux-elphel_gitdir}/src/* ${S}")
 }
+

@@ -418,4 +418,8 @@
 		elphel393_pwr,channels_enable=  "vcc_sens01 vp33sens01";
 
 	} ;
+	elphel393_mem: elphel393-mem@0 {
+                compatible = "elphel,elphel393-mem-1.00";
+                memsize = <25600>;
+        } ;
 } ;

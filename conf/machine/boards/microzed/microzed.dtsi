@@ -319,4 +319,8 @@
 			reg = <0xf8007100 0x20>;
 		} ;
 	} ;
+	elphel393_mem: elphel393-mem@0 {
+                compatible = "elphel,elphel393-mem-1.00";
+                memsize = <25600>;
+        } ;
 } ;
