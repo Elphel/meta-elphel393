@@ -21,7 +21,6 @@ IMAGE_INSTALL_append += " python-core \
                          lighttpd \
                          lighttpd-module-fastcgi \
                          lighttpd-module-cgi \
-                         modphp \
                          apache2 \
                          php-cgi \
                          php-cli \
