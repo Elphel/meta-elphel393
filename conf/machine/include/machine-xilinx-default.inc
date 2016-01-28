@@ -7,9 +7,11 @@ IMAGE_CLASSES += "image_types_uboot"
 
 # Kernel Configuration
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
-PREFERRED_VERSION_linux-xlnx ?= "3.10%"
+PREFERRED_VERSION_linux-xlnx ?= "4.%"
 
 # U-Boot Configuration
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-ezynq"
 PREFERRED_PROVIDER_u-boot ?= "u-boot-ezynq"
-PREFERRED_VERSION_u-boot-ezynq ?= "v2013.0%"
+PREFERRED_VERSION_u-boot-ezynq ?= "v2016.0%"
+
+MACHINE_ESSENTIAL_EXTRA_RDEPENDS_append_zynq += "device-tree"

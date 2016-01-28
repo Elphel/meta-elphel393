@@ -1,23 +1,20 @@
-Index: git/drivers/Kconfig
-===================================================================
---- git.orig/drivers/Kconfig	2013-12-19 21:21:09.941007583 -0700
-+++ git/drivers/Kconfig	2013-12-20 22:33:10.105948560 -0700
-@@ -170,4 +170,6 @@
+diff -Naur a/drivers/Kconfig b/drivers/Kconfig
+--- a/drivers/Kconfig	2016-01-25 18:31:43.309779723 -0700
++++ b/drivers/Kconfig	2016-01-25 18:48:17.521798388 -0700
+@@ -182,4 +182,6 @@
  
- source "drivers/reset/Kconfig"
+ source "drivers/android/Kconfig"
  
 +source "drivers/elphel/Kconfig"
 +
  endmenu
-Index: git/drivers/Makefile
-===================================================================
---- git.orig/drivers/Makefile	2013-12-19 21:21:09.941007583 -0700
-+++ git/drivers/Makefile	2013-12-20 22:32:20.929948050 -0700
-@@ -156,3 +156,6 @@
- obj-y				+= xilinx_common/
- 
- obj-$(CONFIG_PMODS)		+= pmods/
+diff -Naur a/drivers/Makefile b/drivers/Makefile
+--- a/drivers/Makefile	2016-01-25 18:31:43.309779723 -0700
++++ b/drivers/Makefile	2016-01-25 18:50:39.545801055 -0700
+@@ -165,3 +165,6 @@
+ obj-$(CONFIG_THUNDERBOLT)	+= thunderbolt/
+ obj-$(CONFIG_CORESIGHT)		+= coresight/
+ obj-$(CONFIG_ANDROID)		+= android/
 +
 +obj-$(CONFIG_ELPHEL393)		+= elphel/
 +obj-$(CONFIG_ELPHELDRVONMICROZED)	+= elphel/
-

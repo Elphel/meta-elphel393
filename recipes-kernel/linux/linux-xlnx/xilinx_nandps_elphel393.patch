@@ -1,8 +1,7 @@
-diff --git a/drivers/mtd/nand/xilinx_nandps.c b/drivers/mtd/nand/xilinx_nandps.c
-index bf660d4..775c168 100644
---- a/drivers/mtd/nand/xilinx_nandps.c
-+++ b/drivers/mtd/nand/xilinx_nandps.c
-@@ -115,6 +115,9 @@ static const struct xnandps_command_format xnandps_commands[] = {
+diff -Naur a/drivers/mtd/nand/pl35x_nand.c b/drivers/mtd/nand/pl35x_nand.c
+--- a/drivers/mtd/nand/pl35x_nand.c	2016-01-25 18:34:24.065782741 -0700
++++ b/drivers/mtd/nand/pl35x_nand.c	2016-01-25 18:55:51.945806920 -0700
+@@ -117,6 +117,9 @@
  	{NAND_CMD_PARAM, NAND_CMD_NONE, 1, NAND_CMD_NONE},
  	{NAND_CMD_GET_FEATURES, NAND_CMD_NONE, 1, NAND_CMD_NONE},
  	{NAND_CMD_SET_FEATURES, NAND_CMD_NONE, 1, NAND_CMD_NONE},
@@ -11,4 +10,4 @@ index bf660d4..775c168 100644
 +	{NAND_CMD_LOCK, NAND_CMD_NONE, 0, NAND_CMD_NONE},
  	{NAND_CMD_NONE, NAND_CMD_NONE, 0, 0},
  	/* Add all the flash commands supported by the flash device and Linux */
- 	/* The cache program command is not supported by driver because driver
+ 	/*

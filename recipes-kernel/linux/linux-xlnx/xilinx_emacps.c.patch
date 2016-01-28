@@ -1,60 +1,19 @@
-Index: git/drivers/net/ethernet/xilinx/xilinx_emacps.c
-===================================================================
---- git.orig/drivers/net/ethernet/xilinx/xilinx_emacps.c	2013-11-23 16:44:54.262025863 -0700
-+++ git/drivers/net/ethernet/xilinx/xilinx_emacps.c	2013-11-23 00:04:25.000000000 -0700
-@@ -468,6 +468,11 @@
- 							second */
+diff -Naur a/drivers/net/ethernet/xilinx/xilinx_emacps.c b/drivers/net/ethernet/xilinx/xilinx_emacps.c
+--- a/drivers/net/ethernet/xilinx/xilinx_emacps.c	2016-01-25 18:34:24.065782741 -0700
++++ b/drivers/net/ethernet/xilinx/xilinx_emacps.c	2016-01-25 19:03:50.781815909 -0700
+@@ -479,6 +479,10 @@
+ #define XEMACPS_PTP_CC_MULT		(1 << 31)
  #endif
  
 +/* Elphel */
-+#define AT803X_PHY_ID		0x004dd072 /*Particular one, AR8035 but we'll use a broad mask */
-+#define AT803X_PHY_ID_MASK	0xffffffe0
-+
++#define AT803X_PHY_ID          0x004dd072 /*Particular one, AR8035 but we'll use a broad mask */
++#define AT803X_PHY_ID_MASK     0xffffffe0
 +
  #define xemacps_read(base, reg)						\
- 	__raw_readl(((void __iomem *)(base)) + (reg))
+ 	readl_relaxed(((void __iomem *)(base)) + (reg))
  #define xemacps_write(base, reg, val)					\
-@@ -566,9 +571,18 @@
- static int xemacps_mdio_read(struct mii_bus *bus, int mii_id, int phyreg)
- {
- 	struct net_local *lp = bus->priv;
--	u32 regval;
-+	u32 regval,oldregval;
- 	int value;
- 	volatile u32 ipisr;
-+	/* check/wait for idle */
-+	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) &
-+	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
-+	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	  	       dev_warn(&lp->pdev->dev," ********* %s:%d Should not happen (add spinlock if it does) - MDIO is NOT IDLE, shift register value=0x%08x\n",
-+	  	    		   __func__,__LINE__,(int) value);
-+	  	       while ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) &
-+	  	    		  XEMACPS_NWSR_MDIOIDLE_MASK)==0); /* just wait */
-+	}
- 
- 	regval  = XEMACPS_PHYMNTNC_OP_MASK;
- 	regval |= XEMACPS_PHYMNTNC_OP_R_MASK;
-@@ -606,8 +620,17 @@
- 	u16 value)
- {
- 	struct net_local *lp = bus->priv;
--	u32 regval;
-+	u32 regval,oldregval;
- 	volatile u32 ipisr;
-+	/* check/wait for idle */
-+	if ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) &
-+	  XEMACPS_NWSR_MDIOIDLE_MASK)==0){
-+	    oldregval = xemacps_read(lp->baseaddr, XEMACPS_PHYMNTNC_OFFSET);
-+	  	       dev_warn(&lp->pdev->dev," ********* %s:%d Should not happen (add spinlock if it does) - MDIO is NOT IDLE, shift register value=0x%08x\n",
-+	  	    		   __func__,__LINE__,(int) value);
-+	  	       while ((xemacps_read(lp->baseaddr, XEMACPS_NWSR_OFFSET) &
-+	  	    		  XEMACPS_NWSR_MDIOIDLE_MASK)==0); /* just wait */
-+	}
- 
- 	regval  = XEMACPS_PHYMNTNC_OP_MASK;
- 	regval |= XEMACPS_PHYMNTNC_OP_W_MASK;
-@@ -738,6 +761,50 @@
- 	}
+@@ -871,6 +875,49 @@
+ 	return 0;
  }
  
 +/* http://www.spinics.net/lists/devicetree/msg06322.html */
@@ -65,8 +24,8 @@ Index: git/drivers/net/ethernet/xilinx/xilinx_emacps.c
 +	dev_dbg(&lp->pdev->dev,"fixup start");
 +
 +	/* Ar803x phy SmartEEE feature cause link status generates glitch,
-+	 * which cause ethernet link down/up issue, so disable SmartEEE
-+	 */
++	* which cause ethernet link down/up issue, so disable SmartEEE
++	*/
 +	phy_write(dev, 0xd, 0x3);
 +	phy_write(dev, 0xe, 0x805d);
 +	phy_write(dev, 0xd, 0x4003);
@@ -100,16 +59,15 @@ Index: git/drivers/net/ethernet/xilinx/xilinx_emacps.c
 +	return 0;
 +}
 +
-+
- static int xemacps_clk_notifier_cb(struct notifier_block *nb, unsigned long
- 		event, void *data)
- {
-@@ -840,7 +907,7 @@
- 	struct resource res;
+ /**
+  * xemacps_mii_init - Initialize and register mii bus to network device
+  * @lp: local device instance pointer
+@@ -883,6 +930,8 @@
  	struct device_node *np = of_get_parent(lp->phy_node);
  	struct device_node *npp;
--
-+    phy_register_fixup_for_uid(AT803X_PHY_ID,  AT803X_PHY_ID_MASK,  ar8035_phy_fixup);
- 	lp->mii_bus = mdiobus_alloc();
- 	if (lp->mii_bus == NULL) {
- 		rc = -ENOMEM;
+ 
++	phy_register_fixup_for_uid(AT803X_PHY_ID,  AT803X_PHY_ID_MASK,  ar8035_phy_fixup);
++	
+ 	lp->mii_bus = of_mdio_find_bus(np);
+ 	if (!lp->has_mdio && lp->mii_bus)
+ 		return 0;

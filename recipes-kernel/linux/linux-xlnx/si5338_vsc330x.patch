@@ -1,55 +1,59 @@
-Index: git/drivers/misc/Kconfig
-===================================================================
---- git.orig/drivers/misc/Kconfig	2013-12-19 20:54:51.004991205 -0700
-+++ git/drivers/misc/Kconfig	2013-12-19 21:01:22.152995262 -0700
-@@ -517,6 +517,13 @@
- 	  To compile this driver as a module, choose M here: the module
- 	  will be called si570
+diff -Naur a/drivers/clk/Kconfig b/drivers/clk/Kconfig
+--- a/drivers/clk/Kconfig	2016-01-25 18:31:43.413779725 -0700
++++ b/drivers/clk/Kconfig	2016-01-25 19:09:12.833821955 -0700
+@@ -59,6 +59,16 @@
+ 	  clocked at 32KHz each. Clkout1 is always on, Clkout2 can off
+ 	  by control register.
  
-+config SI5338
++config COMMON_CLK_SI5338
 +	tristate "Support Silicon Laboratories SI5338 Quad Clock Generator"
++	depends on I2C
++	select REGMAP_I2C
++	select RATIONAL
 +	help
-+	  Say Y here if you have a SI5338 Quad Clock Generator IC on the I2C bus.
-+	  To compile this driver as a module, choose M here: the
-+	  module will be called si5338.
++	 Say Y here if you have a SI5338 Quad Clock Generator IC on the I2C bus.
++	 To compile this driver as a module, choose M here: the
++	 module will be called si5338.
 +
- config LATTICE_ECP3_CONFIG
- 	tristate "Lattice ECP3 FPGA bitstream configuration via SPI"
- 	depends on SPI && SYSFS
-@@ -537,6 +544,20 @@
- 	  the genalloc API. It is supposed to be used for small on-chip SRAM
- 	  areas found on many SoCs.
+ config COMMON_CLK_SI5351
+ 	tristate "Clock driver for SiLabs 5351A/B/C"
+ 	depends on I2C
+diff -Naur a/drivers/clk/Makefile b/drivers/clk/Makefile
+--- a/drivers/clk/Makefile	2016-01-25 18:31:43.413779725 -0700
++++ b/drivers/clk/Makefile	2016-01-25 19:09:46.217822582 -0700
+@@ -35,6 +35,7 @@
+ obj-$(CONFIG_CLK_QORIQ)			+= clk-qoriq.o
+ obj-$(CONFIG_COMMON_CLK_RK808)		+= clk-rk808.o
+ obj-$(CONFIG_COMMON_CLK_S2MPS11)	+= clk-s2mps11.o
++obj-$(CONFIG_COMMON_CLK_SI5338)		+= clk-si5338.o
+ obj-$(CONFIG_COMMON_CLK_SI5351)		+= clk-si5351.o
+ obj-$(CONFIG_COMMON_CLK_SI570)		+= clk-si570.o
+ obj-$(CONFIG_CLK_TWL6040)		+= clk-twl6040.o
+diff -Naur a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+--- a/drivers/misc/Kconfig	2016-01-25 18:31:44.121779739 -0700
++++ b/drivers/misc/Kconfig	2016-01-25 19:10:54.185823858 -0700
+@@ -515,6 +515,13 @@
+ 	  bus. System Configuration interface is one of the possible means
+ 	  of generating transactions on this bus.
  
 +config VSC330X
 +	tristate "Support VSC330X crosspoint switch"
 +	help
-+	  Say Y here if you have a VSC30X crosspoint switch IC on the I2C bus.
-+	  To compile this driver as a module, choose M here: the
-+	  module will be called vsc330x.
-+
-+config LTC3589
-+	tristate "Support LTC3589 voltage regulator"
-+	help
-+	  Say Y here if you have a LTC3589 voltage regulator IC on the I2C bus.
-+	  To compile this driver as a module, choose M here: the
-+	  module will be called ltc3589.
++	Say Y here if you have a VSC30X crosspoint switch IC on the I2C bus.
++	 To compile this driver as a module, choose M here: the
++	 module will be called vsc330x.
 +
  config XILINX_TRAFGEN
  	tristate "Xilinx Traffic Generator"
- 	depends on MICROBLAZE
-Index: git/drivers/misc/Makefile
-===================================================================
---- git.orig/drivers/misc/Makefile	2013-12-19 20:54:51.004991205 -0700
-+++ git/drivers/misc/Makefile	2013-12-19 20:59:33.976994140 -0700
-@@ -51,7 +51,11 @@
- obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
- obj-$(CONFIG_INTEL_MEI)		+= mei/
- obj-$(CONFIG_SI570)		+= si570.o
-+obj-$(CONFIG_SI5338)	        += si5338.o
+ 	depends on MICROBLAZE || ARCH_ZYNQ
+diff -Naur a/drivers/misc/Makefile b/drivers/misc/Makefile
+--- a/drivers/misc/Makefile	2016-01-25 18:31:44.121779739 -0700
++++ b/drivers/misc/Makefile	2016-01-25 19:11:41.453824745 -0700
+@@ -51,6 +51,7 @@
  obj-$(CONFIG_VMWARE_VMCI)	+= vmw_vmci/
  obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
  obj-$(CONFIG_SRAM)		+= sram.o
++obj-$(CONFIG_VSC330X)		+= vsc330x.o
  obj-$(CONFIG_XILINX_TRAFGEN)	+= xilinx_trafgen.o
-+obj-$(CONFIG_VSC330X)	        += vsc330x.o
-+obj-$(CONFIG_LTC3589)	        += ltc3589.o
-+
+ obj-$(CONFIG_XILINX_JESD204B)	+= jesd204b/
+ obj-y				+= mic/
