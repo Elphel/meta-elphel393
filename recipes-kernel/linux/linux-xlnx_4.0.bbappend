@@ -1,9 +1,13 @@
 FILESEXTRAPATHS_append := "${THISDIR}/linux-xlnx:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 
 SRC_URI_append += " file://xilinx_nandps_elphel393.patch"
 SRC_URI_append += " file://xilinx_emacps.c.patch"
 SRC_URI_append += " file://si5338_vsc330x.patch"
 SRC_URI_append += " file://drivers-elphel.patch"
+
+SRC_URI_append += " file://${MACHINE}.scc"
+KERNEL_FEATURES_append = " ${MACHINE}.scc"
 
 linux-elphel_label= "git://github.com/Elphel/linux-elphel.git"
 linux-elphel_branch= "master"
@@ -13,7 +17,6 @@ linux-elphel_gitdir= "${WORKDIR}/linux-elphel"
 linux-elphel_srcrev= ""
 #linux-elphel_srcrev= "0ca36687a400fd9a5c4510295ae5be88aac77fa4"
 #
-
 
 DEV_DIR ?= "${TOPDIR}/../linux-elphel"
 # set output for Eclipse project setup parser:
