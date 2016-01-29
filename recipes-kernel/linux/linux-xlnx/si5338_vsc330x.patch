@@ -31,8 +31,8 @@ diff -Naur a/drivers/clk/Makefile b/drivers/clk/Makefile
  obj-$(CONFIG_CLK_TWL6040)		+= clk-twl6040.o
 diff -Naur a/drivers/misc/Kconfig b/drivers/misc/Kconfig
 --- a/drivers/misc/Kconfig	2016-01-28 19:14:34.610694113 -0700
-+++ b/drivers/misc/Kconfig	2016-01-28 19:20:45.950701085 -0700
-@@ -515,6 +515,20 @@
++++ b/drivers/misc/Kconfig	2016-01-28 19:42:44.730725843 -0700
+@@ -515,6 +515,23 @@
  	  bus. System Configuration interface is one of the possible means
  	  of generating transactions on this bus.
  
@@ -48,7 +48,10 @@ diff -Naur a/drivers/misc/Kconfig b/drivers/misc/Kconfig
 +	help
 +	  Say Y here if you have a LTC3589 voltage regulator IC on the I2C bus.
 +	  To compile this driver as a module, choose M here: the
-+	  module will be called ltc3589.
++	  module will be called ltc3589. 
++	  Developed by Elphel, Inc.. 
++	  The default driver is found at drivers/regulator/ltc3589.c and 
++	  enabled with CONFIG_REGULATOR_LTC3589=y
 +	  
  config XILINX_TRAFGEN
  	tristate "Xilinx Traffic Generator"
