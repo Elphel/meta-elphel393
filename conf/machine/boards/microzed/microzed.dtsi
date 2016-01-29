@@ -73,4 +73,8 @@
 		compatible = "usb-nop-xceiv";
 		reset-gpios = <&ps7_gpio_0 7 1>; /* MIO 7, GPIO_ACTIVE_LOW */
 	} ;
+	elphel393_mem: elphel393-mem@0 {
+                compatible = "elphel,elphel393-mem-1.00";
+                memsize = <25600>;
+        } ;
 } ;

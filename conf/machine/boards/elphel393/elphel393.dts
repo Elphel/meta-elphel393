@@ -4,7 +4,7 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 	compatible = "xlnx,zynq-7000";
-	model = "Xilinx Zynq";
+	model = "Elphel 10393";
 	aliases {
 		ethernet0 = &ps7_ethernet_0;
 		serial0 = &ps7_uart_0;
@@ -118,12 +118,14 @@
 		ps7_ethernet_0: ps7-ethernet@e000b000 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			clock-names = "pclk", "hclk", "tx_clk", "ref_clk", "aper_clk";
-			clocks = <&clkc 30>, <&clkc 30>, <&clkc 13>, <&clkc 13>, <&clkc 30>;
-			compatible = "cdns,zynq-gem", "cdns,gem", "xlnx,ps7-ethernet-1.00.a";
+			clock-names = "ref_clk", "aper_clk";
+			clocks = <&clkc 13>, <&clkc 30>;
+			compatible = "xlnx,ps7-ethernet-1.00.a";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 22 4>;
-			local-mac-address = [ 00 0a 35 00 00 00 ];
+			local-mac-address = [00 0a 35 00 00 00];
+			phy-handle = <&phy3>;
+			phy-mode = "rgmii-id";
 			reg = <0xe000b000 0x1000>;
 			xlnx,enet-reset = <0xffffffff>;
 			xlnx,eth-mode = <0x1>;
