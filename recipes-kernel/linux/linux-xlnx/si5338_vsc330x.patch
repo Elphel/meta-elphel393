@@ -30,30 +30,35 @@ diff -Naur a/drivers/clk/Makefile b/drivers/clk/Makefile
  obj-$(CONFIG_COMMON_CLK_SI570)		+= clk-si570.o
  obj-$(CONFIG_CLK_TWL6040)		+= clk-twl6040.o
 diff -Naur a/drivers/misc/Kconfig b/drivers/misc/Kconfig
---- a/drivers/misc/Kconfig	2016-01-25 18:31:44.121779739 -0700
-+++ b/drivers/misc/Kconfig	2016-01-25 19:10:54.185823858 -0700
-@@ -515,6 +515,13 @@
+--- a/drivers/misc/Kconfig	2016-01-28 19:14:34.610694113 -0700
++++ b/drivers/misc/Kconfig	2016-01-28 19:20:45.950701085 -0700
+@@ -515,6 +515,20 @@
  	  bus. System Configuration interface is one of the possible means
  	  of generating transactions on this bus.
  
 +config VSC330X
 +	tristate "Support VSC330X crosspoint switch"
 +	help
-+	Say Y here if you have a VSC30X crosspoint switch IC on the I2C bus.
-+	 To compile this driver as a module, choose M here: the
-+	 module will be called vsc330x.
++	  Say Y here if you have a VSC30X crosspoint switch IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called vsc330x.
 +
++config LTC3589
++	tristate "Support LTC3589 voltage regulator"
++	help
++	  Say Y here if you have a LTC3589 voltage regulator IC on the I2C bus.
++	  To compile this driver as a module, choose M here: the
++	  module will be called ltc3589.
++	  
  config XILINX_TRAFGEN
  	tristate "Xilinx Traffic Generator"
  	depends on MICROBLAZE || ARCH_ZYNQ
 diff -Naur a/drivers/misc/Makefile b/drivers/misc/Makefile
---- a/drivers/misc/Makefile	2016-01-25 18:31:44.121779739 -0700
-+++ b/drivers/misc/Makefile	2016-01-25 19:11:41.453824745 -0700
-@@ -51,6 +51,7 @@
- obj-$(CONFIG_VMWARE_VMCI)	+= vmw_vmci/
- obj-$(CONFIG_LATTICE_ECP3_CONFIG)	+= lattice-ecp3-config.o
- obj-$(CONFIG_SRAM)		+= sram.o
-+obj-$(CONFIG_VSC330X)		+= vsc330x.o
- obj-$(CONFIG_XILINX_TRAFGEN)	+= xilinx_trafgen.o
- obj-$(CONFIG_XILINX_JESD204B)	+= jesd204b/
- obj-y				+= mic/
+--- a/drivers/misc/Makefile	2016-01-28 19:14:34.610694113 -0700
++++ b/drivers/misc/Makefile	2016-01-28 19:19:56.638700159 -0700
+@@ -58,3 +58,5 @@
+ obj-$(CONFIG_ECHO)		+= echo/
+ obj-$(CONFIG_VEXPRESS_SYSCFG)	+= vexpress-syscfg.o
+ obj-$(CONFIG_CXL_BASE)		+= cxl/
++obj-$(CONFIG_VSC330X)	        += vsc330x.o
++obj-$(CONFIG_LTC3589)	        += ltc3589.o
