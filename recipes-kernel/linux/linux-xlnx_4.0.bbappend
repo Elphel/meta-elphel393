@@ -50,8 +50,11 @@ python do_link() {
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
                 os.system("cd ${S};ln -s "+file_abspath+" "+file_relpath)
                     
-        os.system("cd ${DEV_DIR}; ln -sf ${S} linux")
-        os.system("cd ${DEV_DIR}; ln -sf ${TOPDIR}/tmp/sysroots sysroots")
+        #os.system("cd ${DEV_DIR}; ln -sf ${S} linux")
+        if not os.path.isdir("${DEV_DIR}/sysroots"):
+                os.system("cd ${DEV_DIR}; ln -sf ${TOPDIR}/tmp/sysroots sysroots")
+        if not os.path.isdir("${DEV_DIR}/linux"):
+                os.system("cd ${DEV_DIR}; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build linux")
     else:
         print("Copying ${linux-elphel_gitdir}/src/ over ${S}\n")
         os.system("cp -rfv ${linux-elphel_gitdir}/src/* ${S}")
