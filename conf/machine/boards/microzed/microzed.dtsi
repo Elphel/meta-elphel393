@@ -56,7 +56,9 @@
 			usb-phy = <&usb0_phy>;
 		} ;
 		
-		
+		ps7_sd_0: ps7-sdio@e0100000 {
+			wp-inverted;
+		} ;
 		
 		/* Disabled Devices */
 		ps7_sd_1: ps7-sdio@e0101000 { compatible = "invalid"; };
