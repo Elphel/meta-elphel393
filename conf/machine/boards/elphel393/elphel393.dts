@@ -89,7 +89,7 @@
 			reg = <0xf800b000 0x1000>;
 		} ;
 		ps7_ddrc_0: ps7-ddrc@f8006000 {
-			compatible = "xlnx,zynq-ddrc-1.0", "xlnx,ps7-ddrc-1.00.a", "xlnx,ps7-ddrc";
+			compatible = "xlnx,zynq-ddrc-a05";
 			reg = <0xf8006000 0x1000>;
 			xlnx,has-ecc = <0x0>;
 		} ;
@@ -387,9 +387,9 @@
 		ps7_smcc_0: ps7-smcc@e000e000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
-		  	clock-names = "ref_clk", "aper_clk";
+		  	clock-names = "memclk", "aclk";
 			clocks = <&clkc 11>, <&clkc 44>;
-			compatible = "xlnx,ps7-smcc-1.00.a", "xlnx,ps7-smc";
+			compatible = "arm,pl353-smc-r2p1";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = < 0 18 4 >;
 			ranges ;
@@ -400,7 +400,7 @@
 			xlnx,sram-chip-sel0 = <0x0>;
 			xlnx,sram-chip-sel1 = <0x0>;
 			ps7_nand_0: ps7-nand@e1000000 {
-				compatible = "xlnx,ps7-nand-1.00.a";
+				compatible = "arm,pl353-nand-r2p1";
 				reg = < 0xe1000000 0x1000000 >;
 				xlnx,nand-clk-freq-hz = <0x5f5e100>;
 				xlnx,nand-width = <0x8>;
@@ -419,7 +419,7 @@
                                 };
 			} ;
 		} ;
-
+		
 		ps7_uart_0: serial@e0000000 {
 			clock-names = "uart_clk", "pclk", "ref_clk", "aper_clk";
 			clocks = <&clkc 23>, <&clkc 40>, <&clkc 23>, <&clkc 40>;

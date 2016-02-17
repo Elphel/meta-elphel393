@@ -55,7 +55,11 @@
 			xlnx,phy-reset-gpio = <&ps7_gpio_0 7 0>; /* MIO USB PHY Reset */
 			usb-phy = <&usb0_phy>;
 		} ;
-		
+		ps7_ddrc_0: ps7-ddrc@f8006000 {
+			compatible = "xlnx,zynq-ddrc-a05";
+			reg = <0xf8006000 0x1000>;
+			xlnx,has-ecc = <0x0>;
+		} ;
 		ps7_sd_0: ps7-sdio@e0100000 {
 			wp-inverted;
 		} ;
