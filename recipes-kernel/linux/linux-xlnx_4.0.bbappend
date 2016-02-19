@@ -3,6 +3,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 
 SRC_URI_append += " file://xilinx_nandps_elphel393.patch"
 SRC_URI_append += " file://xilinx_emacps.c.patch"
+SRC_URI_append += " file://xilinx_uartps.c.patch"
 SRC_URI_append += " file://si5338_vsc330x.patch"
 SRC_URI_append += " file://drivers-elphel.patch"
 
