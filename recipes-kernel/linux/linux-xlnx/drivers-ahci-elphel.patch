@@ -1,0 +1,33 @@
+diff --git a/drivers/ata/Kconfig b/drivers/ata/Kconfig
+index 5f60155..5d93116 100644
+--- a/drivers/ata/Kconfig
++++ b/drivers/ata/Kconfig
+@@ -157,6 +157,16 @@ config AHCI_XGENE
+ 	help
+ 	 This option enables support for APM X-Gene SoC SATA host controller.
+ 
++config AHCI_ELPHEL
++	tristate "Elphel AHCI SATA driver support for elphel393 camera series"
++	depends on ARM
++	default m if ARM
++	help
++	  This option enables support for Elphel AHCI SATA controller in elphel393
++	  series cameras.
++
++	  If unsure, say N.
++
+ config SATA_FSL
+ 	tristate "Freescale 3.0Gbps SATA support"
+ 	depends on FSL_SOC
+diff --git a/drivers/ata/Makefile b/drivers/ata/Makefile
+index ae41107..212dfed 100644
+--- a/drivers/ata/Makefile
++++ b/drivers/ata/Makefile
+@@ -5,6 +5,7 @@ obj-$(CONFIG_ATA)		+= libata.o
+ obj-$(CONFIG_SATA_AHCI)		+= ahci.o libahci.o
+ obj-$(CONFIG_SATA_ACARD_AHCI)	+= acard-ahci.o libahci.o
+ obj-$(CONFIG_SATA_AHCI_PLATFORM) += ahci_platform.o libahci.o libahci_platform.o
++obj-$(CONFIG_AHCI_ELPHEL)	+= ahci_elphel.o libahci.o libahci_platform.o
+ obj-$(CONFIG_SATA_FSL)		+= sata_fsl.o
+ obj-$(CONFIG_SATA_INIC162X)	+= sata_inic162x.o
+ obj-$(CONFIG_SATA_SIL24)	+= sata_sil24.o
