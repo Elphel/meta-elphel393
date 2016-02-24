@@ -448,6 +448,14 @@
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 7 4>;
 		} ;
+		elphel_ahci: elphel-ahci@80000000 {
+                        compatible = "elphel,elphel-ahci";
+                        interrupt-parent = <&ps7_scugic_0>;
+                        interrupts = <0x0 0x1d 0x4>;
+                        reg = <0x80000000 0x1000>;
+                        clb_offs = <0x800>;
+                        fb_offs = <0xc00>;
+                };
 	} ;
 	elphel393_pwr: elphel393-pwr@0 {
 		compatible = "elphel,elphel393-pwr-1.00";

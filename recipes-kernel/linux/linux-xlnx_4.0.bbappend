@@ -6,6 +6,7 @@ SRC_URI_append += " file://xilinx_emacps.c.patch"
 SRC_URI_append += " file://xilinx_uartps.c.patch"
 SRC_URI_append += " file://si5338_vsc330x.patch"
 SRC_URI_append += " file://drivers-elphel.patch"
+SRC_URI_append += " file://drivers-ahci-elphel.patch"
 
 SRC_URI_append += " file://${MACHINE}.scc"
 KERNEL_FEATURES_append = " ${MACHINE}.scc"
