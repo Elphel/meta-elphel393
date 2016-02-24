@@ -10,6 +10,7 @@ IMAGE_INSTALL_append += " python-core \
                          htop \
                          i2c-tools \
                          mtd-utils \
+                         mtd-utils-misc \
                          ethtool \
                          net-tools \
                          ntp \
@@ -35,3 +36,12 @@ inherit core-image
 
 IMAGE_ROOTFS_SIZE = "131072"
 
+#IMAGE_FSTYPES = "jffs2 ext2.gz"
+
+create_symlinks_append(){
+    if not os.path.isdir("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}"):
+        os.system("mkdir ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}")
+    if os.path.isfile("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}"):
+        os.system("rm ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}")
+    os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs.ext2.gz.u-boot ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}")
+}

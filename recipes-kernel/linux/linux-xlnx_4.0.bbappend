@@ -62,3 +62,13 @@ python do_link() {
 }
 
 addtask do_link before do_kernel_configme after do_patch
+
+sstate_create_package_append(){
+	if [ ! -d ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR} ]; then
+		mkdir ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}
+	fi
+	if [ -f ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL} ]; then
+		rm ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL}
+	fi
+	cp ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL}
+}
