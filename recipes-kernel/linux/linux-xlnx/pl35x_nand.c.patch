@@ -1,6 +1,6 @@
 diff -Naur a/drivers/mtd/nand/pl35x_nand.c b/drivers/mtd/nand/pl35x_nand.c
---- a/drivers/mtd/nand/pl35x_nand.c	2016-01-25 18:34:24.065782741 -0700
-+++ b/drivers/mtd/nand/pl35x_nand.c	2016-01-25 18:55:51.945806920 -0700
+--- a/drivers/mtd/nand/pl35x_nand.c	2016-02-19 13:41:57.660680389 -0700
++++ b/drivers/mtd/nand/pl35x_nand.c	2016-02-24 19:58:58.208889453 -0700
 @@ -117,6 +117,9 @@
  	{NAND_CMD_PARAM, NAND_CMD_NONE, 1, NAND_CMD_NONE},
  	{NAND_CMD_GET_FEATURES, NAND_CMD_NONE, 1, NAND_CMD_NONE},
@@ -11,3 +11,15 @@ diff -Naur a/drivers/mtd/nand/pl35x_nand.c b/drivers/mtd/nand/pl35x_nand.c
  	{NAND_CMD_NONE, NAND_CMD_NONE, 0, 0},
  	/* Add all the flash commands supported by the flash device and Linux */
  	/*
+@@ -1082,6 +1085,11 @@
+ 		return -ENXIO;
+ 	}
+ 
++	//elphel393 modification for Micron NAND chips
++	//TODO: add Micron chip ID checking
++	mtd->_unlock = nand_unlock;
++	mtd->_lock = nand_lock;
++	
+ 	ppdata.of_node = pdev->dev.of_node;
+ 
+ 	mtd_device_parse_register(&xnand->mtd, NULL, &ppdata, NULL, 0);
