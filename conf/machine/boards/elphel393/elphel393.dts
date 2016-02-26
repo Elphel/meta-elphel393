@@ -414,8 +414,24 @@
 				#address-cells = <0x1>;
                                 #size-cells = <0x1>;
 				partition@0 {
-                                        label = "nand-main";
-                                        reg = <0x0 0x4000000>;/*64MB*/
+                                        label = "u-boot-spl";
+                                        reg = <0x0 0x40000>;/*256KB*/
+                                };
+				partition@1 {
+                                        label = "u-boot";
+                                        reg = <0x40000 0x100000>;/*1MB*/
+                                };
+				partition@2 {
+                                        label = "device-tree";
+                                        reg = <0x140000 0x100000>;/*1MB*/
+                                };
+				partition@3 {
+                                        label = "kernel";
+                                        reg = <0x240000 0x1000000>;/*16MB*/
+                                };
+				partition@4 {
+                                        label = "rootfs";
+                                        reg = <0x1240000 0x4000000>;/*64MB*/
                                 };
 			} ;
 		} ;
