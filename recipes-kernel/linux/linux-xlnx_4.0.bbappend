@@ -49,7 +49,7 @@ python do_link() {
             for filename in files:
                 file_abspath = os.path.abspath(os.path.join(path, filename))
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
-                os.system("cd ${S};mv "+file_relpath+" "+file_relpath+".orig;ln -sf "+file_abspath+" "+file_relpath)
+                os.system("cd ${S};ln -sf "+file_abspath+" "+file_relpath)
                     
         #os.system("cd ${DEV_DIR}; ln -sf ${S} linux")
         if not os.path.isdir("${DEV_DIR}/sysroots"):
