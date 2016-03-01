@@ -11,6 +11,7 @@ IMAGE_INSTALL_append += " python-core \
                          i2c-tools \
                          mtd-utils \
                          mtd-utils-misc \
+                         hdparm \
                          ethtool \
                          net-tools \
                          ntp \
