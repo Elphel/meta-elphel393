@@ -11,6 +11,7 @@ IMAGE_INSTALL_append += " python-core \
                          i2c-tools \
                          mtd-utils \
                          mtd-utils-misc \
+                         mtd-utils-ubifs \
                          hdparm \
                          ethtool \
                          net-tools \
@@ -39,7 +40,12 @@ inherit core-image
 
 IMAGE_ROOTFS_SIZE = "262144"
 
-#IMAGE_FSTYPES = "jffs2 ext2.gz"
+#IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
+IMAGE_FSTYPES = "tar.gz"
+
+#MKUBIFS_ARGS = " -m 2048 -e 129024 -c 1996"
+#UBINIZE_ARGS = " -m 2048 -p 128KiB -s 512"
+#IMAGE_FSTYPES = "ext2.gz ext2.gz.u-boot tar.gz"
 
 create_symlinks_append(){
     if not os.path.isdir("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}"):

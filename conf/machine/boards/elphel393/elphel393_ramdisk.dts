@@ -10,8 +10,8 @@
 		serial0 = &ps7_uart_0;
 	} ;
 	chosen {
-/*		bootargs = "console=ttyPS0,115200 debug root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=262144";*/
-		bootargs = "cma=128M console=ttyPS0,115200 root=/dev/mmcblk0p2 rw ip=192.168.0.8 earlyprintk rootwait rootfstype=ext4";
+/*		bootargs = "console=ttyPS0,115200 debug root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=131072";*/
+		bootargs = "cma=128M console=ttyPS0,115200 root=/dev/ram rw ip=192.168.0.8 earlyprintk ramdisk_size=262144";
 		linux,stdout-path = "/amba@0/serial@e0000000";
 	} ;
 	cpus {
