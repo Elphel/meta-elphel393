@@ -28,7 +28,8 @@ IMAGE_INSTALL_append += " python-core \
                          php-cli \
                          smartmontools \
                          init-elphel393"
-
+                        
+#kernel-modules
 
 IMAGE_LINGUAS = " "
 
