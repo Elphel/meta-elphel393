@@ -37,7 +37,7 @@ LICENSE = "MIT"
 
 inherit core-image
 
-IMAGE_ROOTFS_SIZE = "131072"
+IMAGE_ROOTFS_SIZE = "262144"
 
 #IMAGE_FSTYPES = "jffs2 ext2.gz"
 
