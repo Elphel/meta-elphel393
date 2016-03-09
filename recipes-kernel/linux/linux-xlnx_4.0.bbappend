@@ -64,13 +64,15 @@ python do_link() {
 addtask do_link before do_kernel_configme after do_patch
 
 sstate_create_package_append(){
-	if [ ! -d ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR} ]; then
-		mkdir ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}
-	fi
-	if [ -f ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL} ]; then
-		rm ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL}
-	fi
-	if [ -f ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
-		cp ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_KERNEL}
-	fi
+	for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
+		if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
+			mkdir ${DEPLOY_DIR_IMAGE}/${RLOC}
+		fi
+		if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
+			rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+		fi
+		if [ -f ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
+			cp ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+		fi
+	done
 }
