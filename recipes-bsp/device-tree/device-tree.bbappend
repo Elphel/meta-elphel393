@@ -1,6 +1,11 @@
  
 do_deploy_append(){
-	ln -sf ${DEPLOY_DIR_IMAGE}/${DTS_NAME}.dtb ${DEPLOY_DIR_IMAGE}/devicetree.dtb
+	#ln -sf ${DEPLOY_DIR_IMAGE}/${DTS_NAME}.dtb ${DEPLOY_DIR_IMAGE}/devicetree.dtb
+	
+	for ROOTFSLOC in ${PRODUCTION_ROOT_LOCATION}; do
+		echo "RootFS is in ${ROOTFSLOC}  "
+	done
+	
 	if [ ! -d ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR} ]; then
 		mkdir ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}
 	fi
