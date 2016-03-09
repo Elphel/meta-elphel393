@@ -15,7 +15,9 @@ case "$1" in
 	echo "$NAME:"
 	#mount here
 	echo "    Mounting Memory Card to $MNTPOINT"
-	mkdir $MNTPOINT 
+	if [ ! -d $MNTPOINT ]; then 
+		mkdir $MNTPOINT
+	fi
 	mount $MMCDEV $MNTPOINT
 	if [ -f $MNTPOINT/$SOME_SCRIPT ]; then
 	    echo "    Launching $SOME_SCRIPT"
