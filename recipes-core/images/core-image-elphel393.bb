@@ -77,7 +77,7 @@ create_symlinks_append(){
         if (rloc=="mmc"): 
             image_ext = ".tar.gz"
         else:             
-            image_ext = ".ubi"
+            image_ext = ".ubifs"
         
         if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext):
             if os.path.isfile("${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext):
