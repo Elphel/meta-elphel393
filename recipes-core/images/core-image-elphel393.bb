@@ -40,12 +40,33 @@ inherit core-image
 
 IMAGE_ROOTFS_SIZE = "262144"
 
-#IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
-IMAGE_FSTYPES = "tar.gz"
-
-#MKUBIFS_ARGS = " -m 2048 -e 129024 -c 1996"
-#UBINIZE_ARGS = " -m 2048 -p 128KiB -s 512"
 #IMAGE_FSTYPES = "ext2.gz ext2.gz.u-boot tar.gz"
+#IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
+IMAGE_FSTYPES = "tar.gz ubi"
+
+########################################################################
+########################################################################
+## root@elphel393:~# mtdinfo /dev/mtd4 -u
+## mtd4
+## Name:                           rootfs
+## Type:                           nand
+## Eraseblock size:                131072 bytes, 128.0 KiB
+## Amount of eraseblocks:          2048 (268435456 bytes, 256.0 MiB)
+## Minimum input/output unit size: 2048 bytes
+## Sub-page size:                  2048 bytes
+## OOB size:                       64 bytes
+## Character device major/minor:   90:8
+## Bad blocks are allowed:         true
+## Device is writable:             true
+## Default UBI VID header offset:  2048
+## Default UBI data offset:        4096
+## Default UBI LEB size:           126976 bytes, 124.0 KiB
+## Maximum UBI volumes count:      128
+########################################################################
+########################################################################
+
+MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
+UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
 
 create_symlinks_append(){
     if not os.path.isdir("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}"):
