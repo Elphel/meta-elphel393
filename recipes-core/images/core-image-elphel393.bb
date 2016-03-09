@@ -69,9 +69,18 @@ MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
 UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
 
 create_symlinks_append(){
-    if not os.path.isdir("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}"):
-        os.system("mkdir ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}")
-    if os.path.isfile("${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}"):
-        os.system("rm ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}")
-    os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs.ext2.gz.u-boot ${DEPLOY_DIR_IMAGE}/${PRODUCTION_DIR}/${PRODUCTION_ROOTFS}")
+    rlocs = (d.getVar('PRODUCTION_ROOT_LOCATION', True)).split()
+    for rloc in rlocs:
+        if not os.path.isdir("${DEPLOY_DIR_IMAGE}/"+rloc):
+            os.system("mkdir ${DEPLOY_DIR_IMAGE}/"+rloc)
+            
+        if (rloc=="mmc"): 
+            image_ext = ".tar.gz"
+        else:             
+            image_ext = ".ubi"
+        
+        if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext):
+            if os.path.isfile("${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext):
+                os.system("rm ${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext) 
+            os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext+" ${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext)
 }
