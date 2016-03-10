@@ -500,4 +500,7 @@
                 compatible = "elphel,elphel393-mem-1.00";
                 memsize = <25600>;
         } ;
+	elphel393_init: elphel393-init {
+                compatible = "elphel,elphel393-init-1.00";
+        } ;
 } ;
