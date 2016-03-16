@@ -123,7 +123,7 @@
 			compatible = "xlnx,ps7-ethernet-1.00.a";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 22 4>;
-			local-mac-address = [00 0a 35 00 00 00];
+			local-mac-address = [00 0e 64 10 00 00];
 			phy-handle = <&phy3>;
 			phy-mode = "rgmii-id";
 			reg = <0xe000b000 0x1000>;
