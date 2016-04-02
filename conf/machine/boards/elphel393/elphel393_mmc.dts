@@ -503,4 +503,23 @@
 	elphel393_init: elphel393-init {
                 compatible = "elphel,elphel393-init-1.00";
         } ;
+        elphel393_circbuf: elphel393-circbuf {
+                compatible = "elphel,elphel393-circbuf-1.00";
+                /* set this to "disable" to disable drivers */
+                status = "okay";
+                interrupt-parent = <&ps7_scugic_0>;
+                interrupts = <0x0 0x34 0x4>, <0x0 0x35 0x4>, <0x0 0x36 0x4>, <0x0 0x37 0x4>, <0x0 0x38 0x4>, <0x0 0x39 0x4>, <0x0 0x3A 0x4>, <0x0 0x3B 0x4>;
+                interrupt-names = "frame_sync_irq_0", "frame_sync_irq_1", "frame_sync_irq_2", "frame_sync_irq_3",
+                                "compr_irq_0", "compr_irq_1", "compr_irq_2", "compr_irq_3";
+        };
+        elphel393_framepars: elphel393-framepars {
+                compatible = "elphel,elphel393-framepars-1.00";
+                /* set this to "disable" to disable drivers */
+                status = "okay";
+        };
+        elphel393_sensor: elphel393-sensor {
+                compatible = "elphel,elphel393-sensor-1.00";
+                /* set this to "disable" to disable drivers */
+                status = "okay";
+        };
 } ;
