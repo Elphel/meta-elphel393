@@ -6,6 +6,7 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 IMAGE_INSTALL_append = "u-boot-ezynq"
 IMAGE_INSTALL_append += " python-core \
                          python-numpy \
+                         python-argparse \
                          elphel-python-extensions \
                          htop \
                          i2c-tools \

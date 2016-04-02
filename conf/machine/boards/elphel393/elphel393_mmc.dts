@@ -11,7 +11,7 @@
 	} ;
 	chosen {
 /*		bootargs = "console=ttyPS0,115200 debug root=/dev/ram rw ip=192.168.0.9 earlyprintk ramdisk_size=262144";*/
-		bootargs = "cma=128M console=ttyPS0,115200 root=/dev/mmcblk0p2 rw ip=192.168.0.8 earlyprintk rootwait rootfstype=ext4 dyndbg='file elphel393-init.c +p'";
+		bootargs = "cma=128M console=ttyPS0,115200 root=/dev/mmcblk0p2 rw ip=192.168.0.8 earlyprintk rootwait rootfstype=ext4";
 		linux,stdout-path = "/amba@0/serial@e0000000";
 	} ;
 	cpus {
@@ -123,7 +123,7 @@
 			compatible = "xlnx,ps7-ethernet-1.00.a";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 22 4>;
-			local-mac-address = [00 0a 35 00 00 00];
+			local-mac-address = [00 0e 64 10 00 00];
 			phy-handle = <&phy3>;
 			phy-mode = "rgmii-id";
 			reg = <0xe000b000 0x1000>;
