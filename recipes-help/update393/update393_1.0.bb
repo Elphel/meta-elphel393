@@ -25,7 +25,7 @@ R2 = "linux-elphel"
 R3 = "../x393"
 R4 = "../x393_sata"
 
-addtask pull
+addtask do_pull before do_compile after do_configure
 
 do_pull(){
 	for REP in ${R0} ${R1} ${R2} ${R3} ${R4}
@@ -36,4 +36,50 @@ do_pull(){
 			cd ${DEV_DIR}/${REP}; git pull
 		fi
 	done
+}
+
+do_fetch(){
+	echo ""
+}
+do_patch(){
+	echo ""
+}
+do_compile(){
+	echo ""
+}
+do_package(){
+	echo ""
+}
+do_delpoy(){
+	echo ""
+}
+do_package_write_rpm(){
+	echo ""
+}
+do_populate_sysroot(){
+	echo ""
+}
+do_populate_sysroot_setscene(){
+	echo ""
+}
+do_package_qa_setscene(){
+	echo ""
+}
+do_populate_lic_setscene(){
+	echo ""
+}
+do_packagedata_setscene(){
+	echo ""
+}
+do_package_write_rpm_setscene(){
+	echo ""
+}
+do_package_qa(){
+	echo ""
+}
+do_packagedata(){
+	echo ""
+}
+do_populate_sysroot(){
+	echo ""
 }
