@@ -38,6 +38,14 @@ do_pull(){
 	done
 }
 
+do_generate(){
+	# provided R3 is x393
+	cd ${DEV_DIR}/${R3}/py393;
+	./generate_c.sh
+}
+
+addtask do_generate before do_compile after do_pull
+
 do_fetch(){
 	echo ""
 }
