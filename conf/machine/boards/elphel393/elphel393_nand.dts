@@ -456,6 +456,7 @@
 			interrupts = <0 21 4>;
 			dr_mode = "host";
 			phy_type = "ulpi";
+			usb-phy = <&usb_phy0>;
 		} ;
 		ps7_xadc: ps7-xadc@f8007100 {
 			clocks = <&clkc 12>;
@@ -473,6 +474,14 @@
                         fb_offs = <0xc00>;
                 };
 	} ;
+	
+	usb_phy0: phy0{
+		compatible = "ulpi-phy";
+		#phy-cells = <0>;
+		reg = <0xe0002000 0x1000>;
+		view-port = <0x170>;
+	} ;
+	
 	elphel393_pwr: elphel393-pwr@0 {
 		compatible = "elphel,elphel393-pwr-1.00";
 		elphel393_pwr,simulate=          <0>;

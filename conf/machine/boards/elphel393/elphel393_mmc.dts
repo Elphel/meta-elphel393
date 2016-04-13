@@ -67,6 +67,7 @@
 		device_type = "memory";
 		reg = <0x0 0x40000000>;
 	} ;
+	
 	ps7_axi_interconnect_0: amba@0 {
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -450,12 +451,13 @@
 		} ;
 		ps7_usb_0: ps7-usb@e0002000 {
 			clocks = <&clkc 28>;
-			compatible = "xlnx,zynq-usb-2.20a", "chipidea,usb2", "xlnx,ps7-usb-1.00.a", "xlnx,zynq-usb-1.00.a";
+			compatible = "xlnx,zynq-usb-2.20a", "chipidea,usb2";
 			reg = <0xe0002000 0x1000>;
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 21 4>;
 			dr_mode = "host";
 			phy_type = "ulpi";
+			usb-phy = <&usb_phy0>;
 		} ;
 		ps7_xadc: ps7-xadc@f8007100 {
 			clocks = <&clkc 12>;
@@ -473,6 +475,14 @@
                         fb_offs = <0xc00>;
                 };
 	} ;
+	
+	usb_phy0: phy0{
+		compatible = "ulpi-phy";
+		#phy-cells = <0>;
+		reg = <0xe0002000 0x1000>;
+		view-port = <0x170>;
+	} ;
+	
 	elphel393_pwr: elphel393-pwr@0 {
 		compatible = "elphel,elphel393-pwr-1.00";
 		elphel393_pwr,simulate=          <0>;
