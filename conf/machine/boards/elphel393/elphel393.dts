@@ -1,6 +1,5 @@
 /* welcome to elphel393 device tree */
 /include/ "zynq-base.dtsi"
-/include/ "elphel393-i2c.dtsi"
 /include/ "bootargs.dtsi"
 
 / {
