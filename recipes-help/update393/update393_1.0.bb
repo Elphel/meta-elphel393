@@ -17,13 +17,13 @@ SRC_URI = "file://LICENSE"
 
 S = "${WORKDIR}/"
 
-DEV_DIR = "${TOPDIR}/.."
+DEV_DIR = "${TOPDIR}/../.."
 
-R0 = "meta-elphel393"
-R1 = "meta-ezynq"
+R0 = "meta/meta-elphel393"
+R1 = "meta/meta-ezynq"
 R2 = "linux-elphel"
-R3 = "../x393"
-R4 = "../x393_sata"
+R3 = "fpga-elphel/x393"
+R4 = "fpga-elphel/x393_sata"
 
 addtask do_pull before do_compile after do_configure
 

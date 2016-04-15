@@ -19,7 +19,8 @@ linux-elphel_srcrev= ""
 #linux-elphel_srcrev= "0ca36687a400fd9a5c4510295ae5be88aac77fa4"
 #
 
-DEV_DIR ?= "${TOPDIR}/../linux-elphel"
+DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
+
 # set output for Eclipse project setup parser:
 EXTRA_OEMAKE += "-s -w -B KCFLAGS='-v'"
 # or use a variable:
