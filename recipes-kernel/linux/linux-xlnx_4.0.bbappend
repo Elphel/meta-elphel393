@@ -64,7 +64,7 @@ python do_link() {
 
 addtask do_link before do_kernel_configme after do_patch
 
-sstate_create_package_append(){
+do_deploy_append(){
     for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
         if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
             mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
