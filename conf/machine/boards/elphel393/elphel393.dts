@@ -84,10 +84,10 @@
 		elphel393_pwr,vp5.r2=            <100000>;
 		elphel393_pwr,vldo18.r1=         <357000>;
 		elphel393_pwr,vldo18.r2=         <287000>;
-		elphel393_pwr,channels_disable= "vcc_sens23 vp33sens23";
+		elphel393_pwr,channels_disable= "vcc_sens23 vp33sens23 vcc_sens01 vp33sens01";
 		elphel393_pwr,pinstrapped_oven=  <1>;
 		elphel393_pwr,vcc_sens01_mv=     <2800>; /* set sensor intreface voltage to 2.8V */
-		elphel393_pwr,channels_enable=  "vcc_sens01 vp33sens01";
+/*		elphel393_pwr,channels_enable=  "vcc_sens01 vp33sens01"; */
 	} ;
 	
 	elphel393_mem: elphel393-mem@0 {
@@ -120,4 +120,14 @@
 		/* set this to "disable" to disable drivers */
 		status = "okay";
 	};
+    elphel393_sensor_i2c: elphel393-sensor-i2c@0 {
+                compatible = "elphel,elphel393-sensor-i2c-1.00";
+                /* Add known devices: name, slave address (7-bit), number of address bytes, number of data bytes, SCL frequency (kHz) */
+                elphel393-sensor-i2c,i2c_devices = "mt9f002 0x10 2 2 500",
+                                                   "mt9p006 0x48 1 2 500",
+                                                   "el10359 0x08 1 2 500",
+                                                   "pca9500_eeprom 0x50 1 1 100",
+                                                   "cy22393 0x69 1 1 100";
+    } ;
+	
 };
