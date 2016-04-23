@@ -28,6 +28,7 @@ IMAGE_INSTALL_append += " python-core \
                          apache2 \
                          php-cgi \
                          php-cli \
+                         libsjs \
                          smartmontools \
                          init-elphel393"
                         
