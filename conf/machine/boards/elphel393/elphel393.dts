@@ -7,6 +7,95 @@
 	
 	ps7_axi_interconnect_0: amba@0 {
 		
+		ps7_i2c_0: ps7-i2c@e0004000 {
+			bus-id = <0>;
+			i2c-clk = <400000>;
+			rtc@68 {
+				compatible = "stm,m41t62";
+				reg = <0x68>;
+			};
+			
+			vsc330x@1 {
+				compatible = "vsc,vsc3304";
+				reg = <0x01>;
+				vsc330x,configuration_name = "elphel393: from external";
+				/* configuration below is for external eSATA host accessing SSD. Will chnage
+					* when the SATA controller code will be operational
+					* TODO: specify optimal drive strength, pre-emphasis, etc.
+					* All parameters are exported to sysfs for run-time modification
+					*/
+				vsc330x,configuration_data=<
+				0x11080101 /*page 0x11, register 0x08, data=0x1 (inverted input), write enabled mask=0x1 */
+				0x11090001
+				0x110a0101
+				0x110b0101
+				0x110e0001
+				0x110f0101
+
+				0x230a0b1f /* set output mode for port 10 as non-inverted, forwarding OOB enabled */
+				0x230b151f /* set output mode for port 11 as     inverted, forwarding OOB enabled */
+				0x230c151f
+				0x230d0b1f
+				0x230e151f
+				0x230f151f
+
+				0xff750101 /* freeze configuration to enable simultaneous modification */
+				0x110e0002 /* enable channel 14 input */
+				0x11090002 /* enable channel  9 input */
+
+				0x000b091f /* connect port 11 output to input 9 */
+				0x000c0e1f /* connect port 12 output to input 14 */
+				0xff750001 /* un-freeze configuration to apply connection modifications */
+				>;
+			};
+
+			si5338@70 {
+				compatible = "sil,si5338";
+				reg = <0x70>;
+				si5338,init="always"; /* initialize PLL if chip was not programmed, wait for lock. Other option is 'if off' */
+				/* low-level masked register writes, may be used to load frequency plan */
+				/*si5338,configuration_data=< 0x1ffcf0 >;*/ /* just for testing: write data 0xfc with write enable mask 0xf0 to register 0x01f */
+				si5338,in_frequency3= < 25000000>; /* 25MHz on input 3 (other inputs are '12",'4','56' and '12xo' */
+				/* PLL may be set either directly (pll_freq_fract,pll_freq_int) or to match some output (pll_by_out_fract, pll_by_out_int)
+					* _int suffix forces to find integer divisors, _fract - allows fractional ones */
+				si5338,pll_by_out_int=<150000000>;  /* 150Mhz May have 3 values: integer, nominator and denominator */
+				si5338,out3_freq_int= <150000000>;  /* 150Mhz. May have 3 values: integer, nominator and denominator */
+				si5338,out2_select= "in3/2/32";  /* connect out2 to IN3, divided by 2 (input stage) and then by 32 (output stage)*/
+				si5338,2V5_LVPECL=  <1 2>; /* set output standard for channels 1 and 2 */
+				si5338,1V5_HSTL_A+= <0>;   /* set output standard for channel 0, only A output is used (noninverted) */
+				si5338,1V8_LVDS=    <3>;
+				/* Disabled state for outputs:  */
+				si5338,dis_hi-z=    <0 1 2 3>; /* Disabled state for listed outputs, also possible: "dis_hi-z","dis_low","dis_high","dis_always_on" */
+				si5338,output_en=   < 3>; /* Which outputs should be initially enabled */
+				si5338,spread_spectrum_3= <1 50 31500>; /* Set spread spectrum for channel3 : enabled, 0.5%, 31.5KHz */
+				si5338,out0_freq_int= <15000000>;  /* 15Mhz to output 0 */
+				si5338,spread_spectrum_0= <1 500 31500>; /* Set spread spectrum for channel0 : enabled, 5%, 31.5KHz - high value, for testing */
+			};
+			
+			ltc3589@34 {
+				compatible = "ltc,ltc3589";
+				reg = <0x34>;
+			};
+
+			gpio@20{
+				compatible = "ti,tca6408";
+				reg = <0x20>;
+			};
+			gpio@21{
+				compatible = "ti,tca6408";
+				reg = <0x21>;
+			};
+			/* Use 'spd' instead of '24c02' for read only access*/
+			stts2002@31 {
+				compatible = "at,24c02";
+				reg = <0x31>;
+			};
+			hwmon@19 { /*hwmon@19*/
+				compatible = "stm,jc42";
+				reg = <0x19>;
+			};
+		};
+		
 		ps7_ethernet_0: ps7-ethernet@e000b000 {
 			local-mac-address = [00 0e 64 10 00 00];
 			phy-handle = <&phy3>;
