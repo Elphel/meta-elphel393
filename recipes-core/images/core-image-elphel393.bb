@@ -30,6 +30,7 @@ IMAGE_INSTALL_append += " python-core \
                          php-cli \
                          libsjs \
                          smartmontools \
+                         libogg \
                          init-elphel393"
                         
 #kernel-modules
