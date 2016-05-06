@@ -85,6 +85,10 @@
 				compatible = "ti,tca6408";
 				reg = <0x21>;
 			};
+			gpio@25{
+				compatible = "nxp,pca8574";
+				reg = <0x25>;
+			};
 			/* Use 'spd' instead of '24c02' for read only access*/
 			stts2002@31 {
 				compatible = "at,24c02";
@@ -162,7 +166,7 @@
 	elphel393_pwr: elphel393-pwr@0 {
 		compatible = "elphel,elphel393-pwr-1.00";
 		elphel393_pwr,simulate=          <0>;
-		elphel393_pwr,i2c_chips=         <0x20 0x21 0x34>;
+		elphel393_pwr,i2c_chips=         <0x20 0x21 0x25 0x34>;
 		elphel393_pwr,vp15.r1=           <357000>;
 		elphel393_pwr,vp15.r2=           <287000>;
 		elphel393_pwr,vcc_sens01.r1=     <787000>;
