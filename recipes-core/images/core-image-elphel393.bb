@@ -32,8 +32,8 @@ IMAGE_INSTALL_append += " python-core \
                          smartmontools \
                          libogg \
                          iw \
-                         wpa-supplicant-passphrase \
-                         wpa-supplicant-cli \
+                         wpa-supplicant \
+                         dhcp-client \
                          linux-firmware-rtl8192cu \
                          init-elphel393"
                         
