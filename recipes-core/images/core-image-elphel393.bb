@@ -31,6 +31,10 @@ IMAGE_INSTALL_append += " python-core \
                          libsjs \
                          smartmontools \
                          libogg \
+                         iw \
+                         wpa-supplicant-passphrase \
+                         wpa-supplicant-cli \
+                         linux-firmware-rtl8192cu \
                          init-elphel393"
                         
 #kernel-modules
