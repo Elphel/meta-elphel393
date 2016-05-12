@@ -34,7 +34,12 @@ IMAGE_INSTALL_append += " python-core \
                          init-elphel393 \
                          apps-camogm \
                          apps-imgsrv \
-                         "
+                         iw \
+                         wpa-supplicant \
+                         dhcp-client \
+                         linux-firmware-rtl8192cu \
+                         init-elphel393 \
+						"
                         
 #kernel-modules
 
