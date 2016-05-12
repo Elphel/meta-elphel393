@@ -31,4 +31,5 @@ do_install() {
         install -m 0755 ${S}/imgsrv ${D}${bindir}
 }
 
-PACKAGES = " imgsrv"
+FILES_${PN} += "${bindir}/imgsrv"
+PACKAGES += " imgsrv"

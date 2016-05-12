@@ -31,7 +31,10 @@ IMAGE_INSTALL_append += " python-core \
                          libsjs \
                          smartmontools \
                          libogg \
-                         init-elphel393"
+                         init-elphel393 \
+                         apps-camogm \
+                         apps-imgsrv \
+                         "
                         
 #kernel-modules
 

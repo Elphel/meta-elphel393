@@ -202,17 +202,6 @@
 		                  "compr_irq_0", "compr_irq_1", "compr_irq_2", "compr_irq_3";
 	};
 	
-	elphel393_framepars: elphel393-framepars {
-		compatible = "elphel,elphel393-framepars-1.00";
-		/* set this to "disable" to disable drivers */
-		status = "okay";
-	};
-	
-	elphel393_sensor: elphel393-sensor {
-		compatible = "elphel,elphel393-sensor-1.00";
-		/* set this to "disable" to disable drivers */
-		status = "okay";
-	};
     elphel393_sensor_i2c: elphel393-sensor-i2c@0 {
                 compatible = "elphel,elphel393-sensor-i2c-1.00";
                 /* Add known devices: name, slave address (7-bit), number of address bytes, number of data bytes, SCL frequency (kHz) */
