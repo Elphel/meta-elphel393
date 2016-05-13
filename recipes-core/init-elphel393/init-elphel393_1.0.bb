@@ -31,11 +31,11 @@ FILES_${PN} = "\
 inherit update-rc.d
 
 do_install_append() {
-	if [ -f ${TOPDIR}/../../x393/install.sh ]; then
-		${TOPDIR}/../../x393/install.sh ${D}
+	if [ -f ${TOPDIR}/../../fpga-elphel/x393/install.sh ]; then
+		${TOPDIR}/../../fpga-elphel/x393/install.sh ${D}
 	fi
-	if [ -f ${TOPDIR}/../../x393_sata/install.sh ]; then
-		${TOPDIR}/../../x393_sata/install.sh ${D}
+	if [ -f ${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ]; then
+		${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ${D}
 	fi
 	install -d ${D}${sysconfdir}/init.d
 	install -m 0755 ${WORKDIR}/init_elphel393 ${D}${sysconfdir}/init.d
