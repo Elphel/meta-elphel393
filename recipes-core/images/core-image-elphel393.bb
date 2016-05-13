@@ -31,11 +31,15 @@ IMAGE_INSTALL_append += " python-core \
                          libsjs \
                          smartmontools \
                          libogg \
+                         init-elphel393 \
+                         apps-camogm \
+                         apps-imgsrv \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
                          linux-firmware-rtl8192cu \
-                         init-elphel393"
+                         init-elphel393 \
+						"
                         
 #kernel-modules
 

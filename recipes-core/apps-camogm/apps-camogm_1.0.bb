@@ -25,9 +25,13 @@ SRC_URI =  "file://.* \
             file://LICENSE \
            "
 
+FILES_${PN} += "${bindir}/camogm ${sysconfdir}/qt_source"
+           
 do_install() {
         install -d ${D}${bindir}
         install -m 0755 ${S}/camogm ${D}${bindir}
+        install -d ${D}${sysconfdir}
+        install -m 0644 qt_source ${D}${sysconfdir}/
 }
 
-PACKAGES = " camogm"
+PACKAGES += " camogm"
