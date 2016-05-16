@@ -26,7 +26,9 @@ SRC_URI =  "file://.* \
            "
 
 FILES_${PN} += "${bindir}/camogm ${sysconfdir}/qt_source"
-           
+
+DEPENDS += "libogg"
+
 do_install() {
         install -d ${D}${bindir}
         install -m 0755 ${S}/camogm ${D}${bindir}
