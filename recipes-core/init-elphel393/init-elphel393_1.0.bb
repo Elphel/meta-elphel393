@@ -14,6 +14,7 @@ PV = "${SRCDATE}"
 PR = "r0"
 
 SRC_URI = "file://init_elphel393 \
+           file://init_elphel393.sh \
            file://LICENSE \
           "
 
@@ -39,6 +40,20 @@ do_install_append() {
 	fi
 	install -d ${D}${sysconfdir}/init.d
 	install -m 0755 ${WORKDIR}/init_elphel393 ${D}${sysconfdir}/init.d
+	
+    for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
+        if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
+            mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
+        fi
+        if [ -f ${S}init_elphel393.sh ]; then
+            if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh ]; then
+                rm ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
+            fi
+            cp ${S}init_elphel393.sh ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
+        else
+            echo "NOT 3 FOUND!"
+        fi
+    done
 }
 
 PACKAGES = " init-elphel393"
