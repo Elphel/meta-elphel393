@@ -3,7 +3,7 @@
 #ifconfig eth0 hw ether 00:0e:64:10:00:02 192.168.0.7
 
 # select sensor type: 5 Mpx (set 5) or 14 Mpx (set 14)
-SENSORT_TYPE=14
+SENSOR_TYPE=14
 
 ifconfig eth0 192.168.0.9
 if [ ! -d /usr/local/ ]; then
