@@ -177,7 +177,7 @@
 		elphel393_pwr,vp5.r2=            <100000>;
 		elphel393_pwr,vldo18.r1=         <357000>;
 		elphel393_pwr,vldo18.r2=         <287000>;
-		elphel393_pwr,channels_disable= "vcc_sens23 vp33sens23 vcc_sens01 vp33sens01";
+		elphel393_pwr,channels_disable= "vcc_sens23 vp33sens23 vcc_sens01 vp33sens01 vp5";
 		elphel393_pwr,pinstrapped_oven=  <1>;
 		elphel393_pwr,vcc_sens01_mv=     <2800>; /* set sensor intreface voltage to 2.8V */
 /*		elphel393_pwr,channels_enable=  "vcc_sens01 vp33sens01"; */
