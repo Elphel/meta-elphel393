@@ -33,6 +33,7 @@ IMAGE_INSTALL_append += " python-core \
                          libogg \
                          apps-camogm \
                          apps-imgsrv \
+                         apps-web \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
