@@ -13,6 +13,10 @@ SRCDATE = "20131202"
 PV = "${SRCDATE}"
 PR = "r0"
 
+RDEPENDS_${PN} += "\ 
+             python-core \
+             "
+
 SRC_URI = "file://init_elphel393 \
            file://init_elphel393.sh \
            file://LICENSE \
