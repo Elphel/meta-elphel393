@@ -84,7 +84,7 @@ class temp_monitor():
         except IOError:
             print "Failed to create file: '%s%s'" % (out_path_prefix, out_fnames["core_temp_fn"])
         try:
-            self.core_temp_params_f = open(out_path_prefix + out_fnames["temp_params_fn"], "r+")
+            self.core_temp_params_f = open(out_path_prefix + out_fnames["temp_params_fn"], "w+")
             self.write_temp_params()
         except IOError:
             self.core_temp_out_f.close()
