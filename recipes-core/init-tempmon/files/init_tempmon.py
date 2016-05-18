@@ -62,6 +62,7 @@ class temp_monitor():
                  out_path_prefix, out_fnames):
         self.is_fan_on = False
         self.is_vp5_enabled = False
+        self.is_10389_present = True
         self.ctrl_path_prefix = ctrl_path_pref
         self.ctrl_fnames = ctrl_file_names
         self.hwmon_path_prefix = hwmon_path_pref
@@ -107,13 +108,16 @@ class temp_monitor():
                 return False
         for key, val in self.ctrl_fnames.items():
             if not os.access(self.ctrl_path_prefix + val, F_OK):
-                print "Failed to open sysfs file: '%s%s'" % (self.ctrl_path_prefix, val)
-                return False
+                if key == "gpio_fn":
+                    self.is_10389_present = False
+                else:
+                    print "Failed to open sysfs file: '%s%s'" % (self.ctrl_path_prefix, val)
+                    return False
         return True
                 
     def shutdown(self):
         """
-        Turn system off. This function will be called continuously until the system is turn off.
+        Turn system off. This function will be called continuously until the system is turned off.
         """
         subprocess.call(["/sbin/shutdown", "-hP", "now"])        
     
@@ -123,20 +127,26 @@ class temp_monitor():
         @param ctrl: can be "on" or "off" to turn fan on or off
         """
         if ctrl is "on":
+            """ check if +5V is active and turn it on if it is not (it should not happen) """
             with open(self.ctrl_path_prefix + self.ctrl_fnames["vp5_en_fn"], "r+") as f:
-                """ check if +5V is active and turn it on if it is not (it should not happen) """
                 channels = f.read()
                 if channels.find("vp5") == -1:
                     f.write("vp5")
                     f.flush()
-            with open(self.ctrl_path_prefix + self.ctrl_fnames["gpio_fn"], 'w') as f:
-                f.write(self.fan_cmd["fan_cmd_on"])
-                f.flush()
+            if self.is_10389_present:
+                with open(self.ctrl_path_prefix + self.ctrl_fnames["gpio_fn"], 'w') as f:
+                    f.write(self.fan_cmd["fan_cmd_on"])
+                    f.flush()
             self.is_fan_on = True
         elif ctrl is "off":
-            with open(self.ctrl_path_prefix + self.ctrl_fnames["gpio_fn"], 'w') as f:
-                f.write(self.fan_cmd["fan_cmd_off"])
-                f.flush()
+            if self.is_10389_present:
+                with open(self.ctrl_path_prefix + self.ctrl_fnames["gpio_fn"], 'w') as f:
+                    f.write(self.fan_cmd["fan_cmd_off"])
+                    f.flush()
+            else:
+                with open(self.ctrl_path_prefix + self.ctrl_fnames["vp5_dis_fn"], 'w') as f:
+                    f.write("vp5")
+                    f.flush()
             self.is_fan_on = False
         else:
             print "'%s': unrecognized command: '%s'" % (__name__, ctrl)
