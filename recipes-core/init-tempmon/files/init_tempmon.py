@@ -84,7 +84,8 @@ class temp_monitor():
         except IOError:
             print "Failed to create file: '%s%s'" % (out_path_prefix, out_fnames["core_temp_fn"])
         try:
-            self.core_temp_params_f = open(out_path_prefix + out_fnames["temp_params_fn"], "w")
+            self.core_temp_params_f = open(out_path_prefix + out_fnames["temp_params_fn"], "r+")
+            self.write_temp_params()
         except IOError:
             self.core_temp_out_f.close()
             print "Failed to create file: '%s%s'" % (out_path_prefix, out_fnames["temp_params_fn"])
@@ -187,6 +188,7 @@ class temp_monitor():
                 
 #                 print "Core temperature: '%f', median: '%f'" % (core_temp, avg)
                 time.sleep(self.params["temp_sampling_time"])
+                self.read_temp_params()
         except (KeyboardInterrupt, SystemExit):
             self.core_temp_out_f.close()
             self.core_temp_params_f.close()
@@ -198,12 +200,21 @@ class temp_monitor():
         """
         Read parameters from file and update local values.
         """
+        self.core_temp_params_f.seek(0)
+        file_lines = self.core_temp_params_f.readlines()
         for key, val in self.params.items():
-            self.core_temp_params_f.seek(0)
-            file_lines = self.core_temp_params_f.readlines()
             for line in file_lines:
                 if line.find(key) == 0:
-                    self.core_temp_params_f[key] = float(line.split(":")[1].strip())
+                    self.params[key] = float(line.split(":")[1].strip())
+    
+    def write_temp_params(self):
+        """
+        Write current parameters to file.
+        """
+        self.core_temp_params_f.seek(0)
+        for key, val in self.params.items():
+            self.core_temp_params_f.write(str(key) + ": " + str(val) + "\n")
+        self.core_temp_params_f.flush()
 
 if __name__ == "__main__":
     if DEBUG:
