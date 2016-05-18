@@ -32,9 +32,9 @@ from posix import EX_OSFILE, F_OK
 DEBUG = 0
 
 """ Set temperature when the fan should be turned on. """
-TEMP_FAN_ON = 35.0
+TEMP_FAN_ON = 55.0
 """ Set temperature when the system should be turned off. """
-TEMP_SHUTDOWN = 60.0
+TEMP_SHUTDOWN = 80.0
 """ Temperature hysteresis in degrees. """
 TEMP_HYSTERESIS = 2.0
 """ Temperature sampling time in seconds. This constant may be a floating point value. """ 
