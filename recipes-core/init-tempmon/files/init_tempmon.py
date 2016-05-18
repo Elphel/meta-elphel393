@@ -26,6 +26,7 @@ import os
 import sys
 import time
 import subprocess
+import atexit
 from posix import EX_OSFILE, F_OK
 
 DEBUG = 0
@@ -40,6 +41,8 @@ TEMP_HYSTERESIS = 2.0
 SAMPLING_TIME = 1
 """ Temperature scaling factor. """
 SCALE_CFT = 0.001
+""" The name of the file in /var/run which will contain PID """
+PID_NAME = "init_tempmon"
 
 ctrl_path_pref = "/sys/devices/soc0/elphel393-pwr@0/"
 ctrl_fn = {"poweroff_fn": "power_off",
@@ -47,11 +50,12 @@ ctrl_fn = {"poweroff_fn": "power_off",
            "vp5_dis_fn":  "channels_dis",
            "gpio_fn":     "gpio_10389"}
 hwmon_path_pref = "/sys/devices/soc0/amba@0/f8007100.ps7-xadc/iio:device0/"
-hwmon_fn = {"offset": "in_temp0_offset",
-            "raw":    "in_temp0_raw",
-            "scale":  "in_temp0_scale"}
+hwmon_fn = {"offset":     "in_temp0_offset",
+            "raw":        "in_temp0_raw",
+            "scale":      "in_temp0_scale"}
 out_path_pref = "/var/volatile/tmp/"
-out_fn = {"core_temp_fn": "core_temp"}
+out_fn = {"core_temp_fn": "core_temp",
+          "temp_params_fn": "core_temp_params"}
 
 class temp_monitor():
     def __init__(self, ctrl_path_pref, ctrl_file_names, hwmon_path_pref, hwmon_fn,
@@ -63,17 +67,36 @@ class temp_monitor():
         self.hwmon_path_prefix = hwmon_path_pref
         self.hwmon_fnames = hwmon_fn
         self.samples_window = []
+        self.pid_fname = "/var/run/" + PID_NAME + ".pid"
         """ Number of samples for temperature averaging """
         self.samples_num = 5
         self.fan_cmd = {"fan_cmd_on":  "0x101",
                         "fan_cmd_off": "0x100"}
+        self.params = {"temp_minor":   TEMP_FAN_ON,
+                       "temp_major":   TEMP_SHUTDOWN,
+                       "temp_hyst":    TEMP_HYSTERESIS,
+                       "temp_sampling_time": SAMPLING_TIME}
         
         """ Create output files """
         try:
             self.core_temp_out_f = open(out_path_prefix + out_fnames["core_temp_fn"], "w")
         except IOError:
             print "Failed to create file: '%s%s'" % (out_path_prefix, out_fnames["core_temp_fn"])
+        try:
+            self.core_temp_params_f = open(out_path_prefix + out_fnames["temp_params_fn"], "w")
+        except IOError:
+            self.core_temp_out_f.close()
+            print "Failed to create file: '%s%s'" % (out_path_prefix, out_fnames["temp_params_fn"])
         
+        """ Create pid file """
+        with open(self.pid_fname, "w") as pid_file:
+            pid_file.write(str(os.getpid()))
+        atexit.register(self.delpid)
+    
+    def delpid(self):
+        if os.access(self.pid_fname, F_OK):
+            os.remove(self.pid_fname) 
+
     def check_files(self):
         """
         Check if all files exist in the system.
@@ -141,22 +164,36 @@ class temp_monitor():
                 samples.sort()
 
                 avg = samples[len(samples) / 2]
-                if core_temp < (TEMP_FAN_ON - TEMP_HYSTERESIS) and self.is_fan_on:
+                if core_temp < (self.params["temp_minor"] - self.params["temp_hyst"]) and self.is_fan_on:
                     self.fan_ctrl("off")
-                elif core_temp >= TEMP_FAN_ON and core_temp < TEMP_SHUTDOWN and not self.is_fan_on:
+                elif core_temp >= self.params["temp_minor"] and core_temp < self.params["temp_major"] and not self.is_fan_on:
                     self.fan_ctrl("on")
-                elif avg >= TEMP_SHUTDOWN:
+                elif avg >= self.params["temp_major"]:
                     self.shutdown()
                 
                 self.core_temp_out_f.seek(0)
                 self.core_temp_out_f.write(str(core_temp))
                 self.core_temp_out_f.flush()
                 
-                print "Core temperature: '%f', median: '%f'" % (core_temp, avg)
-                time.sleep(SAMPLING_TIME)
+#                 print "Core temperature: '%f', median: '%f'" % (core_temp, avg)
+                time.sleep(self.params["temp_sampling_time"])
         except (KeyboardInterrupt, SystemExit):
-            print "Got keyboard interrupt. Exiting."
+            self.core_temp_out_f.close()
+            self.core_temp_params_f.close()
+            os.remove(self.pid_fname)
+            print "'%s': got keyboard interrupt. Exiting." % os.path.basename(__file__)
             sys.exit(0)
+    
+    def read_temp_params(self):
+        """
+        Read parameters from file and update local values.
+        """
+        for key, val in self.params.items():
+            self.core_temp_params_f.seek(0)
+            file_lines = self.core_temp_params_f.readlines()
+            for line in file_lines:
+                if line.find(key) == 0:
+                    self.core_temp_params_f[key] = float(line.split(":")[1].strip())
 
 if __name__ == "__main__":
     if DEBUG:

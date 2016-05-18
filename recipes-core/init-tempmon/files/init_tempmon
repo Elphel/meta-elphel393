@@ -1,38 +1,55 @@
 #!/bin/sh
 
+DEAMON=/usr/bin/init_tempmon.py
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/sbin/init_tempmon
 NAME=init_tempmon
 DESC="temperature monitor daemon"
+SCRIPT_NAME=init_tempmon.py
 
-MNTPOINT=/mnt/mmc
-MMCDEV=/dev/mmcblk0p1
-SOME_SCRIPT=init_tempmon.py
+# PID file name, must match to the name in init_tempmon.py sript
+PID_FILE=/var/run/init_tempmon.pid
+
+. /etc/init.d/functions
+test -x $DEAMON || exit 0
 
 case "$1" in
   start)
-	echo -n "Starting $DESC: "
-	if [ -f $MNTPOINT/$SOME_SCRIPT ]; then
-	    echo "    Launching $SOME_SCRIPT"
-	    $MNTPOINT/$SOME_SCRIPT
+	if [ ! -f $PID_FILE ]; then
+		echo -n "Starting $DESC: "
+		echo $SCRIPT_NAME
+		$DEAMON &
 	else
-	    echo "    $SOME_SCRIPT not found. Nothing to launch."
+		echo "Already running"
 	fi
 	;;
   stop)
-	echo -n "Stopping $DESC: "
-	echo "$NAME."
+	if [ -f $PID_FILE ]; then
+		echo -n "Stopping $DESC: "
+		echo "$NAME"
+		pid=$(cat $PID_FILE)
+		/bin/kill $pid
+		rm $PID_FILE
+	else
+		echo "Not running, nothing to stop"
+	fi
 	;;
   restart)
-	echo -n "Restarting $DESC: "
-	echo "$NAME."
+	if [ -f $PID_FILE ]; then
+		echo -n "Restarting $DESC: "
+		echo "$NAME"
+		pid=$(cat $PID_FILE)
+		/bin/kill $pid
+		$DEAMON &
+	else
+		echo "Not running, nothing to restart"
+	fi
 	;;
   status)
-	echo -n "$NAME status:"
-	if [ -f /var/run/$NAME ]; then
-	  echo -n "Running"
+	echo -n "$NAME status: "
+	if [ -f $PID_FILE ]; then
+	  echo "Running"
 	else
-	  echo -n "Not running"
+	  echo "Not running"
 	fi
 	;;
   *)

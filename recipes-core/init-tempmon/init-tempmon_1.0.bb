@@ -21,7 +21,7 @@ SRC_URI = "file://init_tempmon \
 S = "${WORKDIR}/"
 
 INITSCRIPT_NAME = "init_tempmon"
-INITSCRIPT_PARAMS = "defaults 96"
+INITSCRIPT_PARAMS = "defaults 94"
 
 RDEPENDS_${PN} += "python-core"
 
@@ -29,6 +29,7 @@ FILES_${PN} = "\
            /etc/* \
            /usr/* \
           "
+PACKAGES = " init-tempmon"
 
 #This needs to get the script into rc?.d/
 inherit update-rc.d
@@ -36,20 +37,6 @@ inherit update-rc.d
 do_install_append() {
     install -d ${D}${sysconfdir}/init.d
     install -m 0755 ${WORKDIR}/init_tempmon ${D}${sysconfdir}/init.d
-
-    for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-        if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
-            mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
-        fi
-        if [ -f ${S}init_tempmon.py ]; then
-            if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/init_tempmon.py ]; then
-                rm ${DEPLOY_DIR_IMAGE}/${RLOC}/init_tempmon.py
-            fi
-            cp ${S}init_tempmon.py ${DEPLOY_DIR_IMAGE}/${RLOC}/init_tempmon.py
-        else
-            echo "NOT 3 FOUND!"
-        fi
-    done
+    install -d ${D}${bindir}
+    install -m 0755 ${S}/init_tempmon.py ${D}${bindir}
 }
-
-PACKAGES = " init-tempmon"
