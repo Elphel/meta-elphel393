@@ -26,7 +26,10 @@ var options = {
 		min: 0,
 		max: 100
 	},
-	colors: ['rgba(255,100,100,0.5)','rgba(255,150,20,0.5)','rgba(100,255,100,0.5)','black']
+	colors: ['rgba(255,100,100,0.5)','rgba(255,150,20,0.5)','rgba(100,255,100,0.5)','black'],
+	legend:{
+	    position: "nw"
+	},
 };
 
 function init(){
