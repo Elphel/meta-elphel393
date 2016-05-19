@@ -189,6 +189,7 @@ class temp_monitor():
 #                 print "Core temperature: '%f', median: '%f'" % (core_temp, avg)
                 time.sleep(self.params["temp_sampling_time"])
                 self.read_temp_params()
+                self.write_temp_params()
         except (KeyboardInterrupt, SystemExit):
             self.core_temp_out_f.close()
             self.core_temp_params_f.close()

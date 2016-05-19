@@ -54,12 +54,18 @@ fi
 # debug code follows, should be removed later
 # inable interrupts
 echo 1 > /dev/circbuf0
-# set frame size
+# set frame size and bayer shift
 if [ $SENSOR_TYPE -eq 5 ]; then
 	echo "6 2592:1936" > /dev/circbuf0
+	echo "7 3" > /dev/circbuf0
 else
 	echo "6 4384:3280" > /dev/circbuf0
+	echo "7 2" > /dev/circbuf0
 fi
+# turn off debug output
+echo file circbuf.c -pfl > /sys/kernel/debug/dynamic_debug/control
+echo file sensor_common.c -pfl > /sys/kernel/debug/dynamic_debug/control
+echo file jpeghead.c -pfl > /sys/kernel/debug/dynamic_debug/control
 # end of debug code
 
 /usr/local/bin/test_mcntrl.py @includes -c compressor_control all 3 None None None None None
