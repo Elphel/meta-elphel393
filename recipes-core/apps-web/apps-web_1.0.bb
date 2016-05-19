@@ -14,6 +14,9 @@ PR = "r0"
 
 SRC_URI = "file://controls.html \
            file://controls.js \
+           file://hwmon.html \
+           file://hwmon.js \
+           file://hwmon.php \
           "
 
 S = "${WORKDIR}/"
@@ -26,6 +29,9 @@ do_install_append() {
     install -d ${D}/www/pages
     install -m 0644 ${WORKDIR}/controls.html ${D}/www/pages
     install -m 0644 ${WORKDIR}/controls.js ${D}/www/pages
+    install -m 0644 ${WORKDIR}/hwmon.html ${D}/www/pages
+    install -m 0644 ${WORKDIR}/hwmon.js ${D}/www/pages
+    install -m 0644 ${WORKDIR}/hwmon.php ${D}/www/pages
 }
 
 PACKAGES = " apps-web"

@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <script src="js/jquery-2.2.3.min.js"></script>
+    <script src="js/flot/jquery.flot.min.js"></script>
+    <script src="hwmon.js"></script>
+    <style>
+		input{
+			width:50px;
+			text-align:right;
+		}
+    </style>
+  </head>
+  <body onload='init()'>
+	<table>
+		<tr>
+			<td valign='top'>
+				<table>
+					<tr>
+						<td>T<sub>shutdown</sub> </td>
+						<td><input type='text' id='t_shutdown' value='0' class='pars'/></td>
+						<td> &deg;C</td>
+					</tr>
+					<tr>
+						<td>T<sub>fan</sub> </td>
+						<td><input type='text' id='t_fan_on' value='0' class='pars'/></td>
+						<td> &deg;C</td>
+					</tr>
+					<tr>
+						<td>&Delta;T<sub>fan hyst</sub> </td>
+						<td><input type='text' id='t_fan_hyst' value='0' class='pars'/></td>
+						<td> &deg;C</td>
+					</tr>
+					<tr>
+						<td>t<sub>scan period</sub> </td>
+						<td><input type='text' id='scan_period' value='1' class='pars'/></td>
+						<td> s</td>
+					</tr>
+				</table>
+			</td>
+			<td><div id="t_chart"></div></td>
+		</tr>
+	</table>
+  </body>
+</html>
