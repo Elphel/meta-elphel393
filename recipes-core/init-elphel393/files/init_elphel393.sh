@@ -54,7 +54,8 @@ fi
 # debug code follows, should be removed later
 # inable interrupts
 echo 1 > /dev/circbuf0
-# set frame size and bayer shift
+# set quality, frame size and bayer shift
+echo "3 80" > /dev/circbuf0
 if [ $SENSOR_TYPE -eq 5 ]; then
 	echo "6 2592:1936" > /dev/circbuf0
 	echo "7 3" > /dev/circbuf0
