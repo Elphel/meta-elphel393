@@ -94,9 +94,9 @@
 				compatible = "at,24c02";
 				reg = <0x31>;
 			};
-			hwmon@19 { /*hwmon@19*/
+			hwmon@1a { /*hwmon@19*/
 				compatible = "stm,jc42";
-				reg = <0x19>;
+				reg = <0x1a>;
 			};
 		};
 		
