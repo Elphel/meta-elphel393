@@ -4,10 +4,10 @@ $(function(){
 
 var interval_read_temperature;
 
-var d0 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
-var d1 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
-var d2 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
-var d3 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
+var d0 = Array(600);
+var d1 = Array(600);
+var d2 = Array(600);
+var d3 = Array(600);
 var t = Array();
 
 var level_shutdown;
