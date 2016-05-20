@@ -4,11 +4,10 @@ $(function(){
 
 var interval_read_temperature;
 
-var d0 = Array();
-var d1 = Array();
-var d2 = Array();
-var d3 = Array();
-
+var d0 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
+var d1 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
+var d2 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
+var d3 = Array.apply(null, Array(600)).map(Number.prototype.valueOf,0);
 var t = Array();
 
 var level_shutdown;
@@ -110,10 +109,14 @@ function read_core_temp(){
 		url: "hwmon.php?cmd=t",
 		complete: function(data){
 			console.log(data.responseText);
-			t.push(d1.length);
+			//t.push(d1.length);
+			d0.splice(0,1);
 			d0.push(level_shutdown);
+			d1.splice(0,1);
 			d1.push(level_fan_on);
+			d2.splice(0,1);
 			d2.push(level_fan_on-level_fan_hyst);
+			d3.splice(0,1);
 			d3.push(data.responseText);
 			options.xaxis.tickSize = Math.max(1,Math.round(d1.length)/10);
 			$.plot($("#t_chart"), [
@@ -128,8 +131,8 @@ function read_core_temp(){
 
 function get_data(x,y){
 	var d = Array();
-	for (var i=0;i<x.length; i++){
-        d.push([x[i], y[i]]);
+	for (var i=0;i<y.length; i++){
+        d.push([i, y[i]]);
 	}
 	return d;
 }
