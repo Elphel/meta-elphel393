@@ -4,7 +4,16 @@ $(function(){
 
 function init(){
 	
-	var t = $("<table>").html("<tr><td id='pics'></td><td id='controls' valign='top'></td></tr>");
+	var t = $("<table>").html("\
+<tr>\
+  <td id='controls' valign='top'></td>\
+  <td id='pic1'></td>\
+  <td id='pic2'></td>\
+</tr><tr>\
+  <td></td>\
+  <td id='pic3'></td>\
+  <td id='pic4'></td>\
+</tr>");
 	$("body").append(t);
 	
 	var port = 2323;
@@ -22,7 +31,7 @@ function init(){
 		img.attr("src",url);
 		img.attr("src_init",url);
 		
-		$("#pics").append($("<div>").append(a.append(img)));
+		$("#pic"+(i+1)).append($("<div>").append(a.append(img)));
 		
 		img.load(function(){
 			d = new Date();
