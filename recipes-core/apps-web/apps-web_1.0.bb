@@ -17,6 +17,10 @@ SRC_URI = "file://controls.html \
            file://hwmon.html \
            file://hwmon.js \
            file://hwmon.php \
+           file://setup.css \
+           file://setup.html \
+           file://setup.js \
+           file://setup.php \
           "
 
 S = "${WORKDIR}/"
@@ -32,6 +36,10 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/hwmon.html ${D}/www/pages
     install -m 0644 ${WORKDIR}/hwmon.js ${D}/www/pages
     install -m 0644 ${WORKDIR}/hwmon.php ${D}/www/pages
+    install -m 0644 ${WORKDIR}/setup.css ${D}/www/pages
+    install -m 0644 ${WORKDIR}/setup.html ${D}/www/pages
+    install -m 0644 ${WORKDIR}/setup.js ${D}/www/pages
+    install -m 0644 ${WORKDIR}/setup.php ${D}/www/pages
 }
 
 PACKAGES = " apps-web"

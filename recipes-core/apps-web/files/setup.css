@@ -1,0 +1,29 @@
+table tr td{
+	padding: 5px 0px 0px 5px;
+	text-align: center;
+}
+
+.nooutline{
+    /*font-weight:bold;*/
+    outline:none;
+}
+
+.nooutline:focus{
+    outline:none;
+}
+
+/* overrides */
+.btn:disabled,.btn:disabled:hover{
+	background:gray;
+	border: 1px solid gray;
+	cursor:pointer;
+}
+
+.btn{
+	border-radius:3px;
+}
+
+input {
+	-moz-appearance: none;
+	border: 1px solid rgba(200,200,200,1);
+}
