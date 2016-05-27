@@ -1,0 +1,65 @@
+<html>
+<head>
+	<title>10393</title>
+	<script src="js/jquery-2.2.3.min.js"></script>
+	<script src="js/bootstrap/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css"/>
+	<style>
+		table tr td{
+			padding: 5px 0px 0px 5px;
+			text-align: left;
+		}
+	</style>
+</head>
+<body onload='init()'>
+<table>
+<tr>
+	<td valign='top'>
+		<div style='padding:20px 10px 10px 5px'>
+			<ul>
+				<li><a href="controls.html">Controls</a> (exposure, w/b, quality)</li>
+				<li><a href="hwmon.html">Temperature monitor</a> (CPU)</li>
+				<li><a href="setup.html">Other</a> (Test patterns)</li>
+			</ul>
+		</div>
+	</td>
+	<td id='pic1'></td>
+	<td id='pic2'></td>
+</tr>
+<tr>
+	<td></td>
+	<td id='pic3'></td>
+	<td id='pic4'></td>
+</tr>
+</table>
+
+<script>
+	function init(){
+		var port = 2323;
+		for(i=0;i<4;i++){
+			
+			var url = "http://"+window.location.hostname+":"+(port+i)+"/noexif/img";
+			var ref = "http://"+window.location.hostname+":"+(port+i)+"/noexif/mimg";
+			
+			a = $("<a>",{href:ref});
+			
+			img = $("<img>",{id:"chn"+i}).css({
+				width: "500px"
+			});
+			
+			img.attr("src",url);
+			img.attr("src_init",url);
+			
+			$("#pic"+(i+1)).append($("<div>").append(a.append(img)));
+			
+			img.load(function(){
+				d = new Date();
+				n = d.getTime();
+				this.src = $(this).attr("src_init")+"&"+n;
+			});
+		}
+	}
+</script>
+
+</body>
+</html>
