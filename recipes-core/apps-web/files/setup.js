@@ -55,7 +55,7 @@ function init(){
 	
 	ct2 = $("<div style='padding-top:20px;'>");
 	
-	tmpstr = "<tr><td>Chn&nbsp;</td><td>Test Pattern&nbsp;</td><td>Sensor Phase (0-7)&nbsp;</td></tr>";
+	tmpstr = "<tr><td>Chn&nbsp;</td><td>Test Pattern&nbsp;</td><td id='sp'>Sensor Phase (0-7)&nbsp;</td></tr>";
 	for(i=0;i<4;i++){
 		tmpstr += "\
 <tr>\
@@ -124,6 +124,9 @@ function init_sensor_type(){
 				sensortype=5;
 				$("#s5").addClass("btn-success");
 				$(".sp").css({
+					display:"none"
+				});
+				$("#sp").css({
 					display:"none"
 				});
 			}
