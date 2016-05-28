@@ -8,11 +8,10 @@ SENSOR_TYPE=14
 IMGSRV_PORT=2323
 # camogm command pipe name
 CAMOGM_PIPE=/var/volatile/camogm_cmd
+# enable SATA, set this to 1 if camera is equipped with SSD drive
+SATA_EN=0
 
 ifconfig eth0 192.168.0.9
-#if [ ! -d /usr/local/ ]; then
-#	ln -sf /mnt/mmc/local/ /usr/local/
-#fi
 cd /usr/local/verilog/
 if [ $SENSOR_TYPE -eq 5 ]; then
     /usr/local/bin/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
@@ -80,8 +79,9 @@ if [ -f /usr/bin/camogm ]; then
 	camogm $CAMOGM_PIPE &
 fi
 
-#/mnt/mmc/local/bin/x393sata.py
-#insmod /mnt/mmc/ahci_elphel.ko # &
-##sleep 2
-##without sleep /sys/kernel/debug/ahci_exp/loading is not yet created
-##echo 1 > /sys/kernel/debug/ahci_exp/loading
+if [ $SATA_EN -eq 1 ]; then
+    /usr/local/bin/x393sata.py
+    modprobe ahci_elphel &
+    sleep 2
+    echo 1 > /sys//devices/soc0/amba@0/80000000.elphel-ahci/load_module
+fi

@@ -40,10 +40,12 @@ IMAGE_INSTALL_append += " python-core \
                          linux-firmware-rtl8192cu \
                          init-elphel393 \
                          init-tempmon \
+                         ahci-blacklist \
                         "
                         
 #kernel-modules
-
+IMAGE_INSTALL_append += " kernel-module-ahci-elphel \
+                        "
 IMAGE_LINGUAS = " "
 
 LICENSE = "MIT"
