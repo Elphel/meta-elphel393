@@ -7,7 +7,10 @@ var interval_read_temperature;
 var d0 = Array(600);
 var d1 = Array(600);
 var d2 = Array(600);
-var d3 = Array(600);
+
+var ds = [Array(600),Array(600)];
+var labels = ["CPU","389"];
+
 var t = Array();
 
 var level_shutdown;
@@ -25,7 +28,7 @@ var options = {
 		min: 0,
 		max: 100
 	},
-	colors: ['rgba(255,100,100,0.5)','rgba(255,150,20,0.5)','rgba(100,255,100,0.5)','black'],
+	colors: ['rgba(255,100,100,0.5)','rgba(255,150,20,0.5)','rgba(100,255,100,0.5)','rgba(0,0,0,1)','rgba(100,100,200,1)'],
 	legend:{
 	    position: "nw"
 	},
@@ -109,6 +112,9 @@ function read_core_temp(){
 		url: "hwmon.php?cmd=t",
 		complete: function(data){
 			console.log(data.responseText);
+			
+			temps = data.responseText.trim().split(" ");
+			
 			//t.push(d1.length);
 			d0.splice(0,1);
 			d0.push(level_shutdown);
@@ -116,15 +122,22 @@ function read_core_temp(){
 			d1.push(level_fan_on);
 			d2.splice(0,1);
 			d2.push(level_fan_on-level_fan_hyst);
-			d3.splice(0,1);
-			d3.push(data.responseText);
+			
 			options.xaxis.tickSize = Math.max(1,Math.round(d1.length)/10);
-			$.plot($("#t_chart"), [
+			
+			points = [
 				{label: "Shutdown level", data: get_data(t,d0)},
 				{label: "Fan-On level",  data: get_data(t,d1)},
 				{label: "Fan-Off level", data: get_data(t,d2)},
-				{label: "CPU", data: get_data(t,d3)},
-			], options);
+			];
+			
+			for(var i=0;i<temps.length;i++){
+				ds[i].splice(0,1);
+				ds[i].push(temps[i]);
+				points.push({label: labels[i], data: get_data(t,ds[i])});
+			}
+			
+			$.plot($("#t_chart"), points, options);
 		}
 	});
 }
