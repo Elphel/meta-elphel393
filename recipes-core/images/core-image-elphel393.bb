@@ -43,6 +43,7 @@ IMAGE_INSTALL_append += " python-core \
                          ahci-blacklist \
                          udev-rules \
                          e2fsprogs \
+                         gstreamer1.0 \
                         "
                         
 #kernel-modules
