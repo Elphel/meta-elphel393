@@ -41,6 +41,7 @@ IMAGE_INSTALL_append += " python-core \
                          init-elphel393 \
                          init-tempmon \
                          ahci-blacklist \
+						 udev-rules \
                         "
                         
 #kernel-modules

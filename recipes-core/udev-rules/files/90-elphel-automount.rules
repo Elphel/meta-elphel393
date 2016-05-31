@@ -1,0 +1,26 @@
+KERNEL!="sd[a-z][0-9]", GOTO="quit_automount"
+
+# Import file system parameters; these parameters can be obtained with 'udevadm monitor --environment' command
+IMPORT{program}="/sbin/blkid -o udev -p %N"
+
+# Device has a label
+ENV{ID_FS_LABEL}!="", ENV{dir_name}="%E{ID_FS_LABEL}"
+
+# Device has no file system, do not mount it
+ENV{ID_FS_LABEL}=="", ENV{ID_FS_USAGE}=="", GOTO="quit_automount"
+
+# Device has no label, but has a file system
+ENV{ID_FS_LABEL}=="", ENV{ID_FS_USAGE}=="filesystem", ENV{dir_name}="%k"
+
+# Mount device to /media if it is not SSD
+ACTION=="add", ENV{ID_ATA_SATA}!="1", RUN+="/bin/mkdir -p /media/%E{dir_name}", RUN+="/bin/mount /dev/%k /media/%E{dir_name}"
+
+# Mound device to /mnt if it is SSD
+ACTION=="add", ENV{ID_ATA_SATA}=="1", RUN+="/bin/mkdir -p /mnt/%E{dir_name}", RUN+="/bin/mount /dev/%k /mnt/%E{dir_name}"
+
+# Delete directory after removal
+ACTION=="remove", ENV{ID_ATA_SATA}!="1", ENV{dir_name}!="", RUN+="/bin/rmdir /media/%E{dir_name}"
+ACTION=="remove", ENV{ID_ATA_SATA}=="1", ENV{dir_name}!="", RUN+="/bin/rmdir /mnt/%E{dir_name}"
+
+# Exit point
+LABEL="quit_automount"
