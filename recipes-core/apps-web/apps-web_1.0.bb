@@ -22,6 +22,7 @@ SRC_URI = "file://controls.html \
            file://setup.js \
            file://setup.php \
            file://index.html \
+           file://camogm.php \
           "
 
 S = "${WORKDIR}/"
@@ -42,6 +43,7 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/setup.js ${D}/www/pages
     install -m 0644 ${WORKDIR}/setup.php ${D}/www/pages
     install -m 0644 ${WORKDIR}/index.html ${D}/www/pages
+    install -m 0644 ${WORKDIR}/camogm.php ${D}/www/pages
 }
 
 PACKAGES = " apps-web"
