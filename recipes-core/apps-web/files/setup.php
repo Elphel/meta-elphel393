@@ -1,5 +1,7 @@
 <?php
 
+$port = 8888;
+
 if (isset($_GET['cmd']))
 	$cmd = $_GET['cmd'];
 else
@@ -30,10 +32,10 @@ if ($cmd=="set_test_pattern"){
 		}
 	}
 	
-	$str = "cd /usr/local/verilog/;/usr/local/bin/test_mcntrl.py @includes -c write_sensor_i2c $chn 1 0 $regval";
-	echo $str;
-	exec($str);
+	$str = "write_sensor_i2c $chn 1 0 $regval"."\r\n";
 	
+	echo send_cmd($port,$str);
+	//$str = "cd /usr/local/verilog/;/usr/local/bin/test_mcntrl.py @includes -c ";
 }
 
 if ($cmd=="set_sensor_phase"){
@@ -49,6 +51,19 @@ if ($cmd=="set_sensor_phase"){
 		$regval = "0x31c0".dechex($val)."000";
 	}
 	
+	$str  = "write_sensor_i2c $chn 1 0 $regval"."\r\n";
+	$str .= "compressor_control $chn 1"."\r\n";
+	$str .= "control_sensor_memory $chn stop"."\r\n";
+	$str .= "control_sensor_memory $chn reset"."\r\n";
+	$str .= "control_sensor_memory $chn repetitive"."\r\n";
+	$str .= "sleep_ms 500"."\r\n";
+	$str .= "compressor_control $chn 0"."\r\n";
+	$str .= "sleep_ms 500"."\r\n";
+	$str .= "compressor_control $chn 3"."\r\n";
+	
+	echo send_cmd($port,$str);
+	
+	/*
 	$str = "cd /usr/local/verilog/;/usr/local/bin/test_mcntrl.py @includes \
 	-c write_sensor_i2c $chn 1 0 $regval\
 	-c compressor_control $chn 1\
@@ -63,9 +78,23 @@ if ($cmd=="set_sensor_phase"){
 	
 	echo $str;
 	exec($str);
+	*/
 }
 
 if ($cmd=="find_sdram_phase"){
+
+	$str  = "compressor_control $chn 1"."\r\n";
+	$str .= "compressor_control $chn 0"."\r\n";
+	$str .= "control_sensor_memory $chn stop"."\r\n";
+	$str .= "control_sensor_memory $chn reset"."\r\n";
+	$str .= "measure_all \"*DI\""."\r\n";
+	$str .= "measure_all"."\r\n";
+	$str .= "control_sensor_memory $chn repetitive"."\r\n";
+	$str .= "compressor_control $chn 3"."\r\n";
+	
+	echo send_cmd($port,$str);
+
+	/*
 	$str = "cd /usr/local/verilog/;/usr/local/bin/test_mcntrl.py @includes \
 	-c compressor_control $chn 1\
 	-c compressor_control $chn 0\
@@ -79,6 +108,7 @@ if ($cmd=="find_sdram_phase"){
 	
 	echo $str;
 	exec($str);
+	*/
 }
 
 function get_sensor_type(){
@@ -87,6 +117,18 @@ function get_sensor_type(){
 	$res[1] = intval($res[1]);
 	if (($res[1]!=5)&&($res[1]!=14)) $res[1]=0;
 	return $res[1];
+}
+
+function send_cmd($port,$msg){
+	$fp = fsockopen("localhost", $port, $errno, $errstr, 30);
+
+	if (!$fp) {
+		return "$errstr ($errno)<br />\n";
+	}else{
+		fwrite($fp,"$msg\r\n");
+		fclose($fp);
+		echo "sent: $msg";
+	}
 }
 
 ?>
