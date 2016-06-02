@@ -9,10 +9,12 @@ IMGSRV_PORT=2323
 # camogm command pipe name
 CAMOGM_PIPE=/var/volatile/camogm_cmd
 # enable SATA, set this to 1 if camera is equipped with SSD drive
-SATA_EN=0
+SATA_EN=1
 
 ifconfig eth0 192.168.0.9
+
 cd /usr/local/verilog/
+
 if [ $SENSOR_TYPE -eq 5 ]; then
     /usr/local/bin/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
     ln -sf /usr/local/verilog/x393_parallel.bit /usr/local/verilog/x393.bit
@@ -72,6 +74,8 @@ echo file jpeghead.c -pfl > /sys/kernel/debug/dynamic_debug/control
 
 /usr/local/bin/test_mcntrl.py @includes -c compressor_control all 3 None None None None None
 
+cd ~
+
 if [ -f /usr/bin/imgsrv ]; then
 	imgsrv -p $IMGSRV_PORT &
 fi
@@ -83,5 +87,5 @@ if [ $SATA_EN -eq 1 ]; then
     /usr/local/bin/x393sata.py
     modprobe ahci_elphel &
     sleep 2
-    echo 1 > /sys//devices/soc0/amba@0/80000000.elphel-ahci/load_module
+    echo 1 > /sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module
 fi
