@@ -1,4 +1,5 @@
 var interval_get_files;
+var interval_refresh_images;
 
 function init(){
 	var t = $("<table>").html("\
@@ -141,10 +142,21 @@ function init(){
 	//init_defaults();
 	init_path();
 	init_files();
+	init_images();
 }
 
 function init_files(){
 	interval_get_files = setInterval(get_files,1000);
+}
+
+function init_images(){
+	interval_refresh_images = setInterval(function(){
+		for(var j=0;j<4;j++){
+			d = new Date();
+			n = d.getTime();
+			$("#chn"+j).attr("src",$("#chn"+j).attr("src_init")+"&"+n);
+		}
+	},1000);
 }
 
 function get_files(){
