@@ -27,7 +27,7 @@ $cmd = "donothing";
 $debug = false;
 $debuglev = 6;
 
-if (isset($_GET['channel']))  $chn      = $_GET['channel'];
+if (isset($_GET['chn']))      $chn      = $_GET['chn'];
 if (isset($_GET['cmd']))      $cmd      = $_GET['cmd'];
 if (isset($_GET['debug'])   ) $debug    = $_GET['debug'];
 if (isset($_GET['debuglev'])) $debuglev = $_GET['debuglev'];
@@ -67,6 +67,15 @@ if ($cmd=="list") {
 	xml_response("<camogm>\n$res</camogm>\n",true);
 }
 
+if ($cmd=="create_symlink"){
+	if (isset($_GET['path'])) {
+		$path = $_GET['path'];
+		if (is_dir($path)){
+			exec("ln -sf $path /www/pages/video;sync");
+		}
+	}
+	break;
+}
 //camogm pipe commands
 
 $fcmd = fopen($c_pipe, "w");
@@ -79,6 +88,8 @@ if ($cmd=="start"){
 }else if ($cmd=="exit"){
 	fprintf($fcmd,"exit;\n");
 	exec('sync');
+}else if ($cmd=="default"){
+	fprintf($fcmd,"format=mov;exif=0;prefix=/mnt/sda1/;\n");
 }else{
 	fprintf($fcmd,"$cmd\n");
 	//exec('sync');
