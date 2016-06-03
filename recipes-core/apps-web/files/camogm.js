@@ -139,7 +139,9 @@ function init(){
 	});
 	
 	init_sensor_type();
-	//init_defaults();
+	
+	for(var i=0;i<4;i++) get_camogm_state(i);
+	
 	init_path();
 	init_files();
 	init_images();
@@ -157,6 +159,29 @@ function init_images(){
 			$("#chn"+j).attr("src",$("#chn"+j).attr("src_init")+"&"+n);
 		}
 	},1000);
+}
+
+function get_camogm_state(index){
+	$.ajax({
+		url: "camogm.php?cmd=status&chn="+index,
+		complete: function(data){
+			var xml = data.responseXML;
+			var tmp = $(xml).find("state");
+			var tmpstr = $(tmp[0]).text();
+			//trim "
+			tmpstr = tmpstr.replace(/^"+|"+$/g,'');
+			if (tmpstr=="stopped"){
+				$("#rec"+index).removeClass("btn-danger");
+				$("#rec"+index).addClass("btn-success");
+				$("#rec"+index).text("start");
+				init_default(index);
+			}else{
+				$("#rec"+index).removeClass("btn-success");
+				$("#rec"+index).addClass("btn-danger");
+				$("#rec"+index).text("stop");
+			}
+		}
+	});
 }
 
 function get_files(){
@@ -194,7 +219,6 @@ function init_path(){
 				var tmp = $(dirs[i]).text();
 				if (tmp=="/mnt/sda1") {
 					$("#abspath").val(tmp);
-					init_defaults();
 					res = true;
 				}
 			}
@@ -205,6 +229,12 @@ function init_path(){
 	});
 }
 
+function init_default(index){
+	var prefix = $("#abspath").val()+"/";
+	$.ajax({url:"camogm.php?chn="+index+"&cmd=format=mov;exif=0;duration=600;length=1073741824;prefix="+prefix+$("#prefix"+index).val()});
+}
+
+/*
 function init_defaults(){
 	var prefix = $("#abspath").val()+"/";
 	for(var i=0;i<4;i++){
@@ -212,6 +242,7 @@ function init_defaults(){
 	}
 	$.ajax({url:"camogm.php?cmd=create_symlink&path="+prefix});
 }
+*/
 
 function init_sensor_type(){
 	$.ajax({
