@@ -43,6 +43,8 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/setup.js ${D}/www/pages
     install -m 0644 ${WORKDIR}/setup.php ${D}/www/pages
     install -m 0644 ${WORKDIR}/index.html ${D}/www/pages
+    install -m 0644 ${WORKDIR}/camogm.html ${D}/www/pages
+    install -m 0644 ${WORKDIR}/camogm.js ${D}/www/pages
     install -m 0644 ${WORKDIR}/camogm.php ${D}/www/pages
 }
 
