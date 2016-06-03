@@ -186,7 +186,8 @@
 	
 	elphel393_mem: elphel393-mem@0 {
 		compatible = "elphel,elphel393-mem-1.00";
-		memsize = <25600>;
+		/*memsize = <25600>;*/
+		memsize = <76800>;
 	} ;
 	
 	elphel393_init: elphel393-init {

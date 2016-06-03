@@ -5,8 +5,11 @@ AUTHOR = "Elphel Inc."
 HOMEPAGE = "http://www3.elphel.com/"
 
 PRIORITY = "optional"
-LICENSE = "GPLv3"
-LIC_FILES_CHKSUM = "file://LICENSE;beginline=21;endline=699;md5=ccd2fef7dee090f3b211c6677c3e34cc"
+#LICENSE = "GPLv3"
+#LIC_FILES_CHKSUM = "file://LICENSE;beginline=21;endline=699;md5=ccd2fef7dee090f3b211c6677c3e34cc"
+
+LICENSE = "GPL-3.0+"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293b95dea7b07891"
 
 SRCDATE = "20131202"
 

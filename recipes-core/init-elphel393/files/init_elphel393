@@ -13,6 +13,9 @@ case "$1" in
   start)
 	echo -n "Starting $DESC: "
 	echo "$NAME:"
+	
+	#add commands here
+	
 	#mount here
 	echo "    Mounting Memory Card to $MNTPOINT"
 	if [ ! -d $MNTPOINT ]; then 
