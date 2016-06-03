@@ -52,6 +52,41 @@ if [ ! -e /dev/jpeghead3 ]; then
 	mknod /dev/jpeghead3 c 135 51
 fi
 
+# create exif files and send template to driver
+if [ ! -e /dev/exif_exif0 ]; then
+        mknod /dev/exif_exif0 c 125 16
+fi
+if [ ! -e /dev/exif_exif1 ]; then
+        mknod /dev/exif_exif1 c 125 17
+fi
+if [ ! -e /dev/exif_exif2 ]; then
+        mknod /dev/exif_exif2 c 125 18
+fi
+if [ ! -e /dev/exif_exif3 ]; then
+        mknod /dev/exif_exif3 c 125 19
+fi
+
+if [ ! -e /dev/exif_meta0 ]; then
+        mknod /dev/exif_meta0 c 125 32
+fi
+if [ ! -e /dev/exif_meta1 ]; then
+        mknod /dev/exif_meta1 c 125 33
+fi
+if [ ! -e /dev/exif_meta2 ]; then
+        mknod /dev/exif_meta2 c 125 34
+fi
+if [ ! -e /dev/exif_meta3 ]; then
+        mknod /dev/exif_meta3 c 125 35
+fi
+
+if [ ! -e /dev/exif_template ]; then
+        mknod /dev/exif_template c 125 2
+fi
+if [ ! -e /dev/exif_metadir ]; then
+        mknod /dev/exif_metadir c 125 3
+fi
+/usr/bin/exif.php init=/etc/Exif_template.xml
+
 # debug code follows, should be removed later
 # inable interrupts
 echo 1 > /dev/circbuf0
