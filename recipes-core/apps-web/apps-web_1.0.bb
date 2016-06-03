@@ -22,6 +22,8 @@ SRC_URI = "file://controls.html \
            file://setup.js \
            file://setup.php \
            file://index.html \
+           file://camogm.html \
+           file://camogm.js \
            file://camogm.php \
           "
 
