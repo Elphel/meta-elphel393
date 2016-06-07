@@ -16,8 +16,8 @@ function init(){
 	var port = 2323;
 	for(i=0;i<4;i++){
 		
-		var url = "http://"+window.location.hostname+":"+(port+i)+"/noexif/img";
-		var ref = "http://"+window.location.hostname+":"+(port+i)+"/noexif/mimg";
+		var url = "http://"+window.location.hostname+":"+(port+i)+"/img";
+		var ref = "http://"+window.location.hostname+":"+(port+i)+"/mimg";
 		
 		a = $("<a>",{href:ref});
 		
