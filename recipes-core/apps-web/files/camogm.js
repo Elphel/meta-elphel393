@@ -75,6 +75,8 @@ function init(){
 		$.ajax({url:"camogm.php?cmd=create_symlink&path="+$(this).val()});
 	});
 	
+	$.ajax({url:"camogm.php?cmd=create_symlink&path="+$("#abspath").val()});
+        
 	ct3 = $("<div style='padding-top:20px;'>");
 	
 	tmpstr = "<table>\n";

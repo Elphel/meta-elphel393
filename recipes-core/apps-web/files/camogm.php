@@ -74,7 +74,6 @@ if ($cmd=="create_symlink"){
 			exec("ln -sf $path /www/pages/video;sync");
 		}
 	}
-	break;
 }
 //camogm pipe commands
 
