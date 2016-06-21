@@ -2,6 +2,8 @@ DESCRIPTION = "Elphel NC 393 image (based on core-image-minimal)."
 
 IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMAGE_EXTRA_INSTALL}"
 
+#IMAGE_FEATURES = "read-only-rootfs"
+
 # remove not needed ipkg informations
 IMAGE_INSTALL_append = "u-boot-ezynq"
 IMAGE_INSTALL_append += " python-core \
@@ -37,6 +39,7 @@ IMAGE_INSTALL_append += " python-core \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
+                         dhcpcd \
                          linux-firmware-rtl8192cu \
                          init-elphel393 \
                          init-tempmon \
@@ -50,6 +53,8 @@ IMAGE_INSTALL_append += " python-core \
 # gstreamer1.0-plugins-good \ 
 # gstreamer1.0-plugins-bad \ 
 # gstreamer1.0-rtsp-server \ 
+# opencv-apps \
+# python-opencv \
 #
 
 #kernel-modules
