@@ -18,11 +18,11 @@ if ($cmd=="t"){
 		$t_10389 = intval($t_10389)/1000;
 	}
 	
-	$t_sda = exec("smartctl -A /dev/sda | egrep ^194 | awk '{print $4}'");
+	$t_sda = exec("smartctl -A /dev/sda | egrep ^194 | awk '{print $10}'");
 	if ($t_sda=="") $t_sda = "-";
 	else            $t_sda = intval($t_sda);
 	
-	$t_sdb = exec("smartctl -A /dev/sdb | egrep ^194 | awk '{print $4}'");
+	$t_sdb = exec("smartctl -A /dev/sdb | egrep ^194 | awk '{print $10}'");
 	if ($t_sdb=="") $t_sdb = "-";
 	else            $t_sdb = intval($t_sdb);
 	
