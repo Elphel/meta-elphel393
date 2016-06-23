@@ -24,6 +24,8 @@ else
 fi
 sleep 10
 
+sync
+
 /usr/local/bin/test_mcntrl.py @includes -c compressor_control all 1 None None None None None
 /usr/local/bin/test_mcntrl.py @includes -c compressor_control all 0 None None None None None
 
@@ -124,3 +126,5 @@ if [ $SATA_EN -eq 1 ]; then
     sleep 2
     echo 1 > /sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module
 fi
+
+sync
