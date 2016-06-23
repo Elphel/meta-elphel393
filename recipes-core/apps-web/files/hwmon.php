@@ -8,6 +8,8 @@ else
 if ($cmd=="t"){
 	$t_cpu = file_get_contents("/tmp/core_temp");
 	$t_10389 = "";
+	$t_sda = "";
+	$t_sdb = "";
 	
 	$temp1_input = "/sys/devices/soc0/amba@0/e0004000.ps7-i2c/i2c-0/0-001a/hwmon/hwmon0/temp1_input";
 	
@@ -16,7 +18,15 @@ if ($cmd=="t"){
 		$t_10389 = intval($t_10389)/1000;
 	}
 	
-	echo "$t_cpu $t_10389";
+	$t_sda = exec("smartctl -A /dev/sda | egrep ^194 | awk '{print $4}'");
+	if ($t_sda=="") $t_sda = "-";
+	else            $t_sda = intval($t_sda);
+	
+	$t_sdb = exec("smartctl -A /dev/sdb | egrep ^194 | awk '{print $4}'");
+	if ($t_sdb=="") $t_sdb = "-";
+	else            $t_sdb = intval($t_sdb);
+	
+	echo "$t_cpu $t_10389 $t_sda $t_sdb";
 }
 
 if ($cmd=="read"){

@@ -1,5 +1,7 @@
 var sensortype=14;
 
+var interval_refresh_images;
+
 function init(){
 	var t = $("<table>").html("\
 <tr>\
@@ -30,11 +32,13 @@ function init(){
 		
 		$("#pic"+(i+1)).append($("<div>").append(a.append(img)));
 		
+                /*
 		img.load(function(){
 			d = new Date();
 			n = d.getTime();
 			this.src = $(this).attr("src_init")+"&"+n;
 		});
+                */
 	}
 	
 	ct = $("<div style='padding-top:10px;'>");
@@ -104,6 +108,17 @@ function init(){
 
 	
 	init_sensor_type();
+        init_images();
+}
+
+function init_images(){
+	interval_refresh_images = setInterval(function(){
+		for(var j=0;j<4;j++){
+			d = new Date();
+			n = d.getTime();
+			$("#chn"+j).attr("src",$("#chn"+j).attr("src_init")+"&"+n);
+		}
+	},500);
 }
 
 function send_cmd(command,index,value){

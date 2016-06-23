@@ -51,15 +51,39 @@ if ($cmd=="set_sensor_phase"){
 		$regval = "0x31c0".dechex($val)."000";
 	}
 	
-	$str  = "write_sensor_i2c $chn 1 0 $regval"."\r\n";
-	$str .= "compressor_control $chn 1"."\r\n";
-	$str .= "control_sensor_memory $chn stop"."\r\n";
-	$str .= "control_sensor_memory $chn reset"."\r\n";
-	$str .= "control_sensor_memory $chn repetitive"."\r\n";
-	$str .= "sleep_ms 500"."\r\n";
-	$str .= "compressor_control $chn 0"."\r\n";
-	$str .= "sleep_ms 500"."\r\n";
-	$str .= "compressor_control $chn 3"."\r\n";
+	$str = "write_sensor_i2c $chn 1 0 $regval"."\r\n";
+	send_cmd($port,$str);
+	
+        $str = "compressor_control $chn 1"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+        $str = "compressor_control $chn 0"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+	
+	$str = "control_sensor_memory $chn stop"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+	$str = "control_sensor_memory $chn reset"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+        $str = "control_sensor_memory $chn stop"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+	$str = "control_sensor_memory $chn reset"."\r\n";
+	send_cmd($port,$str);
+	usleep(100000);
+	$str = "control_sensor_memory $chn repetitive"."\r\n";
+	send_cmd($port,$str);
+	//$str = "sleep_ms 500"."\r\n";
+	//send_cmd($port,$str);
+	usleep(500000);
+	$str = "compressor_control $chn 0"."\r\n";
+	send_cmd($port,$str);
+	//$str = "sleep_ms 500"."\r\n";
+	//send_cmd($port,$str);
+	usleep(500000);
+	$str = "compressor_control $chn 3"."\r\n";
 	
 	echo send_cmd($port,$str);
 	
@@ -82,7 +106,7 @@ if ($cmd=="set_sensor_phase"){
 }
 
 if ($cmd=="find_sdram_phase"){
-
+        $chn = $_GET['chn'];
 	$str  = "compressor_control $chn 1"."\r\n";
 	$str .= "compressor_control $chn 0"."\r\n";
 	$str .= "control_sensor_memory $chn stop"."\r\n";
@@ -128,6 +152,7 @@ function send_cmd($port,$msg){
 		fwrite($fp,"$msg\r\n");
 		fclose($fp);
 		echo "sent: $msg";
+		usleep(100);
 	}
 }
 

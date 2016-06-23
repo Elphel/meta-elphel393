@@ -8,8 +8,8 @@ var d0 = Array(600);
 var d1 = Array(600);
 var d2 = Array(600);
 
-var ds = [Array(600),Array(600)];
-var labels = ["CPU","389"];
+var ds = [Array(600),Array(600),Array(600),Array(600)];
+var labels = ["CPU","389","/dev/sda","/dev/sdb"];
 
 var t = Array();
 
@@ -28,7 +28,15 @@ var options = {
 		min: 0,
 		max: 100
 	},
-	colors: ['rgba(255,100,100,0.5)','rgba(255,150,20,0.5)','rgba(100,255,100,0.5)','rgba(0,0,0,1)','rgba(100,100,200,1)'],
+	colors: [
+            'rgba(255,100,100,0.5)',
+            'rgba(255,150, 20,0.5)',
+            'rgba(100,255,100,0.5)',
+            'rgba(0,0,0,1)',
+            'rgba(100,100,200,1)',
+            'rgba( 50,150, 50,1)',
+            'rgba( 50,150,150,1)'
+        ],
 	legend:{
 	    position: "nw"
 	},
@@ -126,15 +134,17 @@ function read_core_temp(){
 			options.xaxis.tickSize = Math.max(1,Math.round(d1.length)/10);
 			
 			points = [
-				{label: "Shutdown level", data: get_data(t,d0)},
+				{label: "CPU shutdown level", data: get_data(t,d0)},
 				{label: "Fan-On level",  data: get_data(t,d1)},
 				{label: "Fan-Off level", data: get_data(t,d2)},
 			];
 			
 			for(var i=0;i<temps.length;i++){
+                            if (temps[i]!="-"){
 				ds[i].splice(0,1);
 				ds[i].push(temps[i]);
 				points.push({label: labels[i], data: get_data(t,ds[i])});
+                            }
 			}
 			
 			$.plot($("#t_chart"), points, options);
