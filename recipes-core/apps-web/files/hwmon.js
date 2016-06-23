@@ -135,8 +135,8 @@ function read_core_temp(){
 			
 			points = [
 				{label: "CPU shutdown level", data: get_data(t,d0)},
-				{label: "Fan-On level",  data: get_data(t,d1)},
-				{label: "Fan-Off level", data: get_data(t,d2)},
+				{label: "CPU Fan-On level",  data: get_data(t,d1)},
+				{label: "CPU Fan-Off level", data: get_data(t,d2)},
 			];
 			
 			for(var i=0;i<temps.length;i++){
