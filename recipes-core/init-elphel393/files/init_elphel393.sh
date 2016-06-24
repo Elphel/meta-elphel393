@@ -17,10 +17,10 @@ cd /usr/local/verilog/
 
 if [ $SENSOR_TYPE -eq 5 ]; then
     /usr/local/bin/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_parallel.bit /usr/local/verilog/x393.bit
+    ln -sf /usr/local/verilog/x393_parallel.bit /tmp/x393.bit
 else
     /usr/local/bin/test_mcntrl.py @startup14 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_hispi.bit /usr/local/verilog/x393.bit
+    ln -sf /usr/local/verilog/x393_hispi.bit /tmp/x393.bit
 fi
 sleep 10
 
@@ -89,7 +89,7 @@ fi
 if [ ! -e /dev/exif_metadir ]; then
         mknod /dev/exif_metadir c 125 3
 fi
-/usr/bin/exif.php init=/etc/Exif_template.xml
+/www/pages/exif.php init=/etc/Exif_template.xml
 
 # debug code follows, should be removed later
 # inable interrupts

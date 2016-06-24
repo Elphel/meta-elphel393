@@ -33,6 +33,7 @@ INITSCRIPT_PARAMS = "defaults 95"
 FILES_${PN} = "\
            /etc/* \
            /usr/* \
+           /www/pages/* \
           "
 
 #This needs to get the script into rc?.d/
