@@ -59,7 +59,7 @@ function init(){
 	
 	ct2 = $("<div style='padding-top:20px;'>");
 	
-	tmpstr = "Absolute path: <input id='abspath' style='text' value='/mnt/sda1' class='ap' />";
+	tmpstr = "Absolute path: <input id='abspath' style='text' value='/tmp/mnt/sda1' class='ap' />";
 	
 	ct2.html(tmpstr);
 	$("#controls").append(ct2);
@@ -212,14 +212,14 @@ function get_files(){
 
 function init_path(){
 	$.ajax({
-		url:"camogm.php?cmd=list&path=/mnt",
+		url:"camogm.php?cmd=list&path=/tmp/mnt",
 		complete: function(data){
 			var xml = data.responseXML;
 			var dirs = $(xml).find("d");
 			var res = false;
 			for(var i=0;i<dirs.length;i++){
 				var tmp = $(dirs[i]).text();
-				if (tmp=="/mnt/sda1") {
+				if (tmp=="/tmp/mnt/sda1") {
 					$("#abspath").val(tmp);
 					res = true;
 				}

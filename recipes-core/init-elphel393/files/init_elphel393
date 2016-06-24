@@ -5,7 +5,7 @@ DAEMON=/usr/sbin/init_elphel393
 NAME=init_elphel393
 DESC="extra init scripts"
 
-MNTPOINT=/mnt/mmc
+MNTPOINT=/tmp/mnt/mmc
 MMCDEV=/dev/mmcblk0p1
 SOME_SCRIPT=init_elphel393.sh
 
@@ -19,12 +19,13 @@ case "$1" in
 	#mount here
 	echo "    Mounting Memory Card to $MNTPOINT"
 	if [ ! -d $MNTPOINT ]; then 
-		mkdir $MNTPOINT
+		mkdir -p $MNTPOINT
 	fi
 	mount $MMCDEV $MNTPOINT
-	if [ -f $MNTPOINT/$SOME_SCRIPT ]; then
-	    echo "    Launching $SOME_SCRIPT"
-	    $MNTPOINT/$SOME_SCRIPT
+	
+	if [ -f /etc/$SOME_SCRIPT ]; then
+	    echo "    Launching /etc/$SOME_SCRIPT"
+	    /etc/$SOME_SCRIPT
 	else
 	    echo "    $SOME_SCRIPT not found. Nothing to launch."
 	fi

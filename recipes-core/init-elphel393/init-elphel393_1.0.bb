@@ -49,6 +49,9 @@ do_install_append() {
 	install -d ${D}${sysconfdir}/init.d
 	install -m 0755 ${WORKDIR}/init_elphel393 ${D}${sysconfdir}/init.d
 	
+	#install init script to /etc
+	install -m 0755 ${WORKDIR}/init_elphel393.sh ${D}${sysconfdir}/
+	
     for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
         if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
             mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}

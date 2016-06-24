@@ -136,7 +136,7 @@ if ($cmd=="find_sdram_phase"){
 }
 
 function get_sensor_type(){
-	$lastline = exec("cat /mnt/mmc/init_elphel393.sh | grep \"SENSOR_TYPE=\"");
+	$lastline = exec("cat /etc/init_elphel393.sh | grep \"SENSOR_TYPE=\"");
 	$res = explode("=",$lastline);
 	$res[1] = intval($res[1]);
 	if (($res[1]!=5)&&($res[1]!=14)) $res[1]=0;
