@@ -13,21 +13,26 @@ SATA_EN=1
 
 ifconfig eth0 192.168.0.9
 
+PYDIR=/tmp/local/bin
+
+mkdir /tmp/local
+cp -r /usr/local/bin $PYDIR
+
 cd /usr/local/verilog/
 
 if [ $SENSOR_TYPE -eq 5 ]; then
-    /usr/local/bin/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
+    $PYDIR/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
     ln -sf /usr/local/verilog/x393_parallel.bit /tmp/x393.bit
 else
-    /usr/local/bin/test_mcntrl.py @startup14 >> /dev/null 2>&1 &
+    $PYDIR/test_mcntrl.py @startup14 >> /dev/null 2>&1 &
     ln -sf /usr/local/verilog/x393_hispi.bit /tmp/x393.bit
 fi
 sleep 10
 
 sync
 
-/usr/local/bin/test_mcntrl.py @includes -c compressor_control all 1 None None None None None
-/usr/local/bin/test_mcntrl.py @includes -c compressor_control all 0 None None None None None
+$PYDIR/test_mcntrl.py @includes -c compressor_control all 1 None None None None None
+$PYDIR/test_mcntrl.py @includes -c compressor_control all 0 None None None None None
 
 # create circular buffer files
 if [ ! -e /dev/circbuf0 ]; then
@@ -109,7 +114,7 @@ echo file sensor_common.c -pfl > /sys/kernel/debug/dynamic_debug/control
 echo file jpeghead.c -pfl > /sys/kernel/debug/dynamic_debug/control
 # end of debug code
 
-/usr/local/bin/test_mcntrl.py @includes -c compressor_control all 3 None None None None None
+$PYDIR/test_mcntrl.py @includes -c compressor_control all 3 None None None None None
 
 cd ~
 
@@ -121,7 +126,7 @@ if [ -f /usr/bin/camogm ]; then
 fi
 
 if [ $SATA_EN -eq 1 ]; then
-    /usr/local/bin/x393sata.py
+    $PYDIR/x393sata.py
     modprobe ahci_elphel &
     sleep 2
     echo 1 > /sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module
