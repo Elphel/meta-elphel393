@@ -71,7 +71,8 @@ if ($cmd=="create_symlink"){
 	if (isset($_GET['path'])) {
 		$path = $_GET['path'];
 		if (is_dir($path)){
-			exec("ln -sf $path /www/pages/video;sync");
+			//exec("ln -sf $path /www/pages/video;sync");
+			exec("ln -sf $path /tmp/video");
 		}
 	}
 }
@@ -88,7 +89,7 @@ if ($cmd=="start"){
 	fprintf($fcmd,"exit;\n");
 	exec('sync');
 }else if ($cmd=="default"){
-	fprintf($fcmd,"format=mov;exif=0;prefix=/mnt/sda1/;\n");
+	fprintf($fcmd,"format=mov;exif=0;prefix=/tmp/mnt/sda1/;\n");
 }else{
 	fprintf($fcmd,"$cmd\n");
 	//exec('sync');

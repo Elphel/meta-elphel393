@@ -48,6 +48,7 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/camogm.html ${D}/www/pages
     install -m 0644 ${WORKDIR}/camogm.js ${D}/www/pages
     install -m 0644 ${WORKDIR}/camogm.php ${D}/www/pages
+    ln -sf /tmp/video/ ${D}/www/pages/video
 }
 
 PACKAGES = " apps-web"
