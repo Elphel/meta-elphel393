@@ -72,7 +72,8 @@ if ($cmd=="create_symlink"){
 		$path = $_GET['path'];
 		if (is_dir($path)){
 			//exec("ln -sf $path /www/pages/video;sync");
-			exec("ln -sf $path /tmp/video");
+			if (file_exists("/tmp/video")) unlink("/tmp/video");
+                        exec("ln -sf $path /tmp/video");
 		}
 	}
 }
