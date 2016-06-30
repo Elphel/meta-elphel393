@@ -11,6 +11,7 @@ IMAGE_INSTALL_append += " python-core \
                          python-argparse \
                          elphel-python-extensions \
                          htop \
+                         rsync \
                          i2c-tools \
                          mtd-utils \
                          mtd-utils-misc \
