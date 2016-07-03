@@ -6,7 +6,9 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 
 # remove not needed ipkg informations
 IMAGE_INSTALL_append = "u-boot-ezynq"
-IMAGE_INSTALL_append += " python-core \
+IMAGE_INSTALL_append += " \ 
+                         sudo \
+                         python-core \
                          python-numpy \
                          python-argparse \
                          elphel-python-extensions \
@@ -57,6 +59,12 @@ IMAGE_INSTALL_append += " python-core \
 # opencv-apps \
 # python-opencv \
 #
+
+inherit extrausers
+EXTRA_USERS_PARAMS = "\
+                        useradd -P pass elphel;\
+                        usermod -P pass root;\
+                    "
 
 #kernel-modules
 IMAGE_INSTALL_append += " kernel-module-ahci-elphel \
