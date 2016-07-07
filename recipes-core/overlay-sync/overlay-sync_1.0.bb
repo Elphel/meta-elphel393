@@ -21,7 +21,7 @@ SRC_URI = "file://overlay_sync \
 S = "${WORKDIR}/"
 
 INITSCRIPT_NAME = "overlay_syncd"
-INITSCRIPT_PARAMS = "start 99 2 3 4 5 . stop 99 0 1 6 ."
+INITSCRIPT_PARAMS = "start 89 2 3 4 5 . stop 89 0 1 6 ."
 
 FILES_${PN} = "\
            /etc/* \
