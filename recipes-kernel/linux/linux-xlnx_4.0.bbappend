@@ -92,6 +92,25 @@ do_deploy_append(){
     done
 }
 
+# Override do_bundle_initramfs (kernel.bbclass)
+do_bundle_initramfs () {
+	if [ ! -z "${INITRAMFS_IMAGE}" -a x"${INITRAMFS_IMAGE_BUNDLE}" = x1 ]; then
+		echo "Creating a kernel image with a bundled initramfs..."
+		copy_initramfs
+		#if [ -e ${KERNEL_OUTPUT} ] ; then
+		#	mv -f ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.bak
+		#fi
+		#use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-$#{MACHINE}.cpio
+		#kernel_do_compile
+		cp ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.initramfs
+		#mv -f ${KERNEL_OUTPUT}.bak ${KERNEL_OUTPUT}
+		# Update install area
+		echo "There is kernel image bundled with initramfs: ${B}/${KERNEL_OUTPUT}.initramfs"
+		install -m 0644 ${B}/${KERNEL_OUTPUT}.initramfs ${D}/boot/${KERNEL_IMAGETYPE}-initramfs-${MACHINE}.bin
+		echo "${B}/${KERNEL_OUTPUT}.initramfs"
+	fi
+}
+
 # Override kernel_do_compile used by do_bundle_initramfs in kernel.bbclass
 # Added ${PARALLEL_MAKE} only
 kernel_do_compile() {
@@ -103,15 +122,15 @@ kernel_do_compile() {
 	# different initramfs image.  The way to do that in the kernel
 	# is to specify:
 	# make ...args... CONFIG_INITRAMFS_SOURCE=some_other_initramfs.cpio
-	if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_TASK}" != "" ] ; then
+	if [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
+                echo "ONLY ONE RUN!"
 		# The old style way of copying an prebuilt image and building it
 		# is turned on via INTIRAMFS_TASK != ""
 		copy_initramfs
 		use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio
-	fi
-	oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
+        fi
+        oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
 	if test "${KERNEL_IMAGETYPE_FOR_MAKE}.gz" = "${KERNEL_IMAGETYPE}"; then
 		gzip -9c < "${KERNEL_IMAGETYPE_FOR_MAKE}" > "${KERNEL_OUTPUT}"
 	fi
 }
-
