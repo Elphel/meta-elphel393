@@ -1,0 +1,39 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+NAME=overlay_syncd
+DESC="overlay sync"
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	echo "$NAME:"
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	echo "$NAME."
+	/sbin/overlay_sync
+	;;
+  restart)
+	echo -n "Restarting $DESC: "
+	echo "$NAME."
+	;;
+  status)
+	echo -n "$NAME status:"
+	if [ -f /var/run/$NAME ]; then
+	  echo -n "Running"
+	else
+	  echo -n "Not running"
+	fi
+	;;
+  sync)
+        /sbin/overlay_sync
+  ;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|status|sync}" >&2
+	exit 1
+	;;
+esac
+
+exit 0 

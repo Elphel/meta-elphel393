@@ -46,6 +46,7 @@ IMAGE_INSTALL_append += " \
                          dhcpcd \
                          linux-firmware-rtl8192cu \
                          init-elphel393 \
+                         overlay-sync \
                          init-tempmon \
                          ahci-blacklist \
                          udev-rules \

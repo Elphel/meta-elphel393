@@ -1,0 +1,14 @@
+#!/bin/sh
+
+rsync -av \
+--exclude '*.pyc' \
+--exclude '.python-history*' \
+--exclude 'etc/udev-cache.tar.gz' \
+--exclude 'etc/udev' \
+--exclude 'media' \
+--exclude 'mnt' \
+--exclude 'run' \
+--exclude 'var' \
+/tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+
+exit 0
