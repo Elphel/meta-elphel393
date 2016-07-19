@@ -127,7 +127,12 @@ kernel_do_compile() {
 		# The old style way of copying an prebuilt image and building it
 		# is turned on via INTIRAMFS_TASK != ""
 		copy_initramfs
-		use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio
+		if [ ! -f ${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio ] ; then
+                    echo "This might be the very first kernel build (or deploy dir is empty) - initramfs is not there yet. Will have to compile kernel twice"
+                    #oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS}
+                else
+                    use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio
+                fi
         fi
         oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
 	if test "${KERNEL_IMAGETYPE_FOR_MAKE}.gz" = "${KERNEL_IMAGETYPE}"; then
