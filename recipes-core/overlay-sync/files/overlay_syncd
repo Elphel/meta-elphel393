@@ -12,7 +12,9 @@ case "$1" in
   stop)
 	echo -n "Stopping $DESC: "
 	echo "$NAME."
-	/sbin/overlay_sync
+	if [ -f /tmp/overlay ]; then 
+            rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+	fi
 	;;
   restart)
 	echo -n "Restarting $DESC: "
@@ -27,7 +29,9 @@ case "$1" in
 	fi
 	;;
   sync)
-        /sbin/overlay_sync
+        if [ -f /tmp/overlay ]; then 
+            rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+        fi
   ;;
   *)
 	N=/etc/init.d/$NAME
