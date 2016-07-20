@@ -6,6 +6,8 @@
 SENSOR_TYPE=14
 # imgsrv port number 
 IMGSRV_PORT=2323
+# camogm port number
+CAMOGM_PORT=3456
 # camogm command pipe name
 CAMOGM_PIPE=/var/volatile/camogm_cmd
 # enable SATA, set this to 1 if camera is equipped with SSD drive
@@ -122,7 +124,7 @@ if [ -f /usr/bin/imgsrv ]; then
 	imgsrv -p $IMGSRV_PORT &
 fi
 if [ -f /usr/bin/camogm ]; then
-	camogm $CAMOGM_PIPE &
+	camogm -n $CAMOGM_PIPE -p $CAMOGM_PORT &
 fi
 
 if [ $SATA_EN -eq 1 ]; then
