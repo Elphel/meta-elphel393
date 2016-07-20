@@ -12,6 +12,7 @@ IMAGE_INSTALL_append += " \
                          python-core \
                          python-numpy \
                          python-argparse \
+                         python-json \
                          elphel-python-extensions \
                          htop \
                          rsync \
