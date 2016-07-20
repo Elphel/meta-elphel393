@@ -1,17 +1,5 @@
 #!/bin/sh
 
-rsync -av \
---exclude '*.pyc' \
---exclude '.python-history*' \
---exclude 'etc/udev-cache.tar.gz' \
---exclude 'etc/udev' \
---exclude 'etc/volatile.cache' \
---exclude '' \
---exclude '' \
---exclude 'media' \
---exclude 'mnt' \
---exclude 'run' \
---exclude 'var' \
-/tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+echo $@ > /tmp/overlay_sync
 
 exit 0

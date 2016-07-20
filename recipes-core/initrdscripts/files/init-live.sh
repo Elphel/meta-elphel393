@@ -166,40 +166,41 @@ read_args
 mount_and_boot() {
 
     mkdir $ROOT_MOUNT
-    #mknod /dev/loop0 b 7 0 2>/dev/null
-    
-    #if [ "$ROOT_FSTYPE" = "ubifs" ]; then
-        #unlock flash ? - driver should have taken care of this
-        # ubiattach won't be found and there's no need because kernel already knows
-        #ubiattach /dev/ubi_ctrl -m $ROOT_UBIVOL
-    #fi
-    
     if ! mount -t $ROOT_FSTYPE -o rw,noatime $ROOT_DEVICE $ROOT_MOUNT ; then
         fatal "Could not mount rootfs device (not $ROOT_FSTYPE?)"
     fi
     
-    # always 'overlay'
-    TMP=/var/volatile/tmp
-    mkdir -p /var/volatile
-    mount -t tmpfs tmpfs /var/volatile
-    mkdir -p $TMP/rootfs.ro $TMP/rootfs.rw
+    if [ "$ROOT_FSTYPE" = "ubifs" ]; then
+        #mknod /dev/loop0 b 7 0 2>/dev/null
     
-    if ! mount -n --move $ROOT_MOUNT $TMP/rootfs.ro; then
-        rm -rf $TMP/rootfs.ro $TMP/rootfs.rw
-        fatal "Could not move rootfs mount point"
-    else
-        mount -t tmpfs -o rw,noatime,mode=755 tmpfs $TMP/rootfs.rw
-        mkdir -p $TMP/rootfs.rw/upperdir $TMP/rootfs.rw/work
-        mount -t overlay overlay -o "lowerdir=$TMP/rootfs.ro,upperdir=$TMP/rootfs.rw/upperdir,workdir=$TMP/rootfs.rw/work" $ROOT_MOUNT
+        #if [ "$ROOT_FSTYPE" = "ubifs" ]; then
+            #unlock flash ? - driver should have taken care of this
+            # ubiattach won't be found and there's no need because kernel already knows
+            #ubiattach /dev/ubi_ctrl -m $ROOT_UBIVOL
+        #fi
         
-        # Assuming $ROOT_MOUNT/var/volatile exists
-        mount --move /var/volatile $ROOT_MOUNT/var/volatile
-        # Everything is already moved with /var/volatile
-        #mkdir -p $ROOT_MOUNT/rootfs.ro $ROOT_MOUNT/rootfs.rw
-        #mount --move /rootfs.ro $ROOT_MOUNT/rootfs.ro
-        #mount --move /rootfs.rw $ROOT_MOUNT/rootfs.rw
-    fi
-    
+        # always 'overlay'
+        TMP=/var/volatile/tmp
+        mkdir -p /var/volatile
+        mount -t tmpfs tmpfs /var/volatile
+        mkdir -p $TMP/rootfs.ro $TMP/rootfs.rw
+        
+        if ! mount -n --move $ROOT_MOUNT $TMP/rootfs.ro; then
+            rm -rf $TMP/rootfs.ro $TMP/rootfs.rw
+            fatal "Could not move rootfs mount point"
+        else
+            mount -t tmpfs -o rw,noatime,mode=755 tmpfs $TMP/rootfs.rw
+            mkdir -p $TMP/rootfs.rw/upperdir $TMP/rootfs.rw/work
+            mount -t overlay overlay -o "lowerdir=$TMP/rootfs.ro,upperdir=$TMP/rootfs.rw/upperdir,workdir=$TMP/rootfs.rw/work" $ROOT_MOUNT
+            
+            # Assuming $ROOT_MOUNT/var/volatile exists
+            mount --move /var/volatile $ROOT_MOUNT/var/volatile
+            # Everything is already moved with /var/volatile
+            #mkdir -p $ROOT_MOUNT/rootfs.ro $ROOT_MOUNT/rootfs.rw
+            #mount --move /rootfs.ro $ROOT_MOUNT/rootfs.ro
+            #mount --move /rootfs.rw $ROOT_MOUNT/rootfs.rw
+        fi
+    fi    
     boot_live_root
 
 #commenting out old lines

@@ -13,19 +13,19 @@ SATA_EN=1
 
 ifconfig eth0 192.168.0.9
 
-PYDIR=/tmp/local/bin
+PYDIR=/usr/local/bin
 
-mkdir /tmp/local
-cp -r /usr/local/bin $PYDIR
+#mkdir /tmp/local
+#cp -r /usr/local/bin $PYDIR
 
 cd /usr/local/verilog/
 
 if [ $SENSOR_TYPE -eq 5 ]; then
+    ln -sf x393_parallel.bit x393.bit
     $PYDIR/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_parallel.bit /tmp/x393.bit
 else
+    ln -sf x393_hispi.bit x393.bit
     $PYDIR/test_mcntrl.py @startup14 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_hispi.bit /tmp/x393.bit
 fi
 sleep 10
 
