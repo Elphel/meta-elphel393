@@ -20,8 +20,9 @@ SRCDATE = "20131202"
 inherit elphel-misc
 VPATH = "${TOPDIR}/../../fpga-elphel/x393"
 VFILE = "VERSION"
-PV = "${@version_update ('${VPATH}','${VFILE}')}"
-PR = "${@revision_update('${VPATH}','${VFILE}')}"
+PE = "${@version_update('${VPATH}','${VFILE}',0)}"
+PV = "${@version_update('${VPATH}','${VFILE}',1)}"
+PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 
 RDEPENDS_${PN} += "\ 
              python-core \
