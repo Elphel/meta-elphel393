@@ -6,6 +6,8 @@
 SENSOR_TYPE=14
 # imgsrv port number 
 IMGSRV_PORT=2323
+# camogm port number
+CAMOGM_PORT=3456
 # camogm command pipe name
 CAMOGM_PIPE=/var/volatile/camogm_cmd
 # enable SATA, set this to 1 if camera is equipped with SSD drive
@@ -13,19 +15,19 @@ SATA_EN=1
 
 ifconfig eth0 192.168.0.9
 
-PYDIR=/tmp/local/bin
+PYDIR=/usr/local/bin
 
-mkdir /tmp/local
-cp -r /usr/local/bin $PYDIR
+#mkdir /tmp/local
+#cp -r /usr/local/bin $PYDIR
 
 cd /usr/local/verilog/
 
 if [ $SENSOR_TYPE -eq 5 ]; then
+    ln -sf x393_parallel.bit x393.bit
     $PYDIR/test_mcntrl.py @startup5 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_parallel.bit /tmp/x393.bit
 else
+    ln -sf x393_hispi.bit x393.bit
     $PYDIR/test_mcntrl.py @startup14 >> /dev/null 2>&1 &
-    ln -sf /usr/local/verilog/x393_hispi.bit /tmp/x393.bit
 fi
 sleep 10
 
@@ -122,7 +124,7 @@ if [ -f /usr/bin/imgsrv ]; then
 	imgsrv -p $IMGSRV_PORT &
 fi
 if [ -f /usr/bin/camogm ]; then
-	camogm $CAMOGM_PIPE &
+	camogm -n $CAMOGM_PIPE -p $CAMOGM_PORT &
 fi
 
 if [ $SATA_EN -eq 1 ]; then

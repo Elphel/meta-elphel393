@@ -13,8 +13,16 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293
 
 SRCDATE = "20131202"
 
-PV = "${SRCDATE}"
-PR = "r0"
+#PV = "${SRCDATE}"
+#PR = "r0"
+
+# PV,PR update
+inherit elphel-misc
+VPATH = "${TOPDIR}/../../fpga-elphel/x393"
+VFILE = "VERSION"
+PE = "${@version_update('${VPATH}','${VFILE}',0)}"
+PV = "${@version_update('${VPATH}','${VFILE}',1)}"
+PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 
 RDEPENDS_${PN} += "\ 
              python-core \

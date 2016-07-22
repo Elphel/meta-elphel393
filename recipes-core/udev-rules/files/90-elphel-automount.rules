@@ -13,14 +13,14 @@ ENV{ID_FS_LABEL}=="", ENV{ID_FS_USAGE}=="", GOTO="quit_automount"
 ENV{ID_FS_LABEL}=="", ENV{ID_FS_USAGE}=="filesystem", ENV{dir_name}="%k"
 
 # Mount device to /media if it is not SSD
-ACTION=="add", ENV{ID_ATA_SATA}!="1", RUN+="/bin/mkdir -p /tmp/media/%E{dir_name}", RUN+="/bin/mount /dev/%k /tmp/media/%E{dir_name}"
+ACTION=="add", ENV{ID_ATA_SATA}!="1", RUN+="/bin/mkdir -p /media/%E{dir_name}", RUN+="/bin/mount /dev/%k /media/%E{dir_name}"
 
 # Mound device to /mnt if it is SSD
-ACTION=="add", ENV{ID_ATA_SATA}=="1", RUN+="/bin/mkdir -p /tmp/mnt/%E{dir_name}", RUN+="/bin/mount /dev/%k /tmp/mnt/%E{dir_name}"
+ACTION=="add", ENV{ID_ATA_SATA}=="1", RUN+="/bin/mkdir -p /mnt/%E{dir_name}", RUN+="/bin/mount /dev/%k /mnt/%E{dir_name}"
 
 # Delete directory after removal
-ACTION=="remove", ENV{ID_ATA_SATA}!="1", ENV{dir_name}!="", RUN+="/bin/rmdir /tmp/media/%E{dir_name}"
-ACTION=="remove", ENV{ID_ATA_SATA}=="1", ENV{dir_name}!="", RUN+="/bin/rmdir /tmp/mnt/%E{dir_name}"
+ACTION=="remove", ENV{ID_ATA_SATA}!="1", ENV{dir_name}!="", RUN+="/bin/rmdir /media/%E{dir_name}"
+ACTION=="remove", ENV{ID_ATA_SATA}=="1", ENV{dir_name}!="", RUN+="/bin/rmdir /mnt/%E{dir_name}"
 
 # Exit point
 LABEL="quit_automount"
