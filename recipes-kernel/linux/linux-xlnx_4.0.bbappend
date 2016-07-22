@@ -61,6 +61,9 @@ python do_link() {
                 os.system("cd ${DEV_DIR}; ln -sf ${TOPDIR}/tmp/sysroots sysroots")
         if not os.path.isdir("${DEV_DIR}/linux"):
                 os.system("cd ${DEV_DIR}; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build linux")
+        os.system("cd ${DEV_DIR}/linux/source/kernel; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/kernel/config_data.h config_data.h")
+        os.system("cd ${DEV_DIR}/linux/source/kernel/time; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/kernel/time/timeconst.h timeconst.h")
+        os.system("cd ${DEV_DIR}/linux/source/lib; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/lib/crc32table.h crc32table.h")
     else:
         print("Copying ${linux-elphel_gitdir}/src/ over ${S}\n")
         os.system("cp -rfv ${linux-elphel_gitdir}/src/* ${S}")
