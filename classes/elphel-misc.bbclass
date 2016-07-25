@@ -2,6 +2,10 @@
 
 # returns string - based on file
 def version_update(path,file,evr):
+    import os.path
+    if not os.path.exists(path+'/'+file):
+        return 0
+        
     for line in open(path+'/'+file):
         line = line.strip()
         if (line[0]!="#"):
