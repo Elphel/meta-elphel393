@@ -6,7 +6,8 @@ def version_update(path,file,evr):
     if not os.path.exists(path+'/'+file):
         return 0
         
-    for line in open(path+'/'+file):
+    f=open(path+'/'+file)
+    for line in f:
         line = line.strip()
         if (line[0]!="#"):
             break
@@ -18,6 +19,7 @@ def version_update(path,file,evr):
         if (evr==2): res = revision_update(path,file)
     else:
         res = arr[evr]
+    f.close()
     return res
     
 def revision_update(path,file):
