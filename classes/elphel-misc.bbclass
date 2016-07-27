@@ -27,5 +27,6 @@ def revision_update(path,file):
         res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
     except subprocess.CalledProcessError as e:
         res = "error_"+e.returncode
+    res = str(int(res))
     res = res.strip(' \t\n\r')
     return res
