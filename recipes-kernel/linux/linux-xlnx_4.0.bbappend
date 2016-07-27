@@ -33,40 +33,50 @@ INITRAMFS_IMAGE_BUNDLE = "1"
 #IMAGE_FSTYPES = "cpio.gz"
 
 do_fetch_append() {
-    if os.path.isdir("${DEV_DIR}"):
+    DEV_DIR = d.getVar('DEV_DIR', True)
+    linux_elphel_label  = d.getVar('linux-elphel_label', True)
+    linux_elphel_branch = d.getVar('linux-elphel_branch', True)
+    linux_elphel_gitdir = d.getVar('linux-elphel_gitdir', True)
+    linux_elphel_srcrev = d.getVar('linux-elphel_srcrev', True)
+    
+    if os.path.isdir(DEV_DIR):
         print("Found DEV_DIR, skipping cloning")
     else:
-        print("Cloninig ${linux-elphel_label}\n")
-        os.system("git clone -b ${linux-elphel_branch} ${linux-elphel_label} ${linux-elphel_gitdir}")
-        os.system("cd ${linux-elphel_gitdir};git checkout ${linux-elphel_srcrev}")
+        print("Cloninig "+linux-elphel_label+"\n")
+        os.system("git clone -b "+linux_elphel_branch+" "+linux_elphel_label+" "+linux_elphel_gitdir)
+        os.system("cd "+linux_elphel_gitdir+";git checkout "+linux_elphel_srcrev)
 }
 
 python do_link() {
-    if os.path.isdir("${DEV_DIR}"):
+    DEV_DIR = d.getVar('DEV_DIR', True)
+    S = d.getVar('S', True)
+    TOPDIR = d.getVar('TOPDIR', True)
+    WORKDIR = d.getVar('WORKDIR', True)
+    MACHINE = d.getVar('MACHINE', True)
+    linux_elphel_gitdir = d.getVar('linux-elphel_gitdir', True)
+
+    if os.path.isdir(DEV_DIR):
         print("DEV_DIR exists - creating links...")
-        devdir_abspath = os.path.abspath("${DEV_DIR}/src")
-        for path, folders, files in os.walk("${DEV_DIR}/src"):
+        devdir_abspath = os.path.abspath(DEV_DIR+"/src")
+        for path, folders, files in os.walk(DEV_DIR+"/src"):
             folders[:]=[fd for fd in folders if fd != ".git"]
             for folder in folders:
                 folder_abspath = os.path.abspath(os.path.join(path, folder))
                 folder_relpath = folder_abspath.replace(devdir_abspath+"/", '')
-                os.system("cd ${S};mkdir -p "+folder_relpath)
+                os.system("cd "+S+";mkdir -p "+folder_relpath)
             for filename in files:
                 file_abspath = os.path.abspath(os.path.join(path, filename))
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
-                os.system("cd ${S};ln -sf "+file_abspath+" "+file_relpath)
+                os.system("cd "+S+";ln -sf "+file_abspath+" "+file_relpath)
                     
-        #os.system("cd ${DEV_DIR}; ln -sf ${S} linux")
-        if not os.path.isdir("${DEV_DIR}/sysroots"):
-                os.system("cd ${DEV_DIR}; ln -sf ${TOPDIR}/tmp/sysroots sysroots")
-        if not os.path.isdir("${DEV_DIR}/linux"):
-                os.system("cd ${DEV_DIR}; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build linux")
-        os.system("cd ${DEV_DIR}/linux/source/kernel; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/kernel/config_data.h config_data.h")
-        os.system("cd ${DEV_DIR}/linux/source/kernel/time; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/kernel/time/timeconst.h timeconst.h")
-        os.system("cd ${DEV_DIR}/linux/source/lib; ln -sf ${WORKDIR}/linux-${MACHINE}-standard-build/lib/crc32table.h crc32table.h")
+        #os.system("cd "+DEV_DIR+"; ln -sf "+S+" linux")
+        if not os.path.isdir(DEV_DIR+"/sysroots"):
+                os.system("cd "+DEV_DIR+"; ln -sf "+TOPDIR+"/tmp/sysroots sysroots")
+        if not os.path.isdir(DEV_DIR+"/linux"):
+                os.system("cd "+DEV_DIR+"; ln -sf "+WORKDIR+"/linux-"+MACHINE+"-standard-build linux")
     else:
-        print("Copying ${linux-elphel_gitdir}/src/ over ${S}\n")
-        os.system("cp -rfv ${linux-elphel_gitdir}/src/* ${S}")
+        print("Copying "+linux_elphel_gitdir+"/src/ over "+S+"\n")
+        os.system("cp -rfv "+linux_elphel_gitdir+"/src/* "+S)
 }
 
 addtask do_link before do_kernel_configme after do_patch
