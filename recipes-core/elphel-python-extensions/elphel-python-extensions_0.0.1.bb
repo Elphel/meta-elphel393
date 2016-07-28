@@ -11,7 +11,9 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=891e49b3c2a8c133ffe7985e54245aff"
 
 SRC_URI = "git://github.com/Elphel/python-elphel-extensions.git"
 #SRCREV = "fbb514aa775b2d07e14403c996810ec1fddb0fa1"
+
 SRCREV = "${AUTOREV}"
+
 SRC_URI[md5sum] = "63120c2923a1dd174dfb7ebaf2d44a76"
 SRC_URI[sha256sum] = "b5a0827002a9060e77c55a2e857af4550215c283a3bf94f69f4d7eed22ef1de0"
 
@@ -33,3 +35,5 @@ do_install() {
 	install -m 755 ${B}/libelphel.so ${D}${libdir}/libelphel.so.0
 	install -m 755 ${S}/elphel.py ${D}${libdir}/python2.7/elphel.py
 }
+
+INSANE_SKIP_${PN} = "ldflags"

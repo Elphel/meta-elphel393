@@ -8,6 +8,8 @@ SRCDATE = "20160419"
 PV = "${SRCDATE}"
 PR = "r0"
 
+S = "${WORKDIR}"
+
 SRC_URI = "http://mirror.elphel.com/elphel393_mirror/jquery-2.2.3.min.js;md5sum=33cabfa15c1060aaa3d207c653afb1ee \
            http://mirror.elphel.com/elphel393_mirror/jquery-ui-1.11.4.custom.zip;md5sum=ee19e783272a4fc4a04ff78e92694df2 \
            http://mirror.elphel.com/elphel393_mirror/bootstrap-3.3.6-dist.zip;md5sum=229936b042baadfc9f167244575ffe12 \

@@ -3,8 +3,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 
 SRC_URI_append += " file://xilinx_emacps.c.patch"
 SRC_URI_append += " file://xilinx_uartps.c.patch"
-SRC_URI_append += " file://si5338_vsc330x.patch"
-SRC_URI_append += " file://drivers-elphel.patch"
+#SRC_URI_append += " file://si5338_vsc330x.patch"
+#SRC_URI_append += " file://drivers-elphel.patch"
 
 SRC_URI_append += " file://${MACHINE}.scc"
 KERNEL_FEATURES_append = " ${MACHINE}.scc"
@@ -86,21 +86,24 @@ do_deploy_append(){
             mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
         fi
         #if [ -f ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
-        if [ -f ${DEPLOYDIR}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
-            if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
-                rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+        echo "looking for ${DEPLOYDIR}/${KERNEL_IMAGE_BASE_NAME}.bin"
+        for type in ${KERNEL_IMAGETYPES} ; do
+            if [ -f ${DEPLOYDIR}/$type-${KERNEL_IMAGE_BASE_NAME}.bin ]; then
+                if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
+                    rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+                fi
+                cp ${DEPLOYDIR}/$type-${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            else
+                echo "NOT 3 FOUND!"
             fi
-            cp ${DEPLOYDIR}/${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
-        else
-            echo "NOT 3 FOUND!"
-        fi
-        #copy initramfs image over initramfsless image
-        if [ -f ${DEPLOYDIR}/${INITRAMFS_BASE_NAME}.bin ]; then
-            if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
-                rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            #copy initramfs image over initramfsless image
+            if [ -f ${DEPLOYDIR}/$type-${INITRAMFS_BASE_NAME}.bin ]; then
+                if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
+                    rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+                fi
+                cp ${DEPLOYDIR}/$type-${INITRAMFS_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/${INITRAMFS_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
-        fi
+        done
     done
 }
 
@@ -109,17 +112,21 @@ do_bundle_initramfs () {
 	if [ ! -z "${INITRAMFS_IMAGE}" -a x"${INITRAMFS_IMAGE_BUNDLE}" = x1 ]; then
 		echo "Creating a kernel image with a bundled initramfs..."
 		copy_initramfs
-		#if [ -e ${KERNEL_OUTPUT} ] ; then
-		#	mv -f ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.bak
-		#fi
-		#use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-$#{MACHINE}.cpio
-		#kernel_do_compile
-		cp ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.initramfs
-		#mv -f ${KERNEL_OUTPUT}.bak ${KERNEL_OUTPUT}
+		# Backing up kernel image relies on its type(regular file or symbolic link)
+		echo "KERNEL_IMAGETYPES are ${KERNEL_IMAGETYPES}"
+		for type in ${KERNEL_IMAGETYPES} ; do
+			if [ -h ${B}/${KERNEL_OUTPUT_DIR}/$type ]; then
+				cp ${B}/${KERNEL_OUTPUT_DIR}/$type ${B}/${KERNEL_OUTPUT_DIR}/$type.initramfs
+			elif [ -f ${B}/${KERNEL_OUTPUT_DIR}/$type ]; then
+				cp ${B}/${KERNEL_OUTPUT_DIR}/$type ${B}/${KERNEL_OUTPUT_DIR}/$type.initramfs
+			fi
+		done
 		# Update install area
-		echo "There is kernel image bundled with initramfs: ${B}/${KERNEL_OUTPUT}.initramfs"
-		install -m 0644 ${B}/${KERNEL_OUTPUT}.initramfs ${D}/boot/${KERNEL_IMAGETYPE}-initramfs-${MACHINE}.bin
-		echo "${B}/${KERNEL_OUTPUT}.initramfs"
+		for type in ${KERNEL_IMAGETYPES} ; do
+			echo "There is kernel image bundled with initramfs: ${B}/${KERNEL_OUTPUT_DIR}/$type.initramfs"
+			install -m 0644 ${B}/${KERNEL_OUTPUT_DIR}/$type.initramfs ${D}/boot/$type-initramfs-${MACHINE}.bin
+			echo "${B}/${KERNEL_OUTPUT_DIR}/$type.initramfs"
+		done
 	fi
 }
 
@@ -134,8 +141,9 @@ kernel_do_compile() {
 	# different initramfs image.  The way to do that in the kernel
 	# is to specify:
 	# make ...args... CONFIG_INITRAMFS_SOURCE=some_other_initramfs.cpio
+	#if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_TASK}" != "" ] ; then
 	if [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
-                echo "ONLY ONE RUN!"
+                echo "ONLY ONE RUN"
 		# The old style way of copying an prebuilt image and building it
 		# is turned on via INTIRAMFS_TASK != ""
 		copy_initramfs
@@ -145,9 +153,14 @@ kernel_do_compile() {
                 else
                     use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio
                 fi
-        fi
-        oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
-	if test "${KERNEL_IMAGETYPE_FOR_MAKE}.gz" = "${KERNEL_IMAGETYPE}"; then
-		gzip -9c < "${KERNEL_IMAGETYPE_FOR_MAKE}" > "${KERNEL_OUTPUT}"
 	fi
+	for typeformake in ${KERNEL_IMAGETYPE_FOR_MAKE} ; do
+		oe_runmake ${typeformake} ${PARALLEL_MAKE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
+		for type in ${KERNEL_IMAGETYPES} ; do
+			if test "${typeformake}.gz" = "${type}"; then
+				gzip -9c < "${typeformake}" > "${KERNEL_OUTPUT_DIR}/${type}"
+				break;
+			fi
+		done
+	done
 }
