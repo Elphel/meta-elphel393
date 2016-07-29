@@ -84,9 +84,11 @@ read_args() {
 
 boot_live_root() {
     # Watches the udev event queue, and exits if all current events are handled
-    udevadm settle --timeout=3 --quiet
+    udevadm settle --timeout=3
     killall "${_UDEV_DAEMON##*/}" 2>/dev/null
 
+    echo "InitRAMFS: switching root to ${ROOT_MOUNT}"
+    
 #     # Allow for identification of the real root even after boot
 #     mkdir -p  ${ROOT_MOUNT}/media/realroot
 #     mount -n --move "/run/media/${ROOT_DISK}" ${ROOT_MOUNT}/media/realroot
