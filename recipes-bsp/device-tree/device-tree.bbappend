@@ -14,6 +14,7 @@ python do_unpack(){
         MACHINE_DTS = DTS_PATH+"/"+MACHINE+".dts"
         if os.path.isfile(MACHINE_DTS):
             print("Machine device tree found: "+MACHINE+".dts")
+            # reset MACHINE_DEVICETREE
             d.setVar('MACHINE_DEVICETREE',MACHINE+".dts")
             if not os.path.isdir(WORKDIR+"/devicetree"):
                 import subprocess
