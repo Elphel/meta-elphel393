@@ -1,6 +1,31 @@
 # add dtsi's
 SRC_URI += "file://*.dtsi"
 
+DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
+
+python do_unpack(){
+    DEV_DIR = d.getVar('DEV_DIR', True)
+    MACHINE = d.getVar('MACHINE', True)
+    WORKDIR = d.getVar('WORKDIR', True)
+    
+    if os.path.isdir(DEV_DIR):
+        print("Found DEV_DIR, skipping something")
+        DTS_PATH = DEV_DIR+"/src/arch/arm/boot/dts"
+        MACHINE_DTS = DTS_PATH+"/"+MACHINE+".dts"
+        if os.path.isfile(MACHINE_DTS):
+            print("Machine device tree found: "+MACHINE+".dts")
+            d.setVar('MACHINE_DEVICETREE',MACHINE+".dts")
+            if not os.path.isdir(WORKDIR+"/devicetree"):
+                import subprocess
+                cmd = "ln -sf "+DTS_PATH+" "+WORKDIR+"/devicetree"
+                try:
+                    res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+                except subprocess.CalledProcessError as e:
+                    res = "error_"+e.returncode
+    else:
+        bb.build.exec_func('base_do_unpack', d)
+}
+
 do_deploy(){
 	for DTS_FILE in ${DEVICETREE}; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
@@ -42,7 +67,7 @@ do_compile() {
 	for DTS_FILE in ${DEVICETREE}; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-			ln -sf ${WORKDIR}/devicetree/bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/bootargs.dtsi
+			ln -sf ${WORKDIR}/devicetree/${MACHINE}-bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/bootargs.dtsi
 			dtc -I dts -O dtb ${DEVICETREE_FLAGS} -o ${DTS_NAME}_${RLOC}.dtb ${DTS_FILE}
 		done
 	done
