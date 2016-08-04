@@ -70,6 +70,7 @@ do_compile() {
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
 			ln -sf ${WORKDIR}/devicetree/${MACHINE}-bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/bootargs.dtsi
 			dtc -I dts -O dtb ${DEVICETREE_FLAGS} -o ${DTS_NAME}_${RLOC}.dtb ${DTS_FILE}
+			rm ${WORKDIR}/devicetree/bootargs.dtsi
 		done
 	done
 }
