@@ -20,8 +20,6 @@ linux-elphel_srcrev= ""
 
 DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
 
-do_populate_sysroot[sstate-outputdirs] = "${STAGING_DIR_TARGET}-uapi/"
-
 # set output for Eclipse project setup parser:
 EXTRA_OEMAKE += "-s -w -B KCFLAGS='-v'"
 # or use a variable:
@@ -129,6 +127,7 @@ do_bundle_initramfs () {
 # Added ${PARALLEL_MAKE} only
 kernel_do_compile() {
 	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
+		
 	# The $use_alternate_initrd is only set from
 	# do_bundle_initramfs() This variable is specifically for the
 	# case where we are making a second pass at the kernel
@@ -153,3 +152,15 @@ kernel_do_compile() {
 		gzip -9c < "${KERNEL_IMAGETYPE_FOR_MAKE}" > "${KERNEL_OUTPUT}"
 	fi
 }
+
+do_install_append() {
+    echo "installing headers to ${WORKDIR}/headers"
+    make headers_install INSTALL_HDR_PATH="${WORKDIR}/headers"
+}
+
+#do_populate_sysroot[sstate-outputdirs] = "${STAGING_DIR_TARGET}-uapi/"
+
+sysroot_stage_all_append() {
+         sysroot_stage_dir ${WORKDIR}/headers/include ${STAGING_DIR_TARGET}/usr/include-uapi
+}
+
