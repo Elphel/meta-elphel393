@@ -31,11 +31,12 @@ RDEPENDS_${PN} = "udev"
 
 PACKAGES = "udev-rules"
 UDEV_RULES_DIR = "${sysconfdir}/udev/rules.d"
-FILES_${PN} += "${UDEV_RULES_DIR}/90-elphel-automount.rules"
+FILES_${PN} += " ${UDEV_RULES_DIR}/90-elphel-automount.rules /lib/udev/devices "
 
 do_install() {
         install -d ${D}${UDEV_RULES_DIR}
         install -m 644 ${WORKDIR}/90-elphel-automount.rules ${D}${UDEV_RULES_DIR}
-        #${WORKDIR}/static.sh
+        install -d ${D}${nonarch_base_libdir}/udev/devices
+        ${WORKDIR}/static.sh ${D}${nonarch_base_libdir}/udev/devices
 }
 
