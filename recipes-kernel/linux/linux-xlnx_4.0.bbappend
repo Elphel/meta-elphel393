@@ -164,3 +164,6 @@ sysroot_stage_all_append() {
          sysroot_stage_dir ${WORKDIR}/headers/include ${STAGING_DIR_TARGET}/usr/include-uapi
 }
 
+## And you'd then use -I=/usr/myheaders/include to reference the sysroot
+## copy of those headers.
+
