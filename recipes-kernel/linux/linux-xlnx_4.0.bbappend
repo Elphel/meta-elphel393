@@ -20,6 +20,8 @@ linux-elphel_srcrev= ""
 
 DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
 
+do_populate_sysroot[sstate-outputdirs] = "${STAGING_DIR_TARGET}-uapi/"
+
 # set output for Eclipse project setup parser:
 EXTRA_OEMAKE += "-s -w -B KCFLAGS='-v'"
 # or use a variable:
