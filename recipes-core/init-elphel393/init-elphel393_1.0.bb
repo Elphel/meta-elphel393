@@ -60,14 +60,14 @@ do_install_append() {
         if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
             mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
         fi
-        if [ -f ${S}init_elphel393.sh ]; then
-            if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh ]; then
-                rm ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
-            fi
-            cp ${S}init_elphel393.sh ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
-        else
-            echo "NOT 3 FOUND!"
-        fi
+        #if [ -f ${S}init_elphel393.sh ]; then
+        #    if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh ]; then
+        #        rm ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
+        #    fi
+        #    cp ${S}init_elphel393.sh ${DEPLOY_DIR_IMAGE}/${RLOC}/init_elphel393.sh
+        #else
+        #    echo "NOT 3 FOUND!"
+        #fi
     done
 }
 
