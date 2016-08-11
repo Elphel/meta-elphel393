@@ -9,9 +9,6 @@ do_unpack(){
     fi
 }
 
-do_configure[noexec] = "1"
-do_compile[noexec] = "1"
-
 do_install_append() {
         oe_runmake 'DESTDIR=${D}' install
 }
