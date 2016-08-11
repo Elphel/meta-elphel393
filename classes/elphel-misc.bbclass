@@ -32,3 +32,10 @@ def revision_update(path,file):
     res = str(int(res))
     res = res.strip(' \t\n\r')
     return res
+
+VFILE = "VERSION"
+PE = "${@version_update('${VPATH}','${VFILE}',0)}"
+PV = "${@version_update('${VPATH}','${VFILE}',1)}"
+PR = "${@version_update('${VPATH}','${VFILE}',2)}"
+
+FILESEXTRAPATHS_append := "${VPATH}:"
