@@ -21,6 +21,13 @@ EXTRA_OEMAKE = " \
                 STAGING_DIR_HOST=${STAGING_DIR_HOST} \
                 "
 
+do_compile_prepend() {
+    if [ ! -f Makefile ]; then
+        echo "Nothing to compile (missing a Makefile)"
+        exit 1
+    fi
+}
+                
 do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
 }
