@@ -7,6 +7,11 @@ do_unpack(){
         rm -rf ${S}
     fi
     ln -sf ${VPATH} ${S}
+    
+    if [ -d ${VPATH}/sysroots ]; then
+        rm -rf ${VPATH}/sysroots
+    fi
+    ln -sf ${TOPDIR}/tmp/sysroots ${VPATH}/sysroots
 }
 
 EXTRA_OEMAKE = " \
