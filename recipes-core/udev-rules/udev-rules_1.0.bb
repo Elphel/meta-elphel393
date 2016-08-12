@@ -11,6 +11,6 @@ VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-udev-rules"
 inherit elphel-dev
 
 do_configure[noexec] = "1"
-do_compile[noexec] = "1"
+#do_compile[noexec] = "1"
 
 FILES_${PN} += " /lib/udev/devices/* /etc/udev/rules.d/*"
