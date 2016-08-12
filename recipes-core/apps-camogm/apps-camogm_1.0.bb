@@ -4,36 +4,24 @@ DESCRIPTION = "Simple and fast HTTP server to send camera still images"
 AUTHOR = "Elphel Inc."
 HOMEPAGE = "http://www3.elphel.com/"
 
-PRIORITY = "optional"
 LICENSE = "GPLv3"
-LIC_FILES_CHKSUM = "file://LICENSE;beginline=21;endline=699;md5=ccd2fef7dee090f3b211c6677c3e34cc"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293b95dea7b07891"
 
-SRCDATE = "20160503"
+VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-camogm"
 
-PV = "${SRCDATE}"
-PR = "r0"
+inherit elphel-dev
 
-DEV_DIR ?= "${TOPDIR}/../../linux-elphel/linux/source"
-EXTRA_OEMAKE = "ELPHEL_KERNEL_DIR=${DEV_DIR}"
-
-APPS_DIR = "${TOPDIR}/../../rootfs-elphel"
-FILESEXTRAPATHS_append := "${APPS_DIR}/elphel-apps-camogm:"
-
-S = "${WORKDIR}"
-
-SRC_URI =  "file://.* \
-            file://LICENSE \
-           "
-
-FILES_${PN} += "${bindir}/camogm ${sysconfdir}/qt_source"
+do_configure[noexec] = "1"
 
 DEPENDS += "libogg"
 
-do_install() {
+do_install_append() {
         install -d ${D}${bindir}
         install -m 0755 ${S}/camogm ${D}${bindir}
         install -d ${D}${sysconfdir}
         install -m 0644 qt_source ${D}${sysconfdir}/
 }
+
+FILES_${PN} += "${bindir}/camogm ${sysconfdir}/qt_source"
 
 PACKAGES += " camogm"
