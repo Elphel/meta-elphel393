@@ -10,7 +10,11 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-imgsrv"
 
 inherit elphel-dev
-           
+
+#RDEPENDS_${PN} += "\
+#                    php \
+#                    "
+
 FILES_${PN} += "${bindir}/imgsrv \
                 www/pages/exif.php \
                 www/pages/start_gps_compass.php \
