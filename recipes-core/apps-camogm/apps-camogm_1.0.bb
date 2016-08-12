@@ -15,13 +15,6 @@ do_configure[noexec] = "1"
 
 DEPENDS += "libogg"
 
-do_install_append() {
-        install -d ${D}${bindir}
-        install -m 0755 ${S}/camogm ${D}${bindir}
-        install -d ${D}${sysconfdir}
-        install -m 0644 qt_source ${D}${sysconfdir}/
-}
-
 FILES_${PN} += "${bindir}/camogm ${sysconfdir}/qt_source"
 
 PACKAGES += " camogm"
