@@ -9,6 +9,13 @@ do_unpack(){
     fi
 }
 
+EXTRA_OEMAKE = " \
+                DESTDIR=${D} \
+                ELPHEL_KERNEL_DIR=${STAGING_KERNEL_DIR} \
+                STAGING_KERNEL_DIR=${STAGING_KERNEL_DIR} \
+                STAGING_DIR_HOST=${STAGING_DIR_HOST} \
+                "
+
 do_install_append() {
-        oe_runmake 'DESTDIR=${D}' install
+        oe_runmake ${EXTRA_OEMAKE} install
 }
