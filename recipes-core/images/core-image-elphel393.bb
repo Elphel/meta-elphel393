@@ -53,6 +53,7 @@ IMAGE_INSTALL_append += " \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
+                         web-393 \
                         "
                         
 # gstreamer1.0-plugins-base \ 

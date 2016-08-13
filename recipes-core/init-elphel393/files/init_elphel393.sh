@@ -13,9 +13,12 @@ CAMOGM_PIPE=/var/volatile/camogm_cmd
 # enable SATA, set this to 1 if camera is equipped with SSD drive
 SATA_EN=1
 
-ifconfig eth0 192.168.0.9
+#for andrey:
+ifconfig eth0 192.168.0.7
 
 PYDIR=/usr/local/bin
+
+exit 0
 
 #mkdir /tmp/local
 #cp -r /usr/local/bin $PYDIR
