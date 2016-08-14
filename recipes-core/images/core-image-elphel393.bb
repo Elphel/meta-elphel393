@@ -41,6 +41,8 @@ IMAGE_INSTALL_append += " \
                          apps-camogm \
                          apps-imgsrv \
                          apps-web \
+                         apps-autocampars \
+                         web-393 \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
@@ -53,7 +55,6 @@ IMAGE_INSTALL_append += " \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
-                         web-393 \
                         "
                         
 # gstreamer1.0-plugins-base \ 
