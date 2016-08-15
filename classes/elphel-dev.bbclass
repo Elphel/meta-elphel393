@@ -27,6 +27,7 @@ EXTRA_OEMAKE = " \
                 "
 
 do_compile_prepend() {
+    echo "SRCREV is ${SRCREV}"
     if [ ! -f Makefile ]; then
         echo "Nothing to compile (missing a Makefile)"
         exit 1

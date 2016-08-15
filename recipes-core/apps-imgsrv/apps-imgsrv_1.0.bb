@@ -23,4 +23,3 @@ FILES_${PN} += "${bindir}/imgsrv \
                 "
 
 PACKAGES += "imgsrv"
-
