@@ -1,6 +1,6 @@
 # developers version
 
-inherit elphel-misc
+inherit elphel-misc elphel-scp
 
 do_unpack(){
     if [ -d ${S} ]; then
@@ -24,6 +24,8 @@ EXTRA_OEMAKE = " \
                 ELPHEL_KERNEL_DIR=${STAGING_KERNEL_DIR} \
                 STAGING_KERNEL_DIR=${STAGING_KERNEL_DIR} \
                 STAGING_DIR_HOST=${STAGING_DIR_HOST} \
+                REMOTE_USER=${REMOTE_USER} \
+                REMOTE_IP=${REMOTE_IP} \
                 "
 
 do_compile_prepend() {
