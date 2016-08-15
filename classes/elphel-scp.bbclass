@@ -1,14 +1,16 @@
 # Adding support for scp files to the target (similar to install) ---
 
+IDENTITY_FILE ?= "-i ~/.ssh/id_rsa"
+
 do_target_scp () {
     SOURCE_PATH="${D}/*"
 #    echo "scp -pr ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/"
-    scp -pr ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/
+    scp -pr ${IDENTITY_FILE} ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/
 }
 
 addtask do_target_scp after do_install
 
-do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id TARGET_USER@TARGET_USER should be issued once)"
+do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
 
 EXPORT_FUNCTIONS do_target_scp
 

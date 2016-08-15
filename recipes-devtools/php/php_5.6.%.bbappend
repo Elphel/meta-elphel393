@@ -1,3 +1,4 @@
+inherit elphel-scp
 
 EXTRA_OECONF += "--enable-elphel"
 
