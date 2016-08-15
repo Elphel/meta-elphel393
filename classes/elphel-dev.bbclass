@@ -12,6 +12,11 @@ do_unpack(){
         rm -rf ${VPATH}/sysroots
     fi
     ln -sf ${TOPDIR}/tmp/sysroots ${VPATH}/sysroots
+    
+    if [ -d ${VPATH}/bitbake-logs ]; then
+        rm -rf ${VPATH}/bitbake-logs
+    fi
+    ln -sf ${WORKDIR}/temp ${VPATH}/bitbake-logs
 }
 
 EXTRA_OEMAKE = " \
