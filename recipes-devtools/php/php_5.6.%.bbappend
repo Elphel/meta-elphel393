@@ -1,6 +1,9 @@
 inherit elphel-scp
 
-EXTRA_OECONF += "--enable-elphel"
+EXTRA_OECONF += "\
+                --enable-elphel \
+                --with-readline=${STAGING_LIBDIR}/.. \
+                "
 
 DEV_DIR = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
 
