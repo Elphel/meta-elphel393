@@ -39,3 +39,6 @@ do_compile_prepend() {
 do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
 }
+
+#always start from compile
+do_compile[nostamp]="1"

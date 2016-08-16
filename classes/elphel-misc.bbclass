@@ -45,7 +45,4 @@ PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 
 SRCREV = "${AUTOREV}"
 
-#always start from compile
-#do_compile[nostamp]="1"
-
 FILESEXTRAPATHS_append := "${VPATH}:"
