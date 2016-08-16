@@ -40,5 +40,6 @@ do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
 }
 
-#always start from compile
+# Always start from compile
+# link1: http://www.crashcourse.ca/wiki/index.php/BitBake_task_flags
 do_compile[nostamp]="1"
