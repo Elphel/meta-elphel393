@@ -4,8 +4,8 @@ IDENTITY_FILE ?= "-i ~/.ssh/id_rsa"
 
 do_target_scp () {
     SOURCE_PATH="${D}/*"
-#    echo "scp -pr ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/"
-    scp -pr ${IDENTITY_FILE} ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/
+    #echo "scp ${IDENTITY_FILE} -pr ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/"
+    scp ${IDENTITY_FILE} -pr ${SOURCE_PATH} ${REMOTE_USER}@${REMOTE_IP}:/
 }
 
 addtask do_target_scp after do_install
