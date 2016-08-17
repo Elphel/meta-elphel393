@@ -19,11 +19,18 @@ do_unpack(){
     ln -sf ${WORKDIR}/temp ${VPATH}/bitbake-logs
 }
 
+ELPHEL393_USERADD = "eval ${FAKEROOTENV} PSEUDO_LOCALSTATEDIR=${STAGING_DIR_TARGET}${localstatedir}/pseudo ${STAGING_DIR_NATIVE}${bindir}/pseudo useradd --root ${STAGING_DIR_HOST}"
+ELPHEL393_INSTALL = "install"
+ELPHEL393_MKNOD = "mknod"
+
 EXTRA_OEMAKE = " \
+                INSTALL=${ELPHEL393_INSTALL} \
+                MKNOD=${ELPHEL393_MKNOD} \
                 DESTDIR=${D} \
                 ELPHEL_KERNEL_DIR=${STAGING_KERNEL_DIR} \
                 STAGING_KERNEL_DIR=${STAGING_KERNEL_DIR} \
                 STAGING_DIR_HOST=${STAGING_DIR_HOST} \
+                USERADD='${ELPHEL393_USERADD}' \
                 REMOTE_USER=${REMOTE_USER} \
                 REMOTE_IP=${REMOTE_IP} \
                 "
