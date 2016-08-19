@@ -11,9 +11,15 @@ VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-imgsrv"
 
 inherit elphel-dev
 
-#RDEPENDS_${PN} += "\
-#                    php \
-#                    "
+#inherit useradd
+#USERADD_PACKAGES = "${PN}"
+#USERADD_PARAM_${PN} = "--system --no-create-home --home-dir /var/www --shell /bin/sh --user-group www3"
+
+#USERADD = "$PSEUDO useradd"
+
+RDEPENDS_${PN} += "\
+                    php-cli \
+                    "
 
 FILES_${PN} += "${bindir}/imgsrv \
                 www/pages/exif.php \
@@ -23,3 +29,4 @@ FILES_${PN} += "${bindir}/imgsrv \
                 "
 
 PACKAGES += "imgsrv"
+
