@@ -38,6 +38,7 @@ IMAGE_INSTALL_append += " \
                          libsjs \
                          smartmontools \
                          libogg \
+                         libpng \
                          apps-camogm \
                          apps-imgsrv \
                          apps-web \
