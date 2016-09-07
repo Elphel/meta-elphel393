@@ -268,5 +268,27 @@
                                                    "pca9500_eeprom 0x50 1 1 100",
                                                    "cy22393 0x69 1 1 100";
     } ;
-	
+
+    framepars_operations: elphel393-framepars@0 {
+        compatible = "elphel,elphel393-framepars-1.00";
+    };
+    
+    histograms_operations: elphel393-histograms@0 {
+        compatible = "elphel,elphel393-histograms-1.00";
+    };
+
+    gamma_tables_operations: elphel393-gamma_tables@0 {
+        compatible = "elphel,elphel393-gamma_tables-1.00";
+    };
+
+    elphel393_mt9x001: elphel393-mt9x001@0 {
+        compatible = "elphel,elphel393-mt9x001-1.00";
+    };
+
+    klogger_393: klogger-393@0 {
+        compatible = "elphel,klogger-393-1.00";
+        klogger-393,buffer_size = <1048576>; 
+    } ;
+    
+    
 };

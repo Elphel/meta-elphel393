@@ -17,7 +17,14 @@ SATA_EN=1
 ifconfig eth0 192.168.0.7
 
 PYDIR=/usr/local/bin
-
+VERILOG_DIR=/usr/local/verilog
+$PYDIR/test_mcntrl.py @${VERILOG_DIR}/hargs
+echo imgsrv -p 2323
+imgsrv -p 2323
+#restart PHP - it can get errors while opening/mmaping at startup, then some functions fail
+killall lighttpd; /usr/sbin/lighttpd -f /etc/lighttpd.conf
+/www/pages/exif.php init=/etc/Exif_template.xml
+echo "/etc/init_elphel393.sh done"
 exit 0
 
 #mkdir /tmp/local
