@@ -44,6 +44,7 @@ IMAGE_INSTALL_append += " \
                          apps-web \
                          apps-autocampars \
                          web-393 \
+                         apps-histograms \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
