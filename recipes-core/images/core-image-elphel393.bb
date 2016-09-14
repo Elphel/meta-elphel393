@@ -33,6 +33,7 @@ IMAGE_INSTALL_append += " \
                          lighttpd-module-fastcgi \
                          lighttpd-module-cgi \
                          apache2 \
+                         perl \
                          php-cgi \
                          php-cli \
                          libsjs \
