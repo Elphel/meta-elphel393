@@ -27,6 +27,7 @@ IMAGE_INSTALL_append += " \
                          sntp \
                          ntpdate \
                          openssh \
+                         perl \
                          nano \
                          tree \
                          lighttpd \
