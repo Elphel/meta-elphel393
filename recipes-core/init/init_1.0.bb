@@ -16,7 +16,7 @@ do_configure[noexec] = "1"
 FILES_${PN} += " ${base_prefix}/etc/* ${base_prefix}/etc/init.d/*"
 
 INITSCRIPT_NAME = "init_elphel393"
-INITSCRIPT_PARAMS = "defaults 95"
+INITSCRIPT_PARAMS = "defaults 94"
 
 inherit update-rc.d
 
