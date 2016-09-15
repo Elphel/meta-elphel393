@@ -33,7 +33,7 @@ EXTRA_OEMAKE = " \
                 USERADD='${ELPHEL393_USERADD}' \
                 REMOTE_USER=${REMOTE_USER} \
                 REMOTE_IP=${REMOTE_IP} \
-                INITSTRING=${INITSTRING} \
+                INITSTRING='${INITSTRING}' \
                 "
 
 do_compile_prepend() {
