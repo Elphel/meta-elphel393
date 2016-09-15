@@ -43,6 +43,8 @@ IMAGE_INSTALL_append += " \
                          apps-imgsrv \
                          apps-web \
                          apps-autocampars \
+                         apps-autoexposure \
+                         apps-editconf \
                          web-393 \
                          apps-histograms \
                          web-camvc \
