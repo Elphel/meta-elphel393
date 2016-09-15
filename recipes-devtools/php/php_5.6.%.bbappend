@@ -4,17 +4,19 @@ EXTRA_OECONF += "--enable-elphel \
                 "
 
 
-DEV_DIR = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
+VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
 
 do_unpack_append(){
     print("Link everything to the main tree")
-    DEV_DIR = d.getVar('DEV_DIR', True)
+    VPATH = d.getVar('VPATH', True)
     S = d.getVar('S', True)
+    TOPDIR = d.getVar('TOPDIR', True)
+    WORKDIR = d.getVar('WORKDIR', True)
     
-    if os.path.isdir(DEV_DIR):
-        print("DEV_DIR exists - creating links...")        
-        devdir_abspath = os.path.abspath(DEV_DIR+"/src")
-        for path, folders, files in os.walk(DEV_DIR+"/src"):
+    if os.path.isdir(VPATH):
+        print("VPATH exists - creating links...")        
+        devdir_abspath = os.path.abspath(VPATH+"/src")
+        for path, folders, files in os.walk(VPATH+"/src"):
             folders[:]=[fd for fd in folders if fd != ".git"]
             for folder in folders:
                 folder_abspath = os.path.abspath(os.path.join(path, folder))
@@ -26,8 +28,17 @@ do_unpack_append(){
                 os.system("cd "+S+";ln -sf "+file_abspath+" "+file_relpath)
         #make a link back:
         
-        if not os.path.isdir(DEV_DIR+"/php"):
-            os.system("ln -sf "+S+" "+DEV_DIR+"/php")
+        if os.path.isdir(VPATH+"/php"):
+            os.system("rm -rf "+VPATH+"/php")
+        os.system("ln -sf "+S+" "+VPATH+"/php")
+            
+        if os.path.isdir(VPATH+"/sysroots"):
+            os.system("rm -rf "+VPATH+"/sysroots")
+        os.system("ln -sf "+TOPDIR+"/tmp/sysroots "+VPATH+"/sysroots")
+        
+        if os.path.isdir(VPATH+"/bitbake-logs"):
+            os.system("rm -rf "+VPATH+"/bitbake-logs")
+        os.system("ln -sf "+WORKDIR+"/temp "+VPATH+"/bitbake-logs")
 
 }
 
