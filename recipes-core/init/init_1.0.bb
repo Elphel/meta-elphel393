@@ -19,3 +19,5 @@ INITSCRIPT_NAME = "init_elphel393"
 INITSCRIPT_PARAMS = "defaults 95"
 
 inherit update-rc.d
+
+INITSTRING ??= "init_elphel393.sh"
