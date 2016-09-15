@@ -34,9 +34,6 @@ EXTRA_OEMAKE = " \
                 REMOTE_USER=${REMOTE_USER} \
                 REMOTE_IP=${REMOTE_IP} \
                 "
-do_install_append() {
-        oe_runmake ${EXTRA_OEMAKE} install
-}
 
 do_compile_prepend() {
     echo "SRCREV is ${SRCREV}"
