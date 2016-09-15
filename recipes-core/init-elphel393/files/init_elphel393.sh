@@ -40,6 +40,13 @@ echo "start white balance daemon"
 
 wget -qO- "localhost/parsedit.php?immediate&COMPRESSOR_RUN=2&DAEMON_EN=1&WB_EN=0x1&WB_MASK=0xd&WB_PERIOD=16&WB_WHITELEV=0xfae1&WB_WHITEFRAC=0x028f&WB_SCALE_R=0x10000&WB_SCALE_GB=0x10000&WB_SCALE_B=0x10000&WB_THRESH=500&GAIN_MIN=0x18000&GAIN_MAX=0xfc000&ANA_GAIN_ENABLE=1&GAINR=0x10000&GAING=0x10000&GAINGB=0x10000&GAINB=0x10000" > /dev/null 2>&1
 
+if [ $SATA_EN -eq 1 ]; then
+    $PYDIR/x393sata.py
+    modprobe ahci_elphel &
+    sleep 2
+    echo 1 > /sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module
+fi
+
 echo "/etc/init_elphel393.sh done"
 exit 0
 
@@ -151,13 +158,6 @@ if [ -f /usr/bin/imgsrv ]; then
 fi
 if [ -f /usr/bin/camogm ]; then
 	camogm -n $CAMOGM_PIPE -p $CAMOGM_PORT &
-fi
-
-if [ $SATA_EN -eq 1 ]; then
-    $PYDIR/x393sata.py
-    modprobe ahci_elphel &
-    sleep 2
-    echo 1 > /sys/devices/soc0/amba@0/80000000.elphel-ahci/load_module
 fi
 
 sync
