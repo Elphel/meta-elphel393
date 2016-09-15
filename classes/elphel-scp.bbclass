@@ -1,14 +1,16 @@
 # Adding support for scp files to the target (similar to install) ---
 
-IDENTITY_FILE ?= "-i ~/.ssh/id_rsa"
+IDENTITY_FILE ??= "~/.ssh/id_rsa"
 
 do_target_scp () {
     #Without next echo - no trace of the scp in the log!
+    SSH_COMMAND='tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'
     tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
-    echo scp ${IDENTITY_FILE} -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
-    scp ${IDENTITY_FILE} -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
-    echo ssh ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
-    ssh ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
+    echo scp -i ${IDENTITY_FILE} -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
+    scp -i ${IDENTITY_FILE} -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
+    echo ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
+    ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
+    
 }
 
 addtask do_target_scp after do_install

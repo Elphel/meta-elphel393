@@ -3,7 +3,8 @@
 #ifconfig eth0 hw ether 00:0e:64:10:00:02 192.168.0.7
 
 # select sensor type: 5 Mpx (set 5) or 14 Mpx (set 14)
-SENSOR_TYPE=14
+# 14MPix does not work with framepars & parsedit!!!
+SENSOR_TYPE=5
 # imgsrv port number 
 IMGSRV_PORT=2323
 # camogm port number
@@ -14,7 +15,7 @@ CAMOGM_PIPE=/var/volatile/camogm_cmd
 SATA_EN=1
 
 #for andrey:
-ifconfig eth0 192.168.0.7
+ifconfig eth0 192.168.0.9
 
 PYDIR=/usr/local/bin
 VERILOG_DIR=/usr/local/verilog
@@ -24,6 +25,21 @@ imgsrv -p 2323
 #restart PHP - it can get errors while opening/mmaping at startup, then some functions fail
 killall lighttpd; /usr/sbin/lighttpd -f /etc/lighttpd.conf
 /www/pages/exif.php init=/etc/Exif_template.xml
+
+echo "init sensor port"
+
+wget -qO- "localhost/framepars.php?sensor_port=0&cmd=init" > /dev/null 2>&1
+
+autoexposure -p 0 -c 0 -b 0 -d 1  >> /dev/null 2>&1 &
+
+echo "start autoexposure daemon"
+
+wget -qO- "localhost/parsedit.php?immediate&COMPRESSOR_RUN=2&DAEMON_EN=1&AUTOEXP_ON=1&AEXP_FRACPIX=0xff80&AEXP_LEVEL=0xf800&AE_PERIOD=4&AE_THRESH=500&HIST_DIM_01=0x0a000a00&HIST_DIM_23=0x0a000a00&EXP_AHEAD=3" > /dev/null 2>&1
+
+echo "start white balance daemon"
+
+wget -qO- "localhost/parsedit.php?immediate&COMPRESSOR_RUN=2&DAEMON_EN=1&WB_EN=0x1&WB_MASK=0xd&WB_PERIOD=16&WB_WHITELEV=0xfae1&WB_WHITEFRAC=0x028f&WB_SCALE_R=0x10000&WB_SCALE_GB=0x10000&WB_SCALE_B=0x10000&WB_THRESH=500&GAIN_MIN=0x18000&GAIN_MAX=0xfc000&ANA_GAIN_ENABLE=1&GAINR=0x10000&GAING=0x10000&GAINGB=0x10000&GAINB=0x10000" > /dev/null 2>&1
+
 echo "/etc/init_elphel393.sh done"
 exit 0
 
