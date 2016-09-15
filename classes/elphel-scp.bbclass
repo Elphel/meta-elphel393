@@ -1,5 +1,7 @@
 # Adding support for scp files to the target (similar to install) ---
 
+REMOTE_USER ??= "root"
+REMOTE_IP ??= "192.168.0.9"
 IDENTITY_FILE ??= "~/.ssh/id_rsa"
 
 do_target_scp () {
