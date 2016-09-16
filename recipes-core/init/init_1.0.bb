@@ -8,6 +8,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-init"
 
+INITSTRING ??= "init_elphel393.sh"
+
 inherit elphel-dev
 
 do_configure[noexec] = "1"
@@ -19,5 +21,3 @@ INITSCRIPT_NAME = "init_elphel393"
 INITSCRIPT_PARAMS = "defaults 94"
 
 inherit update-rc.d
-
-INITSTRING ??= "init_elphel393.sh"
