@@ -15,9 +15,19 @@ inherit elphel-dev
 do_configure[noexec] = "1"
 #do_compile[noexec] = "1"
 
-FILES_${PN} += " ${base_prefix}/etc/* ${base_prefix}/etc/init.d/*"
+FILES_${PN} += " ${base_prefix}/etc/* ${base_prefix}/etc/init.d/* ${base_prefix}/usr/* ${base_prefix}/www/pages/*"
 
 INITSCRIPT_NAME = "init_elphel393"
 INITSCRIPT_PARAMS = "defaults 94"
 
 inherit update-rc.d
+
+RDEPENDS_${PN} += "python-core"
+do_install_append() {
+	if [ -f ${TOPDIR}/../../fpga-elphel/x393/install.sh ]; then
+		${TOPDIR}/../../fpga-elphel/x393/install.sh ${D}
+	fi
+	if [ -f ${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ]; then
+		${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ${D}
+	fi
+}

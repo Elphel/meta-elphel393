@@ -56,7 +56,6 @@ IMAGE_INSTALL_append += " \
                          init \
                          overlay-sync \
                          init-tempmon \
-                         ahci-blacklist \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
