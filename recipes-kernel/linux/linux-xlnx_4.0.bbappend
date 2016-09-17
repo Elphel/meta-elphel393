@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_append := "${THISDIR}/linux-xlnx:"
+FILESEXTRAPATHS_append := "${TOPDIR}/../../linux-elphel/src/patches:"
 FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 
 SRC_URI_append += " file://xilinx_emacps.c.patch"
@@ -168,4 +168,3 @@ sysroot_stage_all_append() {
 
 ## And you'd then use -I=/usr/myheaders/include to reference the sysroot
 ## copy of those headers.
-
