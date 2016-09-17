@@ -1,5 +1,17 @@
 # add dtsi's
-SRC_URI += "file://*.dtsi"
+
+FILESEXTRAPATHS_append := "${TOPDIR}/../../linux-elphel/src/arch/arm/boot/dts:"
+
+SRC_URI += "file://elphel393.dts \
+            file://elphel393-zynq-base.dtsi \
+            file://elphel393-bootargs-mmc.dtsi \
+            file://elphel393-bootargs-nand.dtsi \
+            file://elphel393-bootargs-ram.dtsi \
+            "
+
+MACHINE_DEVICETREE := "\
+                       elphel393.dts \
+                      "
 
 do_deploy(){
 	for DTS_FILE in ${DEVICETREE}; do
@@ -42,7 +54,7 @@ do_compile() {
 	for DTS_FILE in ${DEVICETREE}; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-			ln -sf ${WORKDIR}/devicetree/bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/bootargs.dtsi
+			ln -sf ${WORKDIR}/devicetree/elphel393-bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/elphel393-bootargs.dtsi
 			dtc -I dts -O dtb ${DEVICETREE_FLAGS} -o ${DTS_NAME}_${RLOC}.dtb ${DTS_FILE}
 		done
 	done
