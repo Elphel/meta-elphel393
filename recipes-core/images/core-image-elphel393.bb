@@ -42,12 +42,12 @@ IMAGE_INSTALL_append += " \
                          libpng \
                          apps-camogm \
                          apps-imgsrv \
-                         apps-web \
                          apps-autocampars \
                          apps-autoexposure \
-                         web-393 \
                          apps-histograms \
+                         web-393 \
                          web-camvc \
+                         web-hwmon \
                          iw \
                          wpa-supplicant \
                          dhcp-client \
