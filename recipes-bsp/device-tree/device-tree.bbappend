@@ -78,12 +78,11 @@ do_install() {
 REMOTE_USER ??= "root"
 IDENTITY_FILE ??= "~/.ssh/id_rsa"
 REMOTE_IP ??= "192.168.0.9"
-REMOTE_PATH ??= "/mnt/mmc"
 
 do_target_scp () {
     # mmc device tree only
-    echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${MACHINE}_mmc.dtb ${REMOTE_USER}@${REMOTE_IP}:${REMOTE_PATH}/devicetree.dtb"
-    scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${MACHINE}_mmc.dtb ${REMOTE_USER}@${REMOTE_IP}:${REMOTE_PATH}/devicetree.dtb
+    echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${MACHINE}_mmc.dtb ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/devicetree.dtb"
+    scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${MACHINE}_mmc.dtb ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/devicetree.dtb
 }
 
 addtask do_target_scp after do_deploy
