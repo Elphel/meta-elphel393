@@ -168,3 +168,19 @@ sysroot_stage_all_append() {
 
 ## And you'd then use -I=/usr/myheaders/include to reference the sysroot
 ## copy of those headers.
+
+REMOTE_USER ??= "root"
+IDENTITY_FILE ??= "~/.ssh/id_rsa"
+REMOTE_IP ??= "192.168.0.9"
+REMOTE_PATH ??= "/mnt/mmc"
+
+do_target_scp () {
+    echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:${REMOTE_PATH}/${PRODUCTION_KERNEL}"
+    scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:${REMOTE_PATH}/${PRODUCTION_KERNEL}
+}
+
+addtask do_target_scp after do_deploy
+
+do_target_scp[doc] = "scp copied the kernel to REMOTE_PATH on the target. REMOTE_USER and REMOTE_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
+
+
