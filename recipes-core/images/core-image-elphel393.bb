@@ -88,7 +88,7 @@ IMAGE_ROOTFS_SIZE = "262144"
 
 #IMAGE_FSTYPES = "ext2.gz ext2.gz.u-boot tar.gz"
 #IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
-IMAGE_FSTYPES = "tar.gz ubi"
+IMAGE_FSTYPES = "tar.gz ubi ext4"
 
 ########################################################################
 ########################################################################
