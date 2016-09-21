@@ -176,6 +176,7 @@ REMOTE_IP ??= "192.168.0.9"
 do_target_scp () {
     echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}"
     scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}
+    ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} sync
 }
 
 addtask do_target_scp after do_deploy
