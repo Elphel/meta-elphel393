@@ -32,6 +32,7 @@ FILES_${PN} += "${bindir}/camogm \
                 www/pages/images/reload.png \
                 www/pages/images/stop.gif \
                 www/pages/images/up_folder.gif \
+                www/pages/images/hdd.png \
                 www/pages/camogm_interface.php \
                 www/pages/camogmgui.css \
                 www/pages/camogmgui.js \
