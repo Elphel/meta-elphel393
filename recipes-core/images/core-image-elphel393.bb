@@ -45,6 +45,7 @@ IMAGE_INSTALL_append += " \
                          apps-autocampars \
                          apps-autoexposure \
                          apps-histograms \
+                         apps-tempmon \
                          web-393 \
                          web-camvc \
                          web-hwmon \
@@ -55,7 +56,6 @@ IMAGE_INSTALL_append += " \
                          linux-firmware-rtl8192cu \
                          init \
                          overlay-sync \
-                         init-tempmon \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
