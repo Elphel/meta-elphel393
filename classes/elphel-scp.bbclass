@@ -16,21 +16,21 @@ IDENTITY_FILE ??= "~/.ssh/id_rsa"
 
 python do_target_scp () {
     import subprocess
-    
+
     WORKDIR = d.getVar('WORKDIR', True)
     IDENTITY_FILE = d.getVar('IDENTITY_FILE', True)
     REMOTE_USER = d.getVar('REMOTE_USER', True)
     REMOTE_IP = d.getVar('REMOTE_IP', True)
-    
+
     cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
     subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    
+
     cmd = "ping "+REMOTE_IP+" -c 1"
     try:
         subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
     except subprocess.CalledProcessError:
         raise Exception("No route to target "+REMOTE_IP)
-    
+
     cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
     try:
         subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
