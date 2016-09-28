@@ -17,6 +17,11 @@ do_unpack(){
         rm -rf ${VPATH}/bitbake-logs
     fi
     ln -sf ${WORKDIR}/temp ${VPATH}/bitbake-logs
+    
+    if [ -d ${VPATH}/image ]; then
+        rm -rf ${VPATH}/image
+    fi
+    ln -sf ${WORKDIR}/image ${VPATH}/image
 }
 
 ELPHEL393_USERADD = "eval ${FAKEROOTENV} PSEUDO_LOCALSTATEDIR=${STAGING_DIR_TARGET}${localstatedir}/pseudo ${STAGING_DIR_NATIVE}${bindir}/pseudo useradd --root ${STAGING_DIR_HOST}"
