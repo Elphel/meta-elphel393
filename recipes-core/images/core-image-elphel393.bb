@@ -44,6 +44,7 @@ IMAGE_INSTALL_append += " \
                          apps-imgsrv \
                          apps-autocampars \
                          apps-autoexposure \
+                         apps-editconf \
                          apps-histograms \
                          apps-tempmon \
                          web-393 \
@@ -59,6 +60,9 @@ IMAGE_INSTALL_append += " \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
+                         fpga-x393 \
+                         fpga-x393sata \
+                         fpga-x359 \
                         "
                         
 # gstreamer1.0-plugins-base \ 
