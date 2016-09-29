@@ -23,11 +23,3 @@ INITSCRIPT_PARAMS = "defaults 94"
 inherit update-rc.d
 
 RDEPENDS_${PN} += "python-core"
-do_install_append() {
-	if [ -f ${TOPDIR}/../../fpga-elphel/x393/install.sh ]; then
-		${TOPDIR}/../../fpga-elphel/x393/install.sh ${D}
-	fi
-	if [ -f ${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ]; then
-		${TOPDIR}/../../fpga-elphel/x393_sata/install.sh ${D}
-	fi
-}

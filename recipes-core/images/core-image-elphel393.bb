@@ -44,7 +44,9 @@ IMAGE_INSTALL_append += " \
                          apps-imgsrv \
                          apps-autocampars \
                          apps-autoexposure \
+                         apps-editconf \
                          apps-histograms \
+                         apps-tempmon \
                          web-393 \
                          web-camvc \
                          web-hwmon \
@@ -55,10 +57,12 @@ IMAGE_INSTALL_append += " \
                          linux-firmware-rtl8192cu \
                          init \
                          overlay-sync \
-                         init-tempmon \
                          udev-rules \
                          e2fsprogs \
                          gstreamer1.0 \
+                         fpga-x393 \
+                         fpga-x393sata \
+                         fpga-x359 \
                         "
                         
 # gstreamer1.0-plugins-base \ 
@@ -88,7 +92,7 @@ IMAGE_ROOTFS_SIZE = "262144"
 
 #IMAGE_FSTYPES = "ext2.gz ext2.gz.u-boot tar.gz"
 #IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
-IMAGE_FSTYPES = "tar.gz ubi"
+IMAGE_FSTYPES = "tar.gz ubi ext4"
 
 ########################################################################
 ########################################################################

@@ -2,16 +2,14 @@
 
 FILESEXTRAPATHS_append := "${TOPDIR}/../../linux-elphel/src/arch/arm/boot/dts:"
 
-SRC_URI += "file://elphel393.dts \
+MACHINE_DEVICETREE ?= "elphel393.dts"
+
+SRC_URI += "file://${MACHINE_DEVICETREE} \
             file://elphel393-zynq-base.dtsi \
             file://elphel393-bootargs-mmc.dtsi \
             file://elphel393-bootargs-nand.dtsi \
             file://elphel393-bootargs-ram.dtsi \
             "
-
-MACHINE_DEVICETREE := "\
-                       elphel393.dts \
-                      "
 
 do_deploy(){
 	for DTS_FILE in ${DEVICETREE}; do
@@ -33,7 +31,7 @@ do_deploy(){
 				rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
 			fi
 			
-			cp ${DEPLOY_DIR_IMAGE}/${MACHINE}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
+			cp ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
 		done
 	done
 }
@@ -74,3 +72,18 @@ do_install() {
 		done
 	done
 }
+
+REMOTE_USER ??= "root"
+IDENTITY_FILE ??= "~/.ssh/id_rsa"
+REMOTE_IP ??= "192.168.0.9"
+
+do_target_scp () {
+    # mmc device tree only
+    echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/devicetree.dtb ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc"
+    scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/devicetree.dtb ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc
+    ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} sync
+}
+
+addtask do_target_scp after do_deploy
+
+do_target_scp[doc] = "scp copied device tree to REMOTE_PATH on the target. REMOTE_USER and REMOTE_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
