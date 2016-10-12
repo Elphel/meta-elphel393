@@ -7,6 +7,7 @@ SRC_URI_append += " file://si5338_vsc330x.patch"
 SRC_URI_append += " file://drivers-elphel.patch"
 SRC_URI_append += " file://ahci.patch"
 SRC_URI_append += " file://libahci.patch"
+SRC_URI_append += " file://libata-eh.c.patch"
 
 SRC_URI_append += " file://${MACHINE}.scc"
 KERNEL_FEATURES_append = " ${MACHINE}.scc"
