@@ -47,6 +47,7 @@ IMAGE_INSTALL_append += " \
                          apps-editconf \
                          apps-histograms \
                          apps-tempmon \
+                         apps-gps \
                          web-393 \
                          web-camvc \
                          web-hwmon \
