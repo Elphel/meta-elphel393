@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = "u-boot-ezynq"
 IMAGE_INSTALL_append += " \ 
                          sudo \
                          gcc \
+                         coreutils \
                          python-core \
                          python-numpy \
                          python-argparse \
