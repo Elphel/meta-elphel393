@@ -37,7 +37,7 @@ python do_target_scp () {
     except subprocess.CalledProcessError:
         raise Exception("Copying to target requires access by public key. Run: ssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP)
 
-    cmd = "ssh -i "+IDENTITY_FILE+" "+REMOTE_USER+"@"+REMOTE_IP+" tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync"
+    cmd = "ssh -i "+IDENTITY_FILE+" "+REMOTE_USER+"@"+REMOTE_IP+" 'tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'"
     subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
 }
 
