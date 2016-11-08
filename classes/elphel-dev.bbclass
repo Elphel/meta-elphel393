@@ -40,6 +40,8 @@ EXTRA_OEMAKE = " \
                 USERADD='${ELPHEL393_USERADD}' \
                 REMOTE_USER=${REMOTE_USER} \
                 REMOTE_IP=${REMOTE_IP} \
+                SRCREV=${SRCREV} \
+                VERSION='${PE}.${PV}.${PR}' \
                 INITSTRING='${INITSTRING}' \
                 "
 
