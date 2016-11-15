@@ -13,4 +13,4 @@ inherit elphel-dev
 do_configure[noexec] = "1"
 #do_compile[noexec] = "1"
 RDEPENDS_${PN} += "python-core"
-FILES_${PN} += " ${base_prefix}/usr/local/verilog/* ${base_prefix}/usr/local/bin/*"
+FILES_${PN} += " ${base_prefix}/usr/local/verilog/* ${base_prefix}/usr/local/bin/* ${base_prefix}/www/pages/*"
