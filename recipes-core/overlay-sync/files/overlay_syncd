@@ -12,8 +12,10 @@ case "$1" in
   stop)
 	echo -n "Stopping $DESC: "
 	echo "$NAME."
-	if [ -f /tmp/overlay ]; then 
-            rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+	if [ -f /tmp/overlay_sync ]; then 
+            if [ -d /tmp/rootfs.ro ]; then
+              rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+            fi
 	fi
 	;;
   restart)
@@ -29,8 +31,10 @@ case "$1" in
 	fi
 	;;
   sync)
-        if [ -f /tmp/overlay ]; then 
-            rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+        if [ -f /tmp/overlay_sync ]; then 
+            if [ -d /tmp/rootfs.ro ]; then
+              rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+            fi
         fi
   ;;
   *)
