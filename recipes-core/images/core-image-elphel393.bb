@@ -62,6 +62,7 @@ IMAGE_INSTALL_append += " \
                          overlay-sync \
                          udev-rules \
                          e2fsprogs \
+                         dosfstools \
                          gstreamer1.0 \
                          fpga-x393 \
                          fpga-x393sata \
@@ -122,6 +123,7 @@ MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
 UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
 
 create_symlinks_append(){
+
     rlocs = (d.getVar('PRODUCTION_ROOT_LOCATION', True)).split()
     for rloc in rlocs:
         if not os.path.isdir("${DEPLOY_DIR_IMAGE}/"+rloc):
