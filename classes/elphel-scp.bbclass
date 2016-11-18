@@ -21,7 +21,11 @@ python do_target_scp () {
     IDENTITY_FILE = d.getVar('IDENTITY_FILE', True)
     REMOTE_USER = d.getVar('REMOTE_USER', True)
     REMOTE_IP = d.getVar('REMOTE_IP', True)
+    COPY_TO_NAND = d.getVar('COPY_TO_NAND', True)
 
+    MMC2 = "/dev/mmcblk0p2"
+    MMC2MNT = "/mnt/mmc2"
+    
     cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
     subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
 
@@ -31,16 +35,80 @@ python do_target_scp () {
     except subprocess.CalledProcessError:
         raise Exception("No route to target "+REMOTE_IP)
 
-    cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
-    try:
-        subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    except subprocess.CalledProcessError:
-        raise Exception("Copying to target requires access by public key. Run: ssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP)
+    nandboot = command_over_ssh(d,"'if [ -d /tmp/rootfs.ro ]; then echo 1; else echo 0;fi'")
+    
+    if COPY_TO_NAND=='1':
+    
+        print("Copy to NAND")
+          
+        if nandboot=="1":
+            #copy archive
+            cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+            subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+            #unpack archive to /
+            command_over_ssh(d,"'tar -C / -xzpf /image.tar.gz; sync'")
+            #unpack archive to /tmp/rootfs.ro
+            command_over_ssh(d,"'tar -C /tmp/rootfs.ro/ -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
+        else:
+            raise Exception("\033[1;37mPlease, reboot from NAND\033[0m")
+    else:
+        
+        if nandboot=="1":
+        
+            print("Copy to MMC while booted from NAND")
+        
+            mmc2 = command_over_ssh(d,"'if [ -b "+MMC2+" ]; then echo 1; else echo 0;fi'")
+            if mmc2=="1":
+                # nobody likes empty output
+                mmc2_mnt = command_over_ssh(d,"'TEST=`df -h | grep "+MMC2+"`;echo \"0\"$TEST'")
+                
+                if mmc2_mnt!="0":
+                  tmp = mmc2_mnt.split()
+                  mountpoint = tmp[5]
+                  print("MMC rootfs partition is already mounted on "+str(mountpoint))
+                else:
+                  command_over_ssh(d,"'mkdir "+MMC2MNT+"; mount "+MMC2+" "+MMC2MNT+"'")
+                  mountpoint = MMC2MNT
+                  print("Created and mounted "+MMC2+" to "+mountpoint)
+                                
+                #copy archive
+                print("Copy archive")
+                cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+                subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+                
+                #unpack archive to mountpoint
+                print("Unpack archive then delete")
+                command_over_ssh(d,"'tar -C "+mountpoint+" -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
+                
+            else:
+                raise Exception("\033[1;37mMMC rootfs partition "+MMC2+" not found.\033[0m")
+            
+        else:
+        
+            print("Copy to MMC while booted from MMC")
+        
+            #copy archive
+            cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+            subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+            
+            #unpack archive to /
+            command_over_ssh(d,"'tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
 
-    cmd = "ssh -i "+IDENTITY_FILE+" "+REMOTE_USER+"@"+REMOTE_IP+" 'tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'"
-    subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
 }
 
+def command_over_ssh(d,command):
+    import subprocess
+    user = d.getVar('REMOTE_USER', True)
+    id = d.getVar('IDENTITY_FILE', True)
+    ip = d.getVar('REMOTE_IP', True)
+    cmd = "ssh -i "+id+" "+user+"@"+ip+" "+command
+    try:
+        ret = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError:
+        raise Exception("Copying to target requires access by public key. Run: \033[1;37mssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP+"\033[0m")
+        
+    return ret.strip()
+  
 addtask do_target_scp after do_install
 
 do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
