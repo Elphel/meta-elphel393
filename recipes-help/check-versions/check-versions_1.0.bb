@@ -51,7 +51,7 @@ python do_run(){
     
     tmp_list = tmp_str.split()
     for elem in tmp_list:
-      remote_list.append(elem.split("-"))
+      remote_list.append([elem,command_over_ssh(d,"'cat "+pdir+"/"+elem+"'")])
       
   else:
     raise Exception("\033[1;37m"+user+"@"+ip+":"+pdir+": No such file or directory\033[0m")
@@ -71,7 +71,11 @@ python do_run(){
           if (os.path.isdir(tmp_path+"/"+imagedir+pdir)):
             for root,dir,files in os.walk(tmp_path+"/"+imagedir+pdir):
               for name in files:
-                built_pv = name.split("-")
+              
+                with open(tmp_path+"/"+imagedir+pdir+"/"+name, 'r') as content_file:
+                  built_v = content_file.read()
+              
+                built_pv = [name,built_v.strip()]
                 #get source version
                 tmp_v = version_update(tmp_path,"VERSION",0)+"."+version_update(tmp_path,"VERSION",1)+"."+version_update(tmp_path,"VERSION",2)
                 source_pv = [built_pv[0],tmp_v]
@@ -85,9 +89,9 @@ python do_run(){
                   if remote_pv[0]==built_pv[0]:
                     print("Names match")
                     if remote_pv[1]==built_pv[1]:
-                      print("    versions match: "+name)
+                      print("    versions match: "+remote_pv[1])
                     else:
-                      bb.warn("project "+k+": package versions do not match, local: "+name+" vs remote: "+remote_pv[0]+"-"+remote_pv[1])
+                      bb.warn("project "+k+": package versions do not match, local: "+built_pv[1]+" vs remote: "+remote_pv[1])
           else:
             bb.warn("project "+k+" is not built or too old")
             #raise Exception("\033[1;37mproject is not built\033[0m")
