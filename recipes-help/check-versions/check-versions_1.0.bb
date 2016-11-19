@@ -71,14 +71,23 @@ python do_run(){
           if (os.path.isdir(tmp_path+"/"+imagedir+pdir)):
             for root,dir,files in os.walk(tmp_path+"/"+imagedir+pdir):
               for name in files:
-                tmp_name = name.split("-")
-                for elem in remote_list:
-                  if elem[0]==tmp_name[0]:
+                built_pv = name.split("-")
+                #get source version
+                tmp_v = version_update(tmp_path,"VERSION",0)+"."+version_update(tmp_path,"VERSION",1)+"."+version_update(tmp_path,"VERSION",2)
+                source_pv = [built_pv[0],tmp_v]
+                
+                if built_pv[1]==source_pv[1]:
+                  print("Source version matches built version")
+                else:
+                  bb.warn("project "+k+": source and built versions do not match: source="+source_pv[1]+" vs built="+built_pv[1])
+                
+                for remote_pv in remote_list:
+                  if remote_pv[0]==built_pv[0]:
                     print("Names match")
-                    if elem[1]==tmp_name[1]:
+                    if remote_pv[1]==built_pv[1]:
                       print("    versions match: "+name)
                     else:
-                      bb.warn("project "+k+": package versions do not match, local: "+name+" vs remote: "+elem[0]+"-"+elem[1])
+                      bb.warn("project "+k+": package versions do not match, local: "+name+" vs remote: "+remote_pv[0]+"-"+remote_pv[1])
           else:
             bb.warn("project "+k+" is not built or too old")
             #raise Exception("\033[1;37mproject is not built\033[0m")
@@ -89,6 +98,38 @@ python do_run(){
 }
 
 addtask do_run before do_build
+
+def version_update(path,file,evr):
+    import os.path
+    if not os.path.exists(path+'/'+file):
+        return 0
+        
+    f=open(path+'/'+file)
+    for line in f:
+        line = line.strip()
+        if (line[0]!="#"):
+            break
+    arr = line.split('.')
+    try:
+        arr[evr]
+    except IndexError:
+        if (evr==1): res = 0
+        if (evr==2): res = revision_update(path,file)
+    else:
+        res = arr[evr]
+    f.close()
+    return res
+
+def revision_update(path,file):
+    import subprocess
+    cmd = "cd "+path+"; git rev-list --count $(git log -1 --pretty=format:\"%H\" "+file+")..HEAD"
+    try:
+        res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError as e:
+        res = "error_"+e.returncode
+    res = str(int(res))
+    res = res.strip(' \t\n\r')
+    return res
 
 def command_over_ssh(d,command):
     import subprocess
