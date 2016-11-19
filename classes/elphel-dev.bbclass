@@ -56,7 +56,7 @@ do_compile_prepend() {
 do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
         install -d ${D}/etc/elphel393/packages
-        touch ${D}/etc/elphel393/packages/${BPN}-${PE}.${PV}.${PR}
+        echo "${PE}.${PV}.${PR}" > ${D}/etc/elphel393/packages/${BPN}
 }
 
 # Always start from compile
