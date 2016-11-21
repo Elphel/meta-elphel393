@@ -1,5 +1,6 @@
 
 EXTRA_OECONF += "--enable-elphel \
+                --with-curl=${STAGING_LIBDIR}/.. \
                 --with-readline=${STAGING_LIBDIR}/.. \
                 "
 

@@ -42,6 +42,7 @@ IMAGE_INSTALL_append += " \
                          smartmontools \
                          libogg \
                          libpng \
+                         libcurl \
                          apps-camogm \
                          apps-imgsrv \
                          apps-autocampars \
