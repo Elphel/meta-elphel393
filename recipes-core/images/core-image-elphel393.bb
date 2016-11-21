@@ -40,9 +40,6 @@ IMAGE_INSTALL_append += " \
                          php-cli \
                          libsjs \
                          smartmontools \
-                         libogg \
-                         libpng \
-                         libcurl \
                          apps-camogm \
                          apps-imgsrv \
                          apps-autocampars \

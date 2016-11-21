@@ -16,4 +16,4 @@ do_configure[noexec] = "1"
 FILES_${PN} += " ${base_prefix}/www/pages/* ${base_prefix}/etc/elphel393/* ${base_prefix}/usr/bin/*"
 
 DEPENDS += "libpng"
-RDEPENDS_${PN} += "libpng"
+#RDEPENDS_${PN} += "libpng"

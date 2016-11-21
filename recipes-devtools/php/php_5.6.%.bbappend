@@ -4,6 +4,7 @@ EXTRA_OECONF += "--enable-elphel \
                 --with-readline=${STAGING_LIBDIR}/.. \
                 "
 
+DEPENDS += " curl"
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
 
