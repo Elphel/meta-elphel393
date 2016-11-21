@@ -20,6 +20,11 @@ deltask do_rm_work
 
 inherit nopackages
 
+inherit elphel-ssh elphel-misc
+PE = "1"
+PV = "0"
+PR = "0"
+
 INHIBIT_DEFAULT_DEPS = "1"
 DEPENDS = ""
 PACKAGES = ""
@@ -27,13 +32,13 @@ PACKAGES = ""
 python do_run(){
 
   user = d.getVar('REMOTE_USER', True) 
-  ip = d.getVar('REMOTE_IP', True)
+  ip   = d.getVar('REMOTE_IP', True)
+
+  # all hardcoded
   pdir = "/etc/elphel393/packages"
-  
   localpdir = "rootfs-elphel"
   imagedir = "image"
   topdir = d.getVar('TOPDIR', True)+"/../../"
-
   projects_list = topdir+"projects.json"
   
   print("Checking packages' versions - locally built vs installed on the remote system")
@@ -102,49 +107,3 @@ python do_run(){
 }
 
 addtask do_run before do_build
-
-def version_update(path,file,evr):
-    import os.path
-    if not os.path.exists(path+'/'+file):
-        return 0
-        
-    f=open(path+'/'+file)
-    for line in f:
-        line = line.strip()
-        if (line[0]!="#"):
-            break
-    arr = line.split('.')
-    try:
-        arr[evr]
-    except IndexError:
-        if (evr==1): res = 0
-        if (evr==2): res = revision_update(path,file)
-    else:
-        res = arr[evr]
-    f.close()
-    return res
-
-def revision_update(path,file):
-    import subprocess
-    cmd = "cd "+path+"; git rev-list --count $(git log -1 --pretty=format:\"%H\" "+file+")..HEAD"
-    try:
-        res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    except subprocess.CalledProcessError as e:
-        res = "error_"+e.returncode
-    res = str(int(res))
-    res = res.strip(' \t\n\r')
-    return res
-
-def command_over_ssh(d,command):
-    import subprocess
-    user = d.getVar('REMOTE_USER', True)
-    id = d.getVar('IDENTITY_FILE', True)
-    ip = d.getVar('REMOTE_IP', True)
-    cmd = "ssh -i "+id+" "+user+"@"+ip+" "+command
-    try:
-        ret = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    except subprocess.CalledProcessError:
-        raise Exception("Copying to target requires access by public key. Run: \033[1;37mssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP+"\033[0m")
-        
-    return ret.strip()
-

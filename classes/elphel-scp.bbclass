@@ -4,6 +4,8 @@ REMOTE_USER ??= "root"
 REMOTE_IP ??= "192.168.0.9"
 IDENTITY_FILE ??= "~/.ssh/id_rsa"
 
+inherit elphel-ssh
+
 #do_target_scp () {
 #    #Without next echo - no trace of the scp in the log!
 #    SSH_COMMAND='tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'
@@ -17,19 +19,22 @@ IDENTITY_FILE ??= "~/.ssh/id_rsa"
 python do_target_scp () {
     import subprocess
 
-    WORKDIR = d.getVar('WORKDIR', True)
+    WORKDIR       = d.getVar('WORKDIR'      , True)
     IDENTITY_FILE = d.getVar('IDENTITY_FILE', True)
-    REMOTE_USER = d.getVar('REMOTE_USER', True)
-    REMOTE_IP = d.getVar('REMOTE_IP', True)
-    COPY_TO_NAND = d.getVar('COPY_TO_NAND', True)
+    REMOTE_USER   = d.getVar('REMOTE_USER'  , True)
+    REMOTE_IP     = d.getVar('REMOTE_IP'    , True)
+    COPY_TO_NAND  = d.getVar('COPY_TO_NAND' , True)
 
-    MMC2 = "/dev/mmcblk0p2"
+    # hardcodign for now
+    MMC2    = "/dev/mmcblk0p2"
     MMC2MNT = "/mnt/mmc2"
     
     cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
+    print("cmd: "+cmd)
     subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
 
     cmd = "ping "+REMOTE_IP+" -c 1"
+    print("cmd: "+cmd)
     try:
         subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
     except subprocess.CalledProcessError:
@@ -44,6 +49,7 @@ python do_target_scp () {
         if nandboot=="1":
             #copy archive
             cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+            print("cmd: "+cmd)
             subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
             #unpack archive to /
             command_over_ssh(d,"'tar -C / -xzpf /image.tar.gz; sync'")
@@ -95,25 +101,13 @@ python do_target_scp () {
             command_over_ssh(d,"'tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
 
 }
-
-def command_over_ssh(d,command):
-    import subprocess
-    user = d.getVar('REMOTE_USER', True)
-    id = d.getVar('IDENTITY_FILE', True)
-    ip = d.getVar('REMOTE_IP', True)
-    cmd = "ssh -i "+id+" "+user+"@"+ip+" "+command
-    try:
-        ret = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    except subprocess.CalledProcessError:
-        raise Exception("Copying to target requires access by public key. Run: \033[1;37mssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP+"\033[0m")
-        
-    return ret.strip()
-  
+    
 addtask do_target_scp after do_install
 
 do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
 
-EXPORT_FUNCTIONS do_target_scp
+#EXPORT_FUNCTIONS do_target_scp
+#EXPORT_FUNCTIONS command_over_ssh
 
 #REMOTE_USER=root
 #REMOTE_IP=192.168.0.7
