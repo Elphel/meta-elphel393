@@ -1,5 +1,22 @@
 #!/bin/sh
 
-echo $@ > /tmp/overlay_sync
+usage="Usage:
+    $(basename "$0") 1 - 'order' syncing of rootfs changes on reboot/shutdown
+    $(basename "$0") 0 - discard syncing
+"
+
+case "$1" in
+  0)
+    if [ -f /tmp/overlay_sync ]; then
+      rm /tmp/overlay_sync
+    fi
+    ;;
+  1)
+    echo $@ > /tmp/overlay_sync
+    ;;
+  *)
+    echo "$usage"
+    ;;
+esac
 
 exit 0
