@@ -1,4 +1,4 @@
-# Need this function in another reipe
+# Need this function in another recipe
 
 def command_over_ssh(d,command):
     import subprocess

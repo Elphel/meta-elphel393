@@ -16,6 +16,11 @@ inherit elphel-ssh
 #    ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
 #}
 
+#python () {
+#    #d.setVarFlag('do_target_scp', 'fakeroot', '1')
+#    print("test")
+#}
+
 python do_target_scp () {
     import subprocess
 
@@ -29,9 +34,10 @@ python do_target_scp () {
     MMC2    = "/dev/mmcblk0p2"
     MMC2MNT = "/mnt/mmc2"
     
-    cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
-    print("cmd: "+cmd)
-    subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+    #cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
+    #print("cmd: "+cmd)
+    #subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+
 
     cmd = "ping "+REMOTE_IP+" -c 1"
     print("cmd: "+cmd)
@@ -43,9 +49,9 @@ python do_target_scp () {
     nandboot = command_over_ssh(d,"'if [ -d /tmp/rootfs.ro ]; then echo 1; else echo 0;fi'")
     
     if COPY_TO_NAND=='1':
-    
+
         print("Copy to NAND")
-          
+
         if nandboot=="1":
             #copy archive
             cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
