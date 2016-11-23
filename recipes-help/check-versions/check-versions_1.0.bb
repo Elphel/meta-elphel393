@@ -29,6 +29,8 @@ INHIBIT_DEFAULT_DEPS = "1"
 DEPENDS = ""
 PACKAGES = ""
 
+do_run[nostamp] = "1"
+
 python do_run(){
 
   user = d.getVar('REMOTE_USER', True) 
