@@ -53,3 +53,5 @@ do_install_append() {
 }
 
 PACKAGES = " overlay-sync"
+
+inherit elphel-scp
