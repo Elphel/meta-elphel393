@@ -56,6 +56,7 @@ do_compile_prepend() {
 do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
         install -d ${D}/etc/elphel393/packages
+        TMPNAME=`basename ${VPATH}`
         echo "${PE}.${PV}.${PR}" > ${D}/etc/elphel393/packages/${BPN}
         #make archive
         tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
