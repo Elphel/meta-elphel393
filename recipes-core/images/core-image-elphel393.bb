@@ -63,7 +63,7 @@ IMAGE_INSTALL_append += " \
                          dosfstools \
                          gstreamer1.0 \
                          fpga-x393 \
-                         fpga-x393sata \
+                         fpga-x393_sata \
                          fpga-x359 \
                         "
                         
