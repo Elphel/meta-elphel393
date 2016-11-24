@@ -20,10 +20,7 @@ deltask do_rm_work
 
 inherit nopackages
 
-inherit elphel-ssh elphel-misc
-PE = "1"
-PV = "0"
-PR = "0"
+inherit elphel-ssh elphel-misc-functions
 
 INHIBIT_DEFAULT_DEPS = "1"
 DEPENDS = ""
