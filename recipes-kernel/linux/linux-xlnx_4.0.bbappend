@@ -167,6 +167,8 @@ ELPHEL_PE = "${@version_update('${VPATH}','${VFILE}',0)}"
 ELPHEL_PV = "${@version_update('${VPATH}','${VFILE}',1)}"
 ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 
+FILES_kernel-image += " /etc/*"
+
 do_install_append() {
     install -d ${D}/etc/elphel393/packages
     echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/linux-elphel
