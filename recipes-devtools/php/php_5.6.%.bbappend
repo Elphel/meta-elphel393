@@ -7,6 +7,7 @@ EXTRA_OECONF += "--enable-elphel \
 DEPENDS += " curl"
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
+VFILE = "VERSION"
 
 do_unpack_append(){
     print("Link everything to the main tree")
@@ -48,12 +49,56 @@ do_unpack_append(){
 do_target_scp () {
 #Without next echo - no trace of the scp in the log!
     SSH_COMMAND='tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'
-    tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
     echo scp -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
     scp -p ${WORKDIR}/image.tar.gz ${REMOTE_USER}@${REMOTE_IP}:/
     echo ssh ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
     ssh ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
 }
+
+# returns string - based on file
+def version_update(path,file,evr):
+    import os.path
+    if not os.path.exists(path+'/'+file):
+        return 0
+        
+    f=open(path+'/'+file)
+    for line in f:
+        line = line.strip()
+        if (line[0]!="#"):
+            break
+    arr = line.split('.')
+    try:
+        arr[evr]
+    except IndexError:
+        if (evr==1): res = 0
+        if (evr==2): res = revision_update(path,file)
+    else:
+        res = arr[evr]
+    f.close()
+    return res
+    
+def revision_update(path,file):
+    import subprocess
+    cmd = "cd "+path+"; git rev-list --count $(git log -1 --pretty=format:\"%H\" "+file+")..HEAD"
+    try:
+        res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError as e:
+        res = "error_"+e.returncode
+    res = str(int(res))
+    res = res.strip(' \t\n\r')
+    return res
+
+ELPHEL_PE = "${@version_update('${VPATH}','${VFILE}',0)}"
+ELPHEL_PV = "${@version_update('${VPATH}','${VFILE}',1)}"
+ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
+
+do_install_append(){
+    install -d ${D}/etc/elphel393/packages
+    echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/apps-php-extension
+
+    tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
+}
+
 addtask do_target_scp after do_install
 do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id TARGET_USER@TARGET_USER should be issued once)"
 EXPORT_FUNCTIONS do_target_scp

@@ -76,6 +76,8 @@ python do_link() {
                 os.system("cd "+DEV_DIR+"; ln -sf "+TOPDIR+"/tmp/sysroots sysroots")
         if not os.path.isdir(DEV_DIR+"/linux"):
                 os.system("cd "+DEV_DIR+"; ln -sf "+WORKDIR+"/linux-"+MACHINE+"-standard-build linux")
+        if not os.path.isdir(DEV_DIR+"/image"):
+                os.system("cd "+DEV_DIR+"; ln -sf "+WORKDIR+"/image image")
     else:
         print("Copying "+linux_elphel_gitdir+"/src/ over "+S+"\n")
         os.system("cp -rfv "+linux_elphel_gitdir+"/src/* "+S)
@@ -156,7 +158,47 @@ kernel_do_compile() {
 	fi
 }
 
+# returns string - based on file
+def version_update(path,file,evr):
+    import os.path
+    if not os.path.exists(path+'/'+file):
+        return 0
+        
+    f=open(path+'/'+file)
+    for line in f:
+        line = line.strip()
+        if (line[0]!="#"):
+            break
+    arr = line.split('.')
+    try:
+        arr[evr]
+    except IndexError:
+        if (evr==1): res = 0
+        if (evr==2): res = revision_update(path,file)
+    else:
+        res = arr[evr]
+    f.close()
+    return res
+    
+def revision_update(path,file):
+    import subprocess
+    cmd = "cd "+path+"; git rev-list --count $(git log -1 --pretty=format:\"%H\" "+file+")..HEAD"
+    try:
+        res = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError as e:
+        res = "error_"+e.returncode
+    res = str(int(res))
+    res = res.strip(' \t\n\r')
+    return res
+
+ELPHEL_PE = "${@version_update('${VPATH}','${VFILE}',0)}"
+ELPHEL_PV = "${@version_update('${VPATH}','${VFILE}',1)}"
+ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
+
 do_install_append() {
+    install -d ${D}/etc/elphel393/packages
+    echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/linux-elphel
+
     echo "installing headers to ${WORKDIR}/headers"
     make headers_install INSTALL_HDR_PATH="${WORKDIR}/headers"
 }
@@ -177,6 +219,9 @@ REMOTE_IP ??= "192.168.0.9"
 do_target_scp () {
     echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}"
     scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}
+    
+    scp -i ${IDENTITY_FILE} -p ${WORKDIR}/image/etc/elphel393/packages/linux-elphel ${REMOTE_USER}@${REMOTE_IP}:/etc/elphel393/packages
+    
     ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} sync
 }
 
