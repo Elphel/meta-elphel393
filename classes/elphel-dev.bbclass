@@ -64,4 +64,4 @@ do_install_append() {
 
 # Always start from compile
 # link1: http://www.crashcourse.ca/wiki/index.php/BitBake_task_flags
-do_compile[nostamp]="1"
+#do_compile[nostamp]="1"
