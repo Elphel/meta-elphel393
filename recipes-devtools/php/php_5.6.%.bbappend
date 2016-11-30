@@ -1,7 +1,11 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+
+SRC_URI_append += " file://php.ini"
 
 EXTRA_OECONF += "--enable-elphel \
                 --with-curl=${STAGING_LIBDIR}/.. \
                 --with-readline=${STAGING_LIBDIR}/.. \
+                --with-config-file-path=${sysconfdir}/php \
                 "
 
 DEPENDS += " curl"
@@ -64,7 +68,9 @@ ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 FILES_${PN} += " /etc/*"
 
 do_install_append(){
-    install -d ${D}/etc/elphel393/packages
+    install -d ${D}/etc/elphel393/packages -d ${D}/etc/php
+    install -m 0644 ${WORKDIR}/php.ini ${D}/etc/php
+    
     echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/apps-php-extension
 
     tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
