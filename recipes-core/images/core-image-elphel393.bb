@@ -129,11 +129,21 @@ create_symlinks_append(){
             
         if (rloc=="mmc"): 
             image_ext = ".tar.gz"
+            image_ext2 = ""
         else:             
             image_ext = ".ubifs"
+            image_ext2 = ".ubi"
         
         if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext):
-            if os.path.isfile("${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext):
-                os.system("rm ${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext) 
-            os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext+" ${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext)
+            tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext
+            if os.path.isfile(tmp_fname):
+                os.system("rm "+tmp_fname)
+            os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext+" "+tmp_fname)
+        
+        if not image_ext2=="":
+          if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext2):
+              tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext2
+              if os.path.isfile(tmp_fname):
+                  os.system("rm "+tmp_fname)
+              os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext2+" "+tmp_fname)
 }
