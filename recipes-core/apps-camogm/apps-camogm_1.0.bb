@@ -16,6 +16,7 @@ do_configure[noexec] = "1"
 DEPENDS += "libogg"
 
 FILES_${PN} += "${bindir}/camogm \
+                ${bindir}/camogm_test \
                 ${sysconfdir}/qt_source \
                 www/pages/camogmstate.php \
                 www/pages/images/create_folder.png \
