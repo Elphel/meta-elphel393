@@ -25,6 +25,7 @@ IMAGE_INSTALL_append += " \
                          hdparm \
                          ethtool \
                          net-tools \
+                         nfs-utils-client \
                          ntp \
                          sntp \
                          ntpdate \
