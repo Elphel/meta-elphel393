@@ -23,6 +23,7 @@ IMAGE_INSTALL_append += " \
                          mtd-utils-misc \
                          mtd-utils-ubifs \
                          hdparm \
+                         parted \
                          ethtool \
                          net-tools \
                          nfs-utils-client \
