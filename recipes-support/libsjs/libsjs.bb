@@ -8,7 +8,7 @@ SRCDATE = "20160419"
 PV = "${SRCDATE}"
 PR = "r0"
 
-SRC_URI = "http://mirror.elphel.com/elphel393_mirror/jquery-2.2.3.min.js;md5sum=33cabfa15c1060aaa3d207c653afb1ee \
+SRC_URI = "http://mirror.elphel.com/elphel393_mirror/jquery-2.2.3.js;md5sum=aacc43d6f308fa362ac85e3f4fb2b30c \
            http://mirror.elphel.com/elphel393_mirror/jquery-3.1.1.js;md5sum=46836bbc603c9565b5cc061100ccbac8 \
            http://mirror.elphel.com/elphel393_mirror/jquery-ui-1.11.4.custom.zip;md5sum=ee19e783272a4fc4a04ff78e92694df2 \
            http://mirror.elphel.com/elphel393_mirror/bootstrap-3.3.6-dist.zip;md5sum=229936b042baadfc9f167244575ffe12 \
@@ -24,7 +24,7 @@ FILES_${PN} = "www/pages/js/* "
 
 do_install() {
 	install -d ${D}/www/pages/js
-	install -m 644 ${WORKDIR}/jquery-2.2.3.min.js ${D}/www/pages/js/
+	install -m 644 ${WORKDIR}/jquery-2.2.3.js ${D}/www/pages/js/
 	install -m 644 ${WORKDIR}/jquery-3.1.1.js ${D}/www/pages/js/
 	cp -r ${WORKDIR}/jquery-ui-1.11.4.custom ${D}/www/pages/js/jquery-ui/
 	cp -r ${WORKDIR}/bootstrap-3.3.6-dist ${D}/www/pages/js/bootstrap/
