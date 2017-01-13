@@ -17,6 +17,7 @@ DEPENDS += "libogg"
 
 FILES_${PN} += "${bindir}/camogm \
                 ${bindir}/camogm_test \
+                ${bindir}/format_disk.py \
                 ${sysconfdir}/qt_source \
                 www/pages/camogmstate.php \
                 www/pages/images/create_folder.png \
