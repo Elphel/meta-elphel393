@@ -44,6 +44,8 @@ FILES_${PN} += "${bindir}/camogm \
                 www/pages/SpryTabbedPanels.css \
                 www/pages/SpryTabbedPanels.js \
                 www/pages/xml_simple.php \
+                www/pages/format_disk.js \
+                www/pages/format_disk.php \
                 "
 
 PACKAGES += " camogm"
