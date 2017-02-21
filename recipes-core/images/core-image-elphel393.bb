@@ -67,6 +67,7 @@ IMAGE_INSTALL_append += " \
                          fpga-x393 \
                          fpga-x393sata \
                          fpga-x359 \
+                         alsa-utils \
                         "
                         
 # gstreamer1.0-plugins-base \ 
