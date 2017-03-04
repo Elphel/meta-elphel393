@@ -4,6 +4,10 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 NAME=overlay_syncd
 DESC="overlay sync"
 
+sync_files () {
+  rsync -av --exclude=mnt --exclude=tmp --exclude=dev --exclude=var --exclude=run /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+}
+
 case "$1" in
   start)
 	echo -n "Starting $DESC: "
@@ -14,7 +18,7 @@ case "$1" in
 	echo "$NAME."
 	if [ -f /tmp/overlay_sync ]; then 
             if [ -d /tmp/rootfs.ro ]; then
-              rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+              sync_files
             fi
 	fi
 	;;
@@ -33,7 +37,7 @@ case "$1" in
   sync)
         if [ -f /tmp/overlay_sync ]; then 
             if [ -d /tmp/rootfs.ro ]; then
-              rsync -av /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
+              sync_files
             fi
         fi
   ;;
