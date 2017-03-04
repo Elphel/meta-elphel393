@@ -4,6 +4,15 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 NAME=overlay_syncd
 DESC="overlay sync"
 
+# Possible problem with overlayfs:
+#     when using overlays deleting existing in the lower layer dirs can cause error (hopefully it gets fixed someday):
+#       example: 
+#           * /mnt/sda1 exists in lower layer: /tmp/rootfs.ro/tmp
+#           * upper layer is mounted to /
+#       # rmdir /mnt/sda1
+#       # mkdir /mnt/sda1
+#       mkdir: cannot create directory '/mnt/sda1': Operation not supported
+
 sync_files () {
   rsync -av --exclude=mnt --exclude=tmp --exclude=dev --exclude=var --exclude=run /tmp/rootfs.rw/upperdir/ /tmp/rootfs.ro/
 }
