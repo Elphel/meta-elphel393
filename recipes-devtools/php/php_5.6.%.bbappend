@@ -3,6 +3,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 SRC_URI_append += " file://php.ini"
 
 EXTRA_OECONF += "--enable-elphel \
+                --enable-exif \
                 --with-curl=${STAGING_LIBDIR}/.. \
                 --with-readline=${STAGING_LIBDIR}/.. \
                 --with-config-file-path=${sysconfdir}/php \
