@@ -12,7 +12,9 @@ SRC_URI_append += " file://libata-eh.c.patch"
 SRC_URI_append += " file://${MACHINE}.scc"
 KERNEL_FEATURES_append = " ${MACHINE}.scc"
 
-linux-elphel_label= "git://github.com/Elphel/linux-elphel.git"
+ELPHELGITHOST ??= "git.elphel.com"
+
+linux-elphel_label= "https://${ELPHELGITHOST}/Elphel/linux-elphel.git"
 linux-elphel_branch= "master"
 linux-elphel_gitdir= "${WORKDIR}/linux-elphel"
 
