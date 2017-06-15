@@ -50,6 +50,7 @@ IMAGE_INSTALL_append += " \
                          apps-histograms \
                          apps-tempmon \
                          apps-gps \
+                         apps-astreamer \
                          web-393 \
                          web-camvc \
                          web-hwmon \
