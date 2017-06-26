@@ -36,6 +36,7 @@ IMAGE_INSTALL_append += " \
                          lighttpd \
                          lighttpd-module-fastcgi \
                          lighttpd-module-cgi \
+                         lighttpd-module-setenv \
                          apache2 \
                          perl \
                          php-cgi \
