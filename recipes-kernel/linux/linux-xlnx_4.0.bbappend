@@ -1,6 +1,7 @@
 FILESEXTRAPATHS_append := "${TOPDIR}/../../linux-elphel/src/patches:"
 FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 
+SRC_URI_append += " file://garmin_usb.c.patch"
 SRC_URI_append += " file://xilinx_emacps.c.patch"
 SRC_URI_append += " file://xilinx_uartps.c.patch"
 SRC_URI_append += " file://si5338_vsc330x.patch"
@@ -42,7 +43,7 @@ do_fetch_append() {
     linux_elphel_branch = d.getVar('linux-elphel_branch', True)
     linux_elphel_gitdir = d.getVar('linux-elphel_gitdir', True)
     linux_elphel_srcrev = d.getVar('linux-elphel_srcrev', True)
-    
+
     if os.path.isdir(DEV_DIR):
         print("Found DEV_DIR, skipping cloning")
     else:
@@ -72,7 +73,7 @@ python do_link() {
                 file_abspath = os.path.abspath(os.path.join(path, filename))
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
                 os.system("cd "+S+";ln -sf "+file_abspath+" "+file_relpath)
-                    
+
         #os.system("cd "+DEV_DIR+"; ln -sf "+S+" linux")
         if not os.path.isdir(DEV_DIR+"/sysroots"):
                 os.system("cd "+DEV_DIR+"; ln -sf "+TOPDIR+"/tmp/sysroots sysroots")
@@ -134,7 +135,7 @@ do_bundle_initramfs () {
 # Added ${PARALLEL_MAKE} only
 kernel_do_compile() {
 	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
-		
+
 	# The $use_alternate_initrd is only set from
 	# do_bundle_initramfs() This variable is specifically for the
 	# case where we are making a second pass at the kernel
@@ -164,7 +165,7 @@ inherit elphel-misc-functions
 
 VPATH = "${DEV_DIR}"
 VFILE = "VERSION"
-    
+
 ELPHEL_PE = "${@version_update('${VPATH}','${VFILE}',0)}"
 ELPHEL_PV = "${@version_update('${VPATH}','${VFILE}',1)}"
 ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
@@ -195,9 +196,9 @@ REMOTE_IP ??= "192.168.0.9"
 do_target_scp () {
     echo "scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}"
     scp -i ${IDENTITY_FILE} -p ${DEPLOY_DIR_IMAGE}/mmc/${PRODUCTION_KERNEL} ${REMOTE_USER}@${REMOTE_IP}:/mnt/mmc/${PRODUCTION_KERNEL}
-    
+
     scp -i ${IDENTITY_FILE} -p ${WORKDIR}/image/etc/elphel393/packages/linux-elphel ${REMOTE_USER}@${REMOTE_IP}:/etc/elphel393/packages
-    
+
     ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} sync
 }
 
