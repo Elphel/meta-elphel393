@@ -6,7 +6,7 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 
 # remove not needed ipkg informations
 IMAGE_INSTALL_append = "u-boot-ezynq"
-IMAGE_INSTALL_append += " \ 
+IMAGE_INSTALL_append += " \
                          sudo \
                          gcc \
                          coreutils \
@@ -70,12 +70,13 @@ IMAGE_INSTALL_append += " \
                          fpga-x393sata \
                          fpga-x359 \
                          alsa-utils \
+                         zip \
                         "
-                        
-# gstreamer1.0-plugins-base \ 
-# gstreamer1.0-plugins-good \ 
-# gstreamer1.0-plugins-bad \ 
-# gstreamer1.0-rtsp-server \ 
+
+# gstreamer1.0-plugins-base \
+# gstreamer1.0-plugins-good \
+# gstreamer1.0-plugins-bad \
+# gstreamer1.0-rtsp-server \
 # opencv-apps \
 # python-opencv \
 #
@@ -131,20 +132,20 @@ create_symlinks_append(){
     for rloc in rlocs:
         if not os.path.isdir("${DEPLOY_DIR_IMAGE}/"+rloc):
             os.system("mkdir ${DEPLOY_DIR_IMAGE}/"+rloc)
-            
-        if (rloc=="mmc"): 
+
+        if (rloc=="mmc"):
             image_ext = ".tar.gz"
             image_ext2 = ""
-        else:             
+        else:
             image_ext = ".ubifs"
             image_ext2 = ".ubi"
-        
+
         if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext):
             tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext
             if os.path.isfile(tmp_fname):
                 os.system("rm "+tmp_fname)
             os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext+" "+tmp_fname)
-        
+
         if not image_ext2=="":
           if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext2):
               tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext2
