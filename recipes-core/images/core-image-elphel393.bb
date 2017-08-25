@@ -71,6 +71,7 @@ IMAGE_INSTALL_append += " \
                          fpga-x359 \
                          alsa-utils \
                          zip \
+                         wget \
                         "
 
 # gstreamer1.0-plugins-base \
