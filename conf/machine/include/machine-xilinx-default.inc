@@ -3,7 +3,7 @@
 # File System Configuration
 # IMAGE_FSTYPES ?= "cpio tar.gz ext2 ext2.gz.u-boot ext2.gz"
 IMAGE_FSTYPES ?= "ext2.gz.u-boot ext2"
-IMAGE_CLASSES += "image_types_uboot"
+#IMAGE_CLASSES += "image_types_uboot"
 
 # Kernel Configuration
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-xlnx"
