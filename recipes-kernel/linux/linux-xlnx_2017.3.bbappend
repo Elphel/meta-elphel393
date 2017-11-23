@@ -112,8 +112,8 @@ do_deploy_append(){
     done
 }
 
-# Override do_bundle_initramfs (kernel.bbclass)
-do_bundle_initramfs () {
+# OLD: Override do_bundle_initramfs (kernel.bbclass)
+do_bundle_initramfs_old () {
 	if [ ! -z "${INITRAMFS_IMAGE}" -a x"${INITRAMFS_IMAGE_BUNDLE}" = x1 ]; then
 		echo "Creating a kernel image with a bundled initramfs..."
 		copy_initramfs
