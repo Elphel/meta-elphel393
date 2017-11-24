@@ -1,6 +1,6 @@
 DESCRIPTION = "Elphel NC 393 image (based on core-image-minimal)."
 
-IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMAGE_EXTRA_INSTALL}"
+IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_BOOTSTRAP_INSTALL} ${CORE_IMAGE_EXTRA_INSTALL}"
 
 #IMAGE_FEATURES = "read-only-rootfs"
 
