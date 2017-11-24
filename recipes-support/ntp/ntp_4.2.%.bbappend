@@ -1,4 +1,8 @@
+# append to recipe: meta-openembedded/meta-networking/recipes-support/ntp/...
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-EXTRA_OECONF += "--libexecdir=/usr/lib/ntp \
-		"
+# is not needed in ROCKO
+
+#EXTRA_OECONF += "--libexecdir=/usr/lib/ntp \
+#		"
