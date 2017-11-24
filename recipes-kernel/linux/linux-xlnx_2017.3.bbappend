@@ -94,20 +94,25 @@ do_deploy_append(){
             mkdir -p ${DEPLOY_DIR_IMAGE}/${RLOC}
         fi
         #if [ -f ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
-        if [ -f ${DEPLOYDIR}/${KERNEL_IMAGE_BASE_NAME}.bin ]; then
+
+        # ROCKO: "uImage-" had to be added?!
+
+        if [ -f ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_BASE_NAME}.bin ]; then
             if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
                 rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            cp ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
         else
             echo "NOT 3 FOUND!"
         fi
-        #copy initramfs image over initramfsless image
-        if [ -f ${DEPLOYDIR}/${INITRAMFS_BASE_NAME}.bin ]; then
+
+        # copy initramfs image over initramfsless image - why?
+
+        if [ -f ${DEPLOYDIR}/uImage-${INITRAMFS_BASE_NAME}.bin ]; then
             if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
                 rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/${INITRAMFS_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            cp ${DEPLOYDIR}/uImage-${INITRAMFS_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
         fi
     done
 }

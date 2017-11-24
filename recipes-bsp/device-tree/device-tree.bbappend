@@ -4,6 +4,8 @@ FILESEXTRAPATHS_append := "${TOPDIR}/../../linux-elphel/src/arch/arm/boot/dts:"
 
 MACHINE_DEVICETREE ?= "elphel393.dts"
 
+COMPATIBLE_MACHINE_elphel393 = ".*"
+
 SRC_URI += "file://${MACHINE_DEVICETREE} \
             file://elphel393-zynq-base.dtsi \
             file://elphel393-bootargs-mmc.dtsi \
@@ -12,17 +14,17 @@ SRC_URI += "file://${MACHINE_DEVICETREE} \
             "
 
 do_deploy(){
-	for DTS_FILE in ${DEVICETREE}; do
+	for DTS_FILE in ${S}/devicetree/*.dts; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-			if [ ! -f ${WORKDIR}/${DTS_NAME}_${RLOC}.dtb ]; then
-				echo "Warning: ${WORKDIR}/${DTS_NAME}_${RLOC}.dtb is not available!"
+			if [ ! -f ${B}/${DTS_NAME}_${RLOC}.dtb ]; then
+				echo "Warning: ${B}/${DTS_NAME}_${RLOC}.dtb is not available!"
 				continue
 			fi
-		
+
 			install -d ${DEPLOY_DIR_IMAGE}
 			install -m 0644 ${B}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb
-		
+
 			echo "RootFS located in ${RLOC}"
 			if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
 				mkdir ${DEPLOY_DIR_IMAGE}/${RLOC}
@@ -30,7 +32,7 @@ do_deploy(){
 			if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE} ]; then
 				rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
 			fi
-			
+
 			cp ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
 		done
 	done
@@ -49,7 +51,7 @@ do_compile() {
 		done
 	fi
 
-	for DTS_FILE in ${DEVICETREE}; do
+	for DTS_FILE in ${S}/devicetree/*.dts; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
 			ln -sf ${WORKDIR}/devicetree/elphel393-bootargs-${RLOC}.dtsi ${WORKDIR}/devicetree/elphel393-bootargs.dtsi
@@ -60,10 +62,10 @@ do_compile() {
 
 # full sub
 do_install() {
-	for DTS_FILE in ${DEVICETREE}; do
+	for DTS_FILE in ${S}/devicetree/*.dts; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
 		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-			if [ ! -f ${WORKDIR}/${DTS_NAME}_${RLOC}.dtb ]; then
+			if [ ! -f ${B}/${DTS_NAME}_${RLOC}.dtb ]; then
 				echo "Warning: ${DTS_NAME}_${RLOC}.dtb is not available!"
 				continue
 			fi
