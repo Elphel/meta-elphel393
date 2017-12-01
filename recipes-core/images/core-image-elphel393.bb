@@ -129,28 +129,40 @@ UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
 
 create_symlinks_append(){
 
+    IMAGE_NAME = d.getVar('IMAGE_NAME')
+    DEPLOY_DIR_IMAGE = d.getVar('DEPLOY_DIR_IMAGE')
+    PRODUCTION_ROOTFS = d.getVar('PRODUCTION_ROOTFS')
+
     rlocs = (d.getVar('PRODUCTION_ROOT_LOCATION', True)).split()
+
     for rloc in rlocs:
-        if not os.path.isdir("${DEPLOY_DIR_IMAGE}/"+rloc):
-            os.system("mkdir ${DEPLOY_DIR_IMAGE}/"+rloc)
+        if not os.path.isdir(DEPLOY_DIR_IMAGE+"/"+rloc):
+            os.system("mkdir "+DEPLOY_DIR_IMAGE+"/"+rloc)
 
         if (rloc=="mmc"):
-            image_ext = ".tar.gz"
+            image_ext = "tar.gz"
             image_ext2 = ""
         else:
-            image_ext = ".ubifs"
-            image_ext2 = ".ubi"
+            image_ext = "ubifs"
+            image_ext2 = "ubi"
 
-        if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext):
-            tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext
+        fname = os.path.join(deploy_dir, img_name + imgsuffix + image_ext)
+        if os.path.exists(fname):
+            tmp_fname = DEPLOY_DIR_IMAGE+"/"+rloc+"/"+PRODUCTION_ROOTFS+"."+image_ext
+
             if os.path.isfile(tmp_fname):
                 os.system("rm "+tmp_fname)
-            os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext+" "+tmp_fname)
+
+            os.system("cp "+fname+" "+tmp_fname)
 
         if not image_ext2=="":
-          if os.path.isfile("${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext2):
-              tmp_fname = "${DEPLOY_DIR_IMAGE}/"+rloc+"/${PRODUCTION_ROOTFS}"+image_ext2
+
+          fname2 = os.path.join(deploy_dir, img_name + imgsuffix + image_ext2)
+          if os.path.exists(fname2):
+              tmp_fname = DEPLOY_DIR_IMAGE+"/"+rloc+"/"+PRODUCTION_ROOTFS+"."+image_ext2
+
               if os.path.isfile(tmp_fname):
                   os.system("rm "+tmp_fname)
-              os.system("cp ${DEPLOY_DIR_IMAGE}/${IMAGE_NAME}.rootfs"+image_ext2+" "+tmp_fname)
+
+              os.system("cp "+fname2+" "+tmp_fname)
 }

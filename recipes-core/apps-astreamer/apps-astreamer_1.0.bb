@@ -18,6 +18,6 @@ DEPENDS += "alsa-lib"
 # needed for sysroot?
 #DEPENDS += "apache2"
 
-RDEPENDS_apps-astreamer += "alsa-lib"
+#RDEPENDS_apps-astreamer += "alsa-lib"
 
 FILES_${PN} += " ${base_prefix}/usr/bin/*"

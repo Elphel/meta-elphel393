@@ -1,4 +1,4 @@
-SUMMARY = "FPGA code for AHCI SATA (already duplicated in x393 main project, only Python scripts are used)" 
+SUMMARY = "FPGA code for AHCI SATA (already duplicated in x393 main project, only Python scripts are used)"
 
 AUTHOR = "Elphel Inc."
 HOMEPAGE = "http://www3.elphel.com/"
@@ -14,3 +14,9 @@ do_configure[noexec] = "1"
 #do_compile[noexec] = "1"
 RDEPENDS_${PN} += "python-core"
 FILES_${PN} += " ${base_prefix}/usr/local/verilog/* ${base_prefix}/usr/local/bin/* ${base_prefix}/www/pages/*"
+
+# THIS ONLY WORKS FOR /usr/bin/
+#inherit update-alternatives
+#ALTERNATIVE_PRIORITY = "50"
+## ../ to get out from ${bindir} = /usr/bin/
+#ALTERNATIVE_${PN} = "../local/bin/x393_mem.py"
