@@ -76,7 +76,7 @@ python do_link() {
 
         #os.system("cd "+DEV_DIR+"; ln -sf "+S+" linux")
         if not os.path.isdir(DEV_DIR+"/sysroots"):
-                os.system("cd "+DEV_DIR+"; ln -sf "+TOPDIR+"/tmp/sysroots sysroots")
+                os.system("cd "+DEV_DIR+"; ln -sf "+WORKDIR+"/recipe-sysroot sysroots")
         if not os.path.isdir(DEV_DIR+"/linux"):
                 os.system("cd "+DEV_DIR+"; ln -sf "+WORKDIR+"/linux-"+MACHINE+"-standard-build linux")
         if not os.path.isdir(DEV_DIR+"/image"):
@@ -188,7 +188,9 @@ do_install_append() {
 #do_populate_sysroot[sstate-outputdirs] = "${STAGING_DIR_TARGET}-uapi/"
 
 sysroot_stage_all_append() {
-         sysroot_stage_dir ${WORKDIR}/headers/include ${STAGING_DIR_TARGET}/usr/include-uapi
+    #sysroot_stage_dir ${WORKDIR}/headers/include ${STAGING_DIR_TARGET}/usr/include-uapi
+    # Elphel, Rocko, new:
+    sysroot_stage_dir ${WORKDIR}/headers/include ${SYSROOT_DESTDIR}/usr/include-uapi
 }
 
 ## And you'd then use -I=/usr/myheaders/include to reference the sysroot
@@ -210,5 +212,3 @@ do_target_scp () {
 addtask do_target_scp after do_deploy
 
 do_target_scp[doc] = "scp copied the kernel to REMOTE_PATH on the target. REMOTE_USER and REMOTE_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
-
-

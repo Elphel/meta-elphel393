@@ -2,7 +2,7 @@ SUMMARY = "A recipe for python extensions to support features of Elphel cameras"
 HOMEPAGE = "http://elphel.com"
 AUTHOR = "Yuri Nenakhov"
 LICENSE = "GPLv2+"
-RDEPENDS_${PN} += "\ 
+RDEPENDS_${PN} += "\
              python-core \
              python-numpy \
              python-ctypes"
@@ -26,7 +26,10 @@ INHIBIT_PACKAGE_STRIP = "1"
 S = "${WORKDIR}/git"
 
 do_compile() {
-	${CC} -Wall -Wextra -O -ansi -pedantic -shared -fPIC libelphel.c -o libelphel.so 
+	# old
+	#${CC} -Wall -Wextra -O -ansi -pedantic -shared -fPIC libelphel.c -o libelphel.so
+	# Elphel, Rocko: was missing hash style
+	${CC} -Wl,--hash-style=gnu -Wall -Wextra -O -ansi -pedantic -shared -fPIC libelphel.c -o libelphel.so
 }
 
 do_install() {

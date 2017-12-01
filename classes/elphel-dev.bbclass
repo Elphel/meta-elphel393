@@ -1,5 +1,7 @@
 # developers version
 
+DEPENDS += "linux-xlnx"
+
 inherit elphel-misc elphel-scp
 
 do_unpack(){
@@ -7,17 +9,20 @@ do_unpack(){
         rm -rf ${S}
     fi
     ln -sf ${VPATH} ${S}
-    
+
     if [ -d ${VPATH}/sysroots ]; then
         rm -rf ${VPATH}/sysroots
     fi
-    ln -sf ${TOPDIR}/tmp/sysroots ${VPATH}/sysroots
-    
+    # old:
+    #ln -sf ${TOPDIR}/tmp/sysroots ${VPATH}/sysroots
+    # new:
+    ln -sf ${WORKDIR}/recipe-sysroot ${VPATH}/sysroots
+
     if [ -d ${VPATH}/bitbake-logs ]; then
         rm -rf ${VPATH}/bitbake-logs
     fi
     ln -sf ${WORKDIR}/temp ${VPATH}/bitbake-logs
-    
+
     if [ -d ${VPATH}/image ]; then
         rm -rf ${VPATH}/image
     fi
@@ -52,7 +57,7 @@ do_compile_prepend() {
         exit 1
     fi
 }
-                
+
 do_install_append() {
         oe_runmake ${EXTRA_OEMAKE} install
         install -d ${D}/etc/elphel393/packages

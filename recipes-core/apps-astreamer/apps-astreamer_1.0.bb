@@ -14,6 +14,10 @@ do_configure[noexec] = "1"
 #do_compile[noexec] = "1"
 
 DEPENDS += "alsa-lib"
+
+# needed for sysroot?
+#DEPENDS += "apache2"
+
 RDEPENDS_apps-astreamer += "alsa-lib"
 
 FILES_${PN} += " ${base_prefix}/usr/bin/*"
