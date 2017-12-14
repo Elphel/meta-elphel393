@@ -19,6 +19,9 @@ linux-elphel_label= "https://${ELPHELGITHOST}/Elphel/linux-elphel.git"
 linux-elphel_branch= "master"
 linux-elphel_gitdir= "${WORKDIR}/linux-elphel"
 
+# linux xilinx hash
+SRCREV = "9c2e29b2c81dbb1efb7ee4944b18e12226b97513"
+
 # To use the latest leave: "" - (=empty)
 linux-elphel_srcrev= ""
 #linux-elphel_srcrev= "0ca36687a400fd9a5c4510295ae5be88aac77fa4"

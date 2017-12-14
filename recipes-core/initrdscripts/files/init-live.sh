@@ -58,7 +58,7 @@ read_args() {
                 modprobe $optarg 2> /dev/null ;;
 #             ubi.mtd=*)
 #                 optarg_arr=${optarg//,/ }
-#                 ROOT_UBIVOL=$optarg_arr[0] 
+#                 ROOT_UBIVOL=$optarg_arr[0]
 #                 ;;
             LABEL=*)
                 label=$optarg ;;
@@ -77,14 +77,20 @@ read_args() {
                         shelltimeout=30
                 else
                         shelltimeout=$optarg
-                fi 
+                fi
         esac
     done
 }
 
 boot_live_root() {
+
+    if [ "$DEBUG" = true ];then
+      echo "    settle and kill udev"
+    fi
     # Watches the udev event queue, and exits if all current events are handled
-    udevadm settle --timeout=3 --quiet
+    #udevadm settle --timeout=3 --quiet
+    # --quiet not supported anymore ?!
+    udevadm settle --timeout=3
     killall "${_UDEV_DAEMON##*/}" 2>/dev/null
 
 #     # Allow for identification of the real root even after boot
@@ -97,13 +103,14 @@ boot_live_root() {
 #         mkdir -p  ${ROOT_MOUNT}/media/${dir##*/}
 #         mount -n --move $dir ${ROOT_MOUNT}/media/${dir##*/}
 #     done
-    
+
     mount -n --move /proc ${ROOT_MOUNT}/proc
     mount -n --move /sys ${ROOT_MOUNT}/sys
     mount -n --move /dev ${ROOT_MOUNT}/dev
 
     cd $ROOT_MOUNT
-    
+
+    echo "INITRAMFS: switching root"
     # busybox switch_root supports -c option
     exec switch_root -c /dev/console $ROOT_MOUNT /sbin/init $CMDLINE ||
         fatal "Couldn't switch_root, dropping to shell"
@@ -137,7 +144,7 @@ read_args
 # 		found="yes"
 # 		ISOLINUX="isolinux"
 # 		ROOT_DISK="$i"
-# 		break	
+# 		break
 #       fi
 #   done
 #   if [ "$found" = "yes" ]; then
@@ -169,22 +176,22 @@ mount_and_boot() {
     if ! mount -t $ROOT_FSTYPE -o rw,noatime $ROOT_DEVICE $ROOT_MOUNT ; then
         fatal "Could not mount rootfs device (not $ROOT_FSTYPE?)"
     fi
-    
+
     if [ "$ROOT_FSTYPE" = "ubifs" ]; then
         #mknod /dev/loop0 b 7 0 2>/dev/null
-    
+
         #if [ "$ROOT_FSTYPE" = "ubifs" ]; then
             #unlock flash ? - driver should have taken care of this
             # ubiattach won't be found and there's no need because kernel already knows
             #ubiattach /dev/ubi_ctrl -m $ROOT_UBIVOL
         #fi
-        
+
         # always 'overlay'
         TMP=/var/volatile/tmp
         mkdir -p /var/volatile
         mount -t tmpfs tmpfs /var/volatile
         mkdir -p $TMP/rootfs.ro $TMP/rootfs.rw
-        
+
         if ! mount -n --move $ROOT_MOUNT $TMP/rootfs.ro; then
             rm -rf $TMP/rootfs.ro $TMP/rootfs.rw
             fatal "Could not move rootfs mount point"
@@ -192,7 +199,7 @@ mount_and_boot() {
             mount -t tmpfs -o rw,noatime,mode=755 tmpfs $TMP/rootfs.rw
             mkdir -p $TMP/rootfs.rw/upperdir $TMP/rootfs.rw/work
             mount -t overlay overlay -o "lowerdir=$TMP/rootfs.ro,upperdir=$TMP/rootfs.rw/upperdir,workdir=$TMP/rootfs.rw/work" $ROOT_MOUNT
-            
+
             # Assuming $ROOT_MOUNT/var/volatile exists
             mount --move /var/volatile $ROOT_MOUNT/var/volatile
             # Everything is already moved with /var/volatile
@@ -200,22 +207,22 @@ mount_and_boot() {
             #mount --move /rootfs.ro $ROOT_MOUNT/rootfs.ro
             #mount --move /rootfs.rw $ROOT_MOUNT/rootfs.rw
         fi
-    fi    
+    fi
     boot_live_root
 
 #commenting out old lines
 #     mkdir $ROOT_MOUNT
 #     mknod /dev/loop0 b 7 0 2>/dev/null
-#     
+#
 #     if ! mount -o rw,loop,noatime,nodiratime /run/media/$ROOT_DISK/$ISOLINUX/$ROOT_IMAGE $ROOT_MOUNT ; then
 # 	fatal "Could not mount rootfs image"
 #     fi
-# 
+#
 #     if touch $ROOT_MOUNT/bin 2>/dev/null; then
 # 	# The root image is read-write, directly boot it up.
 # 	boot_live_root
 #     fi
-#     
+#
 #     # determine which unification filesystem to use
 #     union_fs_type=""
 #     if grep -q -w "overlay" /proc/filesystems; then
@@ -225,7 +232,7 @@ mount_and_boot() {
 #     else
 # 	union_fs_type=""
 #     fi
-# 
+#
 #     # make a union mount if possible
 #     case $union_fs_type in
 # 	"overlay")
@@ -259,7 +266,7 @@ mount_and_boot() {
 # 	    mount -t tmpfs -o rw,noatime,mode=755 tmpfs $ROOT_MOUNT/media
 # 	    ;;
 #     esac
-# 
+#
 #     # boot the image
 #     boot_live_root
 }
@@ -270,7 +277,7 @@ mount_and_boot() {
 # 	else
 # 	    fatal "Could not find $label script"
 # 	fi
-# 
+#
 # 	# If we're getting here, we failed...
 # 	fatal "Target $label failed"
 # fi
