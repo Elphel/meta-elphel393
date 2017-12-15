@@ -9,7 +9,9 @@ EXTRA_OECONF += "--enable-elphel \
                 --with-config-file-path=${sysconfdir}/php \
                 "
 
-DEPENDS += " curl"
+DEPENDS += " curl \
+             linux-xlnx \
+           "
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
 VFILE = "VERSION"
@@ -20,9 +22,9 @@ do_unpack_append(){
     S = d.getVar('S', True)
     TOPDIR = d.getVar('TOPDIR', True)
     WORKDIR = d.getVar('WORKDIR', True)
-    
+
     if os.path.isdir(VPATH):
-        print("VPATH exists - creating links...")        
+        print("VPATH exists - creating links...")
         devdir_abspath = os.path.abspath(VPATH+"/src")
         for path, folders, files in os.walk(VPATH+"/src"):
             folders[:]=[fd for fd in folders if fd != ".git"]
@@ -35,15 +37,19 @@ do_unpack_append(){
                 file_relpath = file_abspath.replace(devdir_abspath+"/", '')
                 os.system("cd "+S+";ln -sf "+file_abspath+" "+file_relpath)
         #make a link back:
-        
+
         if os.path.isdir(VPATH+"/php"):
             os.system("rm -rf "+VPATH+"/php")
         os.system("ln -sf "+S+" "+VPATH+"/php")
-            
+
         if os.path.isdir(VPATH+"/sysroots"):
             os.system("rm -rf "+VPATH+"/sysroots")
-        os.system("ln -sf "+TOPDIR+"/tmp/sysroots "+VPATH+"/sysroots")
-        
+
+        # old, JETHRO:
+        #os.system("ln -sf "+TOPDIR+"/tmp/sysroots "+VPATH+"/sysroots")
+        # new, ROCKO:
+        os.system("ln -sf "+WORKDIR+"/recipe-sysroot "+VPATH+"/sysroots")
+
         if os.path.isdir(VPATH+"/bitbake-logs"):
             os.system("rm -rf "+VPATH+"/bitbake-logs")
         os.system("ln -sf "+WORKDIR+"/temp "+VPATH+"/bitbake-logs")
@@ -71,7 +77,7 @@ FILES_${PN} += " /etc/*"
 do_install_append(){
     install -d ${D}/etc/elphel393/packages -d ${D}/etc/php
     install -m 0644 ${WORKDIR}/php.ini ${D}/etc/php
-    
+
     echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/apps-php-extension
 
     tar -czvf ${WORKDIR}/image.tar.gz -C ${WORKDIR}/image .
