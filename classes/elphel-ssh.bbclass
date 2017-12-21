@@ -8,8 +8,9 @@ def command_over_ssh(d,command):
     cmd = "ssh -i "+id+" "+user+"@"+ip+" "+command
     print("cmd: "+cmd)
     try:
-        ret = subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-    except subprocess.CalledProcessError:
+        ret = subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Error code: "+e.returncode)
         raise Exception("Copying to target requires access by public key. Run: \033[1;37mssh-copy-id "+REMOTE_USER+"@"+REMOTE_IP+"\033[0m")
-        
-    return ret.strip() 
+
+    return str(ret).strip()
