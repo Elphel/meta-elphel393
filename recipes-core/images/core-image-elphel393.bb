@@ -72,6 +72,7 @@ IMAGE_INSTALL_append += " \
                          alsa-utils \
                          zip \
                          wget \
+                         cryptsetup \
                         "
 
 # gstreamer1.0-plugins-base \
