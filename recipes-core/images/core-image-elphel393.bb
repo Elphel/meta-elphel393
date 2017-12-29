@@ -76,6 +76,7 @@ IMAGE_INSTALL_append += " \
                          cryptsetup \
                          strace \
                          ltrace \
+                         golang-geth \
                         "
 
 # gstreamer1.0-plugins-base \
