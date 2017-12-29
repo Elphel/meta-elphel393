@@ -72,7 +72,10 @@ IMAGE_INSTALL_append += " \
                          alsa-utils \
                          zip \
                          wget \
+                         lvm2 \
                          cryptsetup \
+                         strace \
+                         ltrace \
                         "
 
 # gstreamer1.0-plugins-base \
