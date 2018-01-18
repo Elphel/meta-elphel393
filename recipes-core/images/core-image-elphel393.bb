@@ -21,6 +21,12 @@ IMAGE_INSTALL_append += " \
                          python-argparse \
                          python-json \
                          python-xml \
+                         python3-opencv \
+                         python3-core \
+                         python3-numpy \
+                         python3-argparse \
+                         python3-json \
+                         python3-xml \
                          elphel-python-extensions \
                          htop \
                          rsync \
@@ -88,8 +94,8 @@ IMAGE_INSTALL_append += " \
 # gstreamer1.0-plugins-good \
 # gstreamer1.0-plugins-bad \
 # gstreamer1.0-rtsp-server \
-# opencv-apps \
 # python-opencv \
+# opencv-apps \
 #
 
 inherit extrausers
