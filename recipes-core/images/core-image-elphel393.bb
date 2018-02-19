@@ -21,7 +21,6 @@ IMAGE_INSTALL_append += " \
                          python-argparse \
                          python-json \
                          python-xml \
-                         python3-opencv \
                          python3-core \
                          python3-numpy \
                          python3-argparse \
