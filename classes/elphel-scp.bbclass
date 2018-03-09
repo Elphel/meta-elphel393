@@ -16,12 +16,8 @@ inherit elphel-ssh
 #    ssh -i ${IDENTITY_FILE} ${REMOTE_USER}@${REMOTE_IP} ${SSH_COMMAND}
 #}
 
-#python () {
-#    #d.setVarFlag('do_target_scp', 'fakeroot', '1')
-#    print("test")
-#}
-
 python do_target_scp () {
+
     import subprocess
 
     WORKDIR       = d.getVar('WORKDIR'      , True)
@@ -34,16 +30,23 @@ python do_target_scp () {
     MMC2    = "/dev/mmcblk0p2"
     MMC2MNT = "/mnt/mmc2"
 
-    #cmd = "tar -czvf "+WORKDIR+"/image.tar.gz -C "+WORKDIR+"/image ."
-    #print("cmd: "+cmd)
-    #subprocess.check_output(cmd,stderr=subprocess.STDOUT,shell=True)
-
-
     cmd = "ping "+REMOTE_IP+" -c 1"
+
+    #run_shell_command(cmd)
+    ret = subprocess.run("which ls",stderr=subprocess.STDOUT,shell=True)
+    print(ret)
+    ret = subprocess.run("which scp",stderr=subprocess.STDOUT,shell=True)
+    print(ret)
+    ret = subprocess.run("which cd",stderr=subprocess.STDOUT,shell=True)
+    print(ret)
+    ret = subprocess.run("which ping",stderr=subprocess.STDOUT,shell=True)
+    print(ret)
+    ret = subprocess.run("ls "+WORKDIR,stderr=subprocess.STDOUT,shell=True)
+    print(ret)
 
     print("cmd: "+cmd)
     try:
-        subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
+        ret = subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
     except subprocess.CalledProcessError as e:
         print("MOST EPIC FAIL 1: "+str(e.output))
         print("MOST EPIC FAIL 2: "+str(e.cmd))
@@ -115,7 +118,7 @@ addtask do_target_scp after do_install
 
 do_target_scp[doc] = "scp installed files to the target. TARGET_USER and TARGET_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
 
-#EXPORT_FUNCTIONS do_target_scp
+EXPORT_FUNCTIONS do_target_scp
 #EXPORT_FUNCTIONS command_over_ssh
 
 #REMOTE_USER=root
