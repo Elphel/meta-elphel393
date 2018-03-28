@@ -96,7 +96,7 @@ python do_target_scp () {
 
                 #unpack archive to mountpoint
                 print("Unpack archive then delete")
-                command_over_ssh(d,"'tar -C "+mountpoint+" -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
+                command_over_ssh(d,"'EXTRACT_UNSAFE_SYMLINKS=1 tar -C "+mountpoint+" -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
 
             else:
                 raise Exception("\033[1;37mMMC rootfs partition "+MMC2+" not found.\033[0m")
@@ -110,7 +110,7 @@ python do_target_scp () {
             subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
 
             #unpack archive to /
-            command_over_ssh(d,"'tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
+            command_over_ssh(d,"'EXTRACT_UNSAFE_SYMLINKS=1 tar -C / -xzpf /image.tar.gz; rm -f /image.tar.gz; sync'")
 
 }
 
