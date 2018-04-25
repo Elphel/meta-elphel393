@@ -88,6 +88,7 @@ IMAGE_INSTALL_append += " \
                          cryptsetup \
                          strace \
                          ltrace \
+                         cronie \
                         "
 
 # gstreamer1.0-plugins-base \
