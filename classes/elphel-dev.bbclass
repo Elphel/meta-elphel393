@@ -35,6 +35,9 @@ ELPHEL393_MKNOD = "mknod"
 
 INITSTRING ??= "somescript.sh"
 
+REMOTE_NETMASK ??= "255.255.255.0"
+REMOTE_GATEWAY ??= "192.168.0.15"
+
 EXTRA_OEMAKE = " \
                 INSTALL=${ELPHEL393_INSTALL} \
                 MKNOD=${ELPHEL393_MKNOD} \
@@ -45,6 +48,8 @@ EXTRA_OEMAKE = " \
                 USERADD='${ELPHEL393_USERADD}' \
                 REMOTE_USER=${REMOTE_USER} \
                 REMOTE_IP=${REMOTE_IP} \
+                REMOTE_NETMASK=${REMOTE_NETMASK} \
+                REMOTE_GATEWAY=${REMOTE_GATEWAY} \
                 SRCREV=${SRCREV} \
                 VERSION='${PE}.${PV}.${PR}' \
                 INITSTRING='${INITSTRING}' \

@@ -1,4 +1,4 @@
-SUMMARY = "init scripts" 
+SUMMARY = "init scripts"
 
 AUTHOR = "Elphel Inc."
 HOMEPAGE = "http://www3.elphel.com/"
