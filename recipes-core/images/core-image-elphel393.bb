@@ -89,6 +89,9 @@ IMAGE_INSTALL_append += " \
                          strace \
                          ltrace \
                          cronie \
+                         git \
+                         packagegroup-ros2-world \
+                         elphel-ros2-interfaces \
                         "
 
 # gstreamer1.0-plugins-base \
