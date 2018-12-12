@@ -92,6 +92,7 @@ IMAGE_INSTALL_append += " \
                          git \
                          packagegroup-ros2-world \
                          elphel-ros2-interfaces \
+                         elphel-ros2-scripts \
                         "
 
 # gstreamer1.0-plugins-base \
