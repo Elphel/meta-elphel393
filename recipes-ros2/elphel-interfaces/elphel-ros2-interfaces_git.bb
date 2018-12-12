@@ -23,11 +23,17 @@ DEPENDS = " \
 "
 
 #SRCREV = "2b5d7f2621e207b87d7d6cb9fd5ab4f7e92cad99"
-SRCREV = "d046f7552724a6b0ca730ce6c69ee25e8849d9c8"
-SRC_URI = "git://git.elphel.com/Elphel/ros2-interfaces.git;protocol=https"
+#SRCREV = "d046f7552724a6b0ca730ce6c69ee25e8849d9c8"
+#SRC_URI = "git://git.elphel.com/Elphel/ros2-interfaces.git;protocol=https"
+
+VPATH = "${TOPDIR}/../../rootfs-elphel/ros2-interfaces"
+
+inherit elphel-dev
 
 inherit ament pythonpath-insane
 
-S = "${WORKDIR}/git"
+#S = "${WORKDIR}/git"
 
 ROS_BPN = "elphel_interfaces"
+
+FILES_${PN} += " ${base_prefix}/etc/elphel393/packages/*"
