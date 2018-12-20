@@ -241,7 +241,7 @@ main(int argc, char **argv)
 	}
 
 	if (verbose || opt_version)
-		printf(version);
+		printf("%s",version);
 
 	/* Open a basic socket. */
 	if ((skfd = socket(AF_INET, SOCK_DGRAM,0)) < 0) {
@@ -414,7 +414,7 @@ int do_one_xcvr(int skfd)
 			if (mii_action == MII_ACTION_READ) {
 				unsigned long v = mdio_read(skfd, phy_id, mii_addr);
 				printf("0x%04X\n", v);
-				fprintf(stderr, "read from register MR%d value 0x%04X\n", mii_addr, v);
+				fprintf(stderr, "read from register MR%d value 0x%04lX\n", mii_addr, v);
 			}
 		}
 	}
@@ -589,7 +589,7 @@ int show_basic_mii(long ioaddr, int phy_id)
 			   bmcr & 0x0100 ? "full":"half");
 	for (i = 0; i < 9; i++)
 		if (bmcr & (0x0080<<i))
-			printf(bmcr_bits[i]);
+			printf("%s",bmcr_bits[i]);
 
 	new_bmsr = mdio_read(ioaddr, phy_id, 1);
 	if ((bmsr & 0x0016) == 0x0004)
