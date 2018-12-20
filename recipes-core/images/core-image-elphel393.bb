@@ -18,13 +18,11 @@ IMAGE_INSTALL_append += " \
                          coreutils \
                          python-core \
                          python-numpy \
-                         python-argparse \
                          python-json \
                          python-xml \
                          python3-opencv \
                          python3-core \
                          python3-numpy \
-                         python3-argparse \
                          python3-json \
                          python3-xml \
                          elphel-python-extensions \
