@@ -28,9 +28,19 @@ DEPENDS = " \
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/ros2-interfaces"
 
+inherit ament pythonpath-insane
+
+do_install_append(){
+    exit 0
+}
+
 inherit elphel-dev
 
-inherit ament pythonpath-insane
+do_compile_prepend(){
+    cmake_do_compile
+    exit 0
+}
+
 
 #S = "${WORKDIR}/git"
 
