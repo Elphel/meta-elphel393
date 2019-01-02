@@ -84,6 +84,8 @@ IMAGE_INSTALL_append += " \
                          ltrace \
                          cronie \
                          git \
+                         python3-catkin-pkg \
+                         python3-pyparsing \
                          packagegroup-ros2-world \
                          elphel-ros2-interfaces \
                          elphel-ros2-scripts \
