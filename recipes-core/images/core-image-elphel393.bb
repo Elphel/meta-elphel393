@@ -91,6 +91,10 @@ IMAGE_INSTALL_append += " \
                          elphel-ros2-scripts \
                         "
 
+# gcc needs binutils
+#                         binutils \
+#
+
 # gstreamer1.0-plugins-base \
 # gstreamer1.0-plugins-good \
 # gstreamer1.0-plugins-bad \
