@@ -55,6 +55,19 @@ EXTRA_OEMAKE = " \
                 INITSTRING='${INITSTRING}' \
                 "
 
+do_clean_append() {
+
+    import os.path
+
+    VPATH = d.getVar("VPATH")
+    dfile = os.path.join(VPATH,"src/.depend")
+
+    if os.path.exists(dfile):
+        os.remove(dfile)
+
+}
+
+                
 do_compile_prepend() {
     echo "SRCREV is ${SRCREV}"
     if [ ! -f Makefile ]; then
