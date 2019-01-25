@@ -222,6 +222,6 @@ do_target_scp[doc] = "scp copied the kernel to REMOTE_PATH on the target. REMOTE
 do_compile_append(){
 
     # this shoul help with "fixdep: permission denied"
-    rm -rf ${WORKDIR}/linux-${MACHINE}-standard-build/scripts/basic
+    #rm -rf ${WORKDIR}/linux-${MACHINE}-standard-build/scripts/basic
 
 }
