@@ -184,7 +184,7 @@ do_install_append() {
     install -d ${D}/etc/elphel393/packages
     echo "${ELPHEL_PE}.${ELPHEL_PV}.${ELPHEL_PR}" > ${D}/etc/elphel393/packages/linux-elphel
 
-    echo "installing headers to ${WORKDIR}/headers"
+    echo "installing headers to ${WORKDIR}/headers"linux-"+MACHINE+"-standard-build
     make headers_install INSTALL_HDR_PATH="${WORKDIR}/headers"
 }
 
@@ -192,7 +192,7 @@ do_install_append() {
 
 sysroot_stage_all_append() {
     #sysroot_stage_dir ${WORKDIR}/headers/include ${STAGING_DIR_TARGET}/usr/include-uapi
-    # Elphel, Rocko, new:
+    # Elphel, Rocko, new:do_compile_kernelmodules
     sysroot_stage_dir ${WORKDIR}/headers/include ${SYSROOT_DESTDIR}/usr/include-uapi
 }
 
@@ -215,3 +215,13 @@ do_target_scp () {
 addtask do_target_scp after do_deploy
 
 do_target_scp[doc] = "scp copied the kernel to REMOTE_PATH on the target. REMOTE_USER and REMOTE_IP should be defined (ssh-copy-id -i KEY.pub TARGET_USER@TARGET_IP should be issued once)"
+
+# works but useless
+#_MAKEFLAGS_prepend = "--debug=v "
+
+do_compile_append(){
+
+    # this shoul help with "fixdep: permission denied"
+    #rm -rf ${WORKDIR}/linux-${MACHINE}-standard-build/scripts/basic
+
+}
