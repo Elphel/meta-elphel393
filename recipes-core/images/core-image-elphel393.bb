@@ -14,6 +14,7 @@ IMAGE_INSTALL_append += " \
                          cpp-symlinks \
                          g++ \
                          g++-symlinks \
+                         binutils \
                          make \
                          coreutils \
                          python-modules \
@@ -32,6 +33,7 @@ IMAGE_INSTALL_append += " \
                          parted \
                          ethtool \
                          net-tools \
+                         tcpdump \
                          nfs-utils-client \
                          ntp \
                          sntp \
@@ -119,6 +121,7 @@ LICENSE = "MIT"
 inherit core-image
 
 IMAGE_ROOTFS_SIZE = "262144"
+#IMAGE_ROOTFS_SIZE = "524288"
 
 #IMAGE_FSTYPES = "ext2.gz ext2.gz.u-boot tar.gz"
 #IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
@@ -144,8 +147,13 @@ IMAGE_FSTYPES = "tar.gz ubi ext4"
 ## Maximum UBI volumes count:      128
 ########################################################################
 ########################################################################
-
-MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
+# -m - smallest i/o unit
+# -e - logical erase block (LEB) size
+# -c - total LEBs
+MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2560"
+# -m - smallest i/o unit
+# -p - (physical) erase block size
+# -s - UBI sub-page size
 UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
 
 create_symlinks_append(){
