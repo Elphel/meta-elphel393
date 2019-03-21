@@ -73,6 +73,22 @@ do_compile_prepend() {
         echo "Nothing to compile (missing a Makefile)"
         exit 1
     fi
+
+    # need to deal with .depend here
+
+    DEPEND_FILE="${VPATH}/src/.depend"
+
+    # Poky does not like non-zero exit codes,
+    # look for matching lines - if empty string returned - remove .depend
+    TEST_STR=`grep -r "${WORKDIR}" ${DEPEND_FILE} | cat`
+
+    if [ -f $DEPEND_FILE ]; then
+      if [ -z "${TEST_STR}" ]; then
+        echo "This package version has been updated to ${PE}.${PV}.${PR}. Removing ${DEPEND_FILE} before compiling."
+        rm ${DEPEND_FILE}
+      fi
+    fi
+
 }
 
 do_install_append() {
