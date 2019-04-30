@@ -77,7 +77,6 @@ IMAGE_INSTALL_append += " \
                          udev-rules \
                          e2fsprogs \
                          dosfstools \
-                         gstreamer1.0 \
                          fpga-x393 \
                          fpga-x393sata \
                          fpga-x359 \
@@ -90,11 +89,15 @@ IMAGE_INSTALL_append += " \
                          ltrace \
                          cronie \
                          git \
-                         packagegroup-ros2-world \
-                         elphel-ros2-interfaces \
-                         elphel-ros2-scripts \
                         "
 
+# removed to save space, TODO: increase nand rootfs size
+# packagegroup-ros2-world \
+# elphel-ros2-interfaces \
+# elphel-ros2-scripts \
+#
+
+# gstreamer1.0 \
 # gstreamer1.0-plugins-base \
 # gstreamer1.0-plugins-good \
 # gstreamer1.0-plugins-bad \
