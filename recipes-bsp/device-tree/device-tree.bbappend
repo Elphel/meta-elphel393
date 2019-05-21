@@ -16,25 +16,32 @@ SRC_URI += "file://${MACHINE_DEVICETREE} \
 do_deploy(){
 	for DTS_FILE in ${S}/devicetree/*.dts; do
 		DTS_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
-		for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
-			if [ ! -f ${B}/${DTS_NAME}_${RLOC}.dtb ]; then
-				echo "Warning: ${B}/${DTS_NAME}_${RLOC}.dtb is not available!"
-				continue
-			fi
+		MACHINE_DTS_NAME=`basename ${MACHINE_DEVICETREE} | awk -F "." '{print $1}'`
 
-			install -d ${DEPLOY_DIR_IMAGE}
-			install -m 0644 ${B}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb
+		if test $MACHINE_DTS_NAME = $DTS_NAME; then
+			echo "Copying ${MACHINE_DTS_NAME}"
+			for RLOC in ${PRODUCTION_ROOT_LOCATION}; do
+				if [ ! -f ${B}/${DTS_NAME}_${RLOC}.dtb ]; then
+					echo "Warning: ${B}/${DTS_NAME}_${RLOC}.dtb is not available!"
+					continue
+				fi
 
-			echo "RootFS located in ${RLOC}"
-			if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
-				mkdir ${DEPLOY_DIR_IMAGE}/${RLOC}
-			fi
-			if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE} ]; then
-				rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
-			fi
+				install -d ${DEPLOY_DIR_IMAGE}
+				install -m 0644 ${B}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb
 
-			cp ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
-		done
+				echo "RootFS located in ${RLOC}"
+				if [ ! -d ${DEPLOY_DIR_IMAGE}/${RLOC} ]; then
+					mkdir ${DEPLOY_DIR_IMAGE}/${RLOC}
+				fi
+				if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE} ]; then
+					rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
+				fi
+
+				cp ${DEPLOY_DIR_IMAGE}/${DTS_NAME}_${RLOC}.dtb ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_DEVICETREE}
+			done
+		else
+			echo "Skipping ${DTS_NAME} (machine dts = ${MACHINE_DTS_NAME})"
+		fi
 	done
 }
 
