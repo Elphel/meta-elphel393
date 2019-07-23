@@ -21,12 +21,9 @@ IMAGE_INSTALL_append += " \
                          python-argparse \
                          python-json \
                          python-xml \
+                         python3-modules \
                          python3-opencv \
-                         python3-core \
                          python3-numpy \
-                         python3-argparse \
-                         python3-json \
-                         python3-xml \
                          elphel-python-extensions \
                          htop \
                          rsync \
