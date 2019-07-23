@@ -4,11 +4,11 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/config:"
 SRC_URI_append += " file://garmin_usb.c.patch"
 #SRC_URI_append += " file://xilinx_emacps.c.patch"
 #SRC_URI_append += " file://xilinx_uartps.c.patch"
-SRC_URI_append += " file://si5338_vsc330x.patch"
+#SRC_URI_append += " file://si5338_vsc330x.patch"
 SRC_URI_append += " file://drivers-elphel.patch"
 SRC_URI_append += " file://ahci.patch"
 SRC_URI_append += " file://libahci.patch"
-SRC_URI_append += " file://libata-eh.c.patch"
+#SRC_URI_append += " file://libata-eh.c.patch"
 
 SRC_URI_append += " file://${MACHINE}.scc"
 KERNEL_FEATURES_append = " ${MACHINE}.scc"
@@ -20,7 +20,8 @@ linux-elphel_branch= "master"
 linux-elphel_gitdir= "${WORKDIR}/linux-elphel"
 
 # linux xilinx hash
-SRCREV = "9c2e29b2c81dbb1efb7ee4944b18e12226b97513"
+#SRCREV = "9c2e29b2c81dbb1efb7ee4944b18e12226b97513"
+SRCREV = "eeab73d1207d6fc2082776c954eb19fd7290bfbe"
 
 # To use the latest leave: "" - (=empty)
 linux-elphel_srcrev= ""
@@ -100,22 +101,22 @@ do_deploy_append(){
 
         # ROCKO: "uImage-" had to be added?!
 
-        if [ -f ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_BASE_NAME}.bin ]; then
+        if [ -f ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_NAME}.bin ]; then
             if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
                 rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            cp ${DEPLOYDIR}/uImage-${KERNEL_IMAGE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
         else
             echo "NOT 3 FOUND!"
         fi
 
         # copy initramfs image over initramfsless image - why?
 
-        if [ -f ${DEPLOYDIR}/uImage-${INITRAMFS_BASE_NAME}.bin ]; then
+        if [ -f ${DEPLOYDIR}/uImage-${INITRAMFS_IMAGE_NAME}.bin ]; then
             if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
                 rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/uImage-${INITRAMFS_BASE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            cp ${DEPLOYDIR}/uImage-${INITRAMFS_IMAGE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
         fi
     done
 }
@@ -141,7 +142,7 @@ do_bundle_initramfs_old () {
 
 # Override kernel_do_compile used by do_bundle_initramfs in kernel.bbclass
 # Added ${PARALLEL_MAKE} only
-kernel_do_compile() {
+kernel_do_compile_old() {
 	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
 
 	# The $use_alternate_initrd is only set from
@@ -178,7 +179,8 @@ ELPHEL_PE = "${@version_update('${VPATH}','${VFILE}',0)}"
 ELPHEL_PV = "${@version_update('${VPATH}','${VFILE}',1)}"
 ELPHEL_PR = "${@version_update('${VPATH}','${VFILE}',2)}"
 
-FILES_kernel-image += " /etc/*"
+#FILES_kernel-image += " /etc/*"
+FILES_${KERNEL_PACKAGE_NAME}-image += " /etc/*"
 
 do_install_append() {
     install -d ${D}/etc/elphel393/packages
