@@ -9,6 +9,10 @@ EXTRA_OECONF += "--enable-elphel \
                 --with-config-file-path=${sysconfdir}/php \
                 "
 
+PACKAGECONFIG[mysql] = "--without-mysql --without-mysqli --without-pdo-mysql"
+
+CFLAGS += " -ldl"
+
 DEPENDS += " curl \
              linux-xlnx \
            "
