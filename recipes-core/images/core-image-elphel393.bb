@@ -16,11 +16,8 @@ IMAGE_INSTALL_append += " \
                          g++-symlinks \
                          make \
                          coreutils \
-                         python-core \
+                         python-modules \
                          python-numpy \
-                         python-argparse \
-                         python-json \
-                         python-xml \
                          python3-modules \
                          python3-opencv \
                          python3-numpy \
