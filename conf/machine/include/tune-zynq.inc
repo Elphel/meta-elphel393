@@ -1,4 +1,6 @@
 DEFAULTTUNE ?= "cortexa9thf-neon"
+#DEFAULTTUNE ?= "cortexa9-neon"
+
 SOC_FAMILY ?= "zynq"
 
 # Available SOC_VARIANT's for zynq:
