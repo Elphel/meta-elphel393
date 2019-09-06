@@ -19,9 +19,17 @@ linux-elphel_label= "https://${ELPHELGITHOST}/Elphel/linux-elphel.git"
 linux-elphel_branch= "master"
 linux-elphel_gitdir= "${WORKDIR}/linux-elphel"
 
+LINUX_VERSION = "4.14"
+XILINX_RELEASE_VERSION = "v2018.3"
+KBRANCH = "xlnx_rebase_v4.14"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"
+
 # linux xilinx hash
 #SRCREV = "9c2e29b2c81dbb1efb7ee4944b18e12226b97513"
+# for 4.14:
 SRCREV = "eeab73d1207d6fc2082776c954eb19fd7290bfbe"
+# for 4.19
+#SRCREV = "9811303824b66a8db9a8ec61b570879336a9fde5"
 
 # To use the latest leave: "" - (=empty)
 linux-elphel_srcrev= ""
