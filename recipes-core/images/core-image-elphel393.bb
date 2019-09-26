@@ -121,6 +121,7 @@ IMAGE_ROOTFS_SIZE = "262144"
 #IMAGE_FSTYPES = "ext2.gz.u-boot tar.gz"
 IMAGE_FSTYPES = "tar.gz ubi ext4"
 
+# OLD driver (4.14 and older) didn't support subpages
 ########################################################################
 ########################################################################
 ## root@elphel393:~# mtdinfo /dev/mtd4 -u
@@ -142,8 +143,43 @@ IMAGE_FSTYPES = "tar.gz ubi ext4"
 ########################################################################
 ########################################################################
 
-MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
-UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
+# NEW driver (4.19) supports subpages - 4 subpages in a page
+########################################################################
+########################################################################
+## root@elphel393:~# mtdinfo /dev/mtd4 -u
+## mtd4
+## Name:                           rootfs
+## Type:                           nand
+## Eraseblock size:                131072 bytes, 128.0 KiB
+## Amount of eraseblocks:          2048 (268435456 bytes, 256.0 MiB)
+## Minimum input/output unit size: 2048 bytes
+## Sub-page size:                  512 bytes
+## OOB size:                       64 bytes
+## Character device major/minor:   90:8
+## Bad blocks are allowed:         true
+## Device is writable:             true
+## Default UBI VID header offset:  512
+## Default UBI data offset:        2048
+## Default UBI LEB size:           129024 bytes, 126.0 KiB
+## Maximum UBI volumes count:      128
+########################################################################
+########################################################################
+
+#https://bootlin.com/blog/creating-flashing-ubi-ubifs-images/
+# m - min io size
+# e - LEB size
+# c - eraseblocks count
+
+#MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
+MKUBIFS_ARGS = " -m 2048 -e 129024 -c 2048"
+
+# https://www.mankier.com/8/ubinize
+# m - minimum i/o unit size
+# s - minimum subpage size
+# p - size of physical erase block
+
+#UBINIZE_ARGS = " -m 2048 -p 128KiB -s 2048"
+UBINIZE_ARGS = " -m 2048 -p 128KiB -s 512"
 
 create_symlinks_append(){
 
