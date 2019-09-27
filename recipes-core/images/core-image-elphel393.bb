@@ -171,7 +171,7 @@ IMAGE_FSTYPES = "tar.gz ubi ext4"
 # c - eraseblocks count
 
 #MKUBIFS_ARGS = " -m 2048 -e 126976 -c 2048"
-MKUBIFS_ARGS = " -m 2048 -e 129024 -c 2048"
+MKUBIFS_ARGS = " -m 2048 -e 129024 -c 2560"
 
 # https://www.mankier.com/8/ubinize
 # m - minimum i/o unit size
