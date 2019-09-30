@@ -14,7 +14,8 @@ require conf/machine/include/soc-family.inc
 
 # Linux Configuration
 KERNEL_IMAGETYPE ?= "uImage"
-KERNEL_IMAGETYPES += "zImage"
+# Don't need zImage
+#KERNEL_IMAGETYPES += "zImage"
 
 # Set default load address.
 # Override with KERNEL_EXTRA_ARGS_<board> += "..." in machine file if required

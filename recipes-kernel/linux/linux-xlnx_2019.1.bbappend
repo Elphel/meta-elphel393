@@ -116,35 +116,22 @@ do_deploy_append(){
         fi
 
         # copy initramfs image over initramfsless image - why?
+        # because we need a proper init script to handle overlayfs
 
-        if [ -f ${DEPLOYDIR}/uImage-${INITRAMFS_IMAGE_NAME}.bin ]; then
+        echo "INITRAMFS IMAGE NAME = ${DEPLOYDIR}/uImage-initramfs-${MACHINE}.bin"
+
+        if [ -f ${DEPLOYDIR}/uImage-initramfs-${MACHINE}.bin ]; then
             if [ -f ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL} ]; then
                 rm ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
             fi
-            cp ${DEPLOYDIR}/uImage-${INITRAMFS_IMAGE_NAME}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
+            cp -L ${DEPLOYDIR}/uImage-initramfs-${MACHINE}.bin ${DEPLOY_DIR_IMAGE}/${RLOC}/${PRODUCTION_KERNEL}
         fi
     done
 }
 
-# OLD: Override do_bundle_initramfs (kernel.bbclass)
-do_bundle_initramfs_old () {
-	if [ ! -z "${INITRAMFS_IMAGE}" -a x"${INITRAMFS_IMAGE_BUNDLE}" = x1 ]; then
-		echo "Creating a kernel image with a bundled initramfs..."
-		copy_initramfs
-		#if [ -e ${KERNEL_OUTPUT} ] ; then
-		#	mv -f ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.bak
-		#fi
-		#use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-$#{MACHINE}.cpio
-		#kernel_do_compile
-		cp ${KERNEL_OUTPUT} ${KERNEL_OUTPUT}.initramfs
-		#mv -f ${KERNEL_OUTPUT}.bak ${KERNEL_OUTPUT}
-		# Update install area
-		echo "There is kernel image bundled with initramfs: ${B}/${KERNEL_OUTPUT}.initramfs"
-		install -m 0644 ${B}/${KERNEL_OUTPUT}.initramfs ${D}/boot/${KERNEL_IMAGETYPE}-initramfs-${MACHINE}.bin
-		echo "${B}/${KERNEL_OUTPUT}.initramfs"
-	fi
-}
-
+# 1. copied the whole task from kernel.bbclass
+# 2. replaced mv's with cp's - quick and dirty
+# 3. added skipping of the extra compile step based on the file indicator
 do_bundle_initramfs () {
 	if [ ! -z "${INITRAMFS_IMAGE}" -a x"${INITRAMFS_IMAGE_BUNDLE}" = x1 ]; then
 		echo "Creating a kernel image with a bundled initramfs..."
@@ -156,18 +143,19 @@ do_bundle_initramfs () {
 				linkpath=`readlink -n ${KERNEL_OUTPUT_DIR}/$imageType`
 				realpath=`readlink -fn ${KERNEL_OUTPUT_DIR}/$imageType`
 				cp -f $realpath $realpath.bak
-				#mv -f $realpath $realpath.bak
 				tmp_path=$tmp_path" "$imageType"#"$linkpath"#"$realpath
 			elif [ -f ${KERNEL_OUTPUT_DIR}/$imageType ]; then
-				#mv -f ${KERNEL_OUTPUT_DIR}/$imageType ${KERNEL_OUTPUT_DIR}/$imageType.bak
 				cp -f ${KERNEL_OUTPUT_DIR}/$imageType ${KERNEL_OUTPUT_DIR}/$imageType.bak
 				tmp_path=$tmp_path" "$imageType"##"
 			fi
 		done
 		use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE_NAME}.cpio
 
-		# Disable
-		#kernel_do_compile
+		if [ -f "${WORKDIR}/initramfs_is_bundled" ]; then
+			echo "There was an old initramfs. It got bundled with the kernel. Skipping to save time."
+                else
+			kernel_do_compile
+		fi
 
 		# Restoring kernel image
 		for tp in $tmp_path ; do
@@ -175,44 +163,40 @@ do_bundle_initramfs () {
 			linkpath=`echo $tp|cut -d "#" -f 2`
 			realpath=`echo $tp|cut -d "#" -f 3`
 			if [ -n "$realpath" ]; then
-				mv -f $realpath $realpath.initramfs
-				mv -f $realpath.bak $realpath
+				cp -f $realpath $realpath.initramfs
+				cp -f $realpath.bak $realpath
 				ln -sf $linkpath.initramfs ${B}/${KERNEL_OUTPUT_DIR}/$imageType.initramfs
 			else
-				mv -f ${KERNEL_OUTPUT_DIR}/$imageType ${KERNEL_OUTPUT_DIR}/$imageType.initramfs
-				mv -f ${KERNEL_OUTPUT_DIR}/$imageType.bak ${KERNEL_OUTPUT_DIR}/$imageType
+				cp -f ${KERNEL_OUTPUT_DIR}/$imageType ${KERNEL_OUTPUT_DIR}/$imageType.initramfs
+				cp -f ${KERNEL_OUTPUT_DIR}/$imageType.bak ${KERNEL_OUTPUT_DIR}/$imageType
 			fi
 		done
 	fi
 }
 
-# Override kernel_do_compile used by do_bundle_initramfs in kernel.bbclass
-# Added ${PARALLEL_MAKE} only
-kernel_do_compile_old() {
-	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
+kernel_do_compile_prepend() {
 
-	# The $use_alternate_initrd is only set from
-	# do_bundle_initramfs() This variable is specifically for the
-	# case where we are making a second pass at the kernel
-	# compilation and we want to force the kernel build to use a
-	# different initramfs image.  The way to do that in the kernel
-	# is to specify:
-	# make ...args... CONFIG_INITRAMFS_SOURCE=some_other_initramfs.cpio
-	if [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
-                echo "ONLY ONE RUN!"
-		# The old style way of copying an prebuilt image and building it
-		# is turned on via INTIRAMFS_TASK != ""
+	# 1. Docs: https://www.yoctoproject.org/docs/2.7.1/mega-manual/mega-manual.html#var-INITRAMFS_IMAGE_BUNDLE
+	#
+	# 2. ${INITRAMFS_TASK}"!="" - is some kind of an inactive old branch.
+	#
+	# 3. Our initramfs does not include any kernel modules so, we can
+	#    reuse an old one and this will save a lot of time (around 2-3x times quicker)
+
+	if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
+		# if it was built at some point - just bundle whatever is there
 		copy_initramfs
 		if [ ! -f ${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio ] ; then
-                    echo "This might be the very first kernel build (or deploy dir is empty) - initramfs is not there yet. Will have to compile kernel twice"
-                    #oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS}
-                else
-                    use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio
-                fi
-        fi
-        oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${PARALLEL_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS} $use_alternate_initrd
-	if test "${KERNEL_IMAGETYPE_FOR_MAKE}.gz" = "${KERNEL_IMAGETYPE}"; then
-		gzip -9c < "${KERNEL_IMAGETYPE_FOR_MAKE}" > "${KERNEL_OUTPUT}"
+			echo "${INITRAMFS_IMAGE}-${MACHINE}.cpio is not found"
+			echo "Unfortunately we will have to rebuild it and bundle in the do_bundle_initramfs task"
+			echo "This will take a ton of time... :("
+		else
+			echo "There's the old ${INITRAMFS_IMAGE}-${MACHINE}.cpio from a previous build"
+			echo "Let's happily bundle it and save a lot of time."
+			use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE_NAME}.cpio
+			# indicate to do_bundle_initramfs() task that initramfs was bundled
+			touch "${WORKDIR}/initramfs_is_bundled"
+		fi
 	fi
 }
 
