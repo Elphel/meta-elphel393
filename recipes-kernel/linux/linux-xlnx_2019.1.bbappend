@@ -183,6 +183,9 @@ kernel_do_compile_prepend() {
 	# 3. Our initramfs does not include any kernel modules so, we can
 	#    reuse an old one and this will save a lot of time (around 2-3x times quicker)
 
+	GREEN="\033[0;32m"
+	NC="\033[0m"
+
 	if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
 
 		# - if it was built at some point - just bundle whatever is there
@@ -190,11 +193,13 @@ kernel_do_compile_prepend() {
 
 		if [ ! -f ${DEPLOY_DIR_IMAGE}/${INITRAMFS_IMAGE_NAME}.cpio.gz ] ; then
 			echo "${INITRAMFS_IMAGE}-${MACHINE}.cpio is not found"
+			bbplain "${GREEN}ELPHEL NOTE: Missing initramfs from a previous build. Will have to run the second kernel compilation pass.${NC}"
 			echo "Unfortunately we will have to rebuild it and bundle in the do_bundle_initramfs task"
 			echo "This will take a ton of time... :("
 		else
 			echo "There's the old ${INITRAMFS_IMAGE}-${MACHINE}.cpio from a previous build"
 			echo "Let's happily bundle it and save a lot of time."
+			bbplain "${GREEN}ELPHEL NOTE: Using initramfs from a previous build - this saves time by not running the second kernel compilation pass.${NC}"
 			copy_initramfs
 			use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE_NAME}.cpio
 			# indicate to do_bundle_initramfs() task that initramfs was bundled
