@@ -185,7 +185,7 @@ kernel_do_compile_prepend() {
 
 	if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
 		# if it was built at some point - just bundle whatever is there
-		if [ ! -f ${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio ] ; then
+		if [ ! -f ${DEPLOY_DIR_IMAGE}/${INITRAMFS_IMAGE_NAME}.cpio.gz ] ; then
 			echo "${INITRAMFS_IMAGE}-${MACHINE}.cpio is not found"
 			echo "Unfortunately we will have to rebuild it and bundle in the do_bundle_initramfs task"
 			echo "This will take a ton of time... :("
