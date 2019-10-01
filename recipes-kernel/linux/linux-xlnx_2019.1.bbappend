@@ -185,7 +185,6 @@ kernel_do_compile_prepend() {
 
 	if [ "$use_alternate_initrd" = "" ] && [ "${INITRAMFS_IMAGE_BUNDLE}" = "1" ] ; then
 		# if it was built at some point - just bundle whatever is there
-		copy_initramfs
 		if [ ! -f ${B}/usr/${INITRAMFS_IMAGE}-${MACHINE}.cpio ] ; then
 			echo "${INITRAMFS_IMAGE}-${MACHINE}.cpio is not found"
 			echo "Unfortunately we will have to rebuild it and bundle in the do_bundle_initramfs task"
@@ -193,6 +192,7 @@ kernel_do_compile_prepend() {
 		else
 			echo "There's the old ${INITRAMFS_IMAGE}-${MACHINE}.cpio from a previous build"
 			echo "Let's happily bundle it and save a lot of time."
+			copy_initramfs
 			use_alternate_initrd=CONFIG_INITRAMFS_SOURCE=${B}/usr/${INITRAMFS_IMAGE_NAME}.cpio
 			# indicate to do_bundle_initramfs() task that initramfs was bundled
 			touch "${WORKDIR}/initramfs_is_bundled"
