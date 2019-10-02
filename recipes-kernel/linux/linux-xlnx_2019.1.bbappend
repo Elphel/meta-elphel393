@@ -36,7 +36,7 @@ linux-elphel_srcrev= ""
 DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
 
 # set output for Eclipse project setup parser:
-EXTRA_OEMAKE += "-s -w KCFLAGS='-v'"
+#EXTRA_OEMAKE += "-s -w KCFLAGS='-v'"
 # or use a variable:
 export _MAKEFLAGS="-s -w KCFLAGS='-v'"
 export BB_ENV_EXTRAWHITE="$BB_ENV_EXTRAWHITE _MAKEFLAGS"
