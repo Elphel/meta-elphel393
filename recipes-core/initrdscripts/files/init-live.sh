@@ -176,9 +176,6 @@ mount_and_boot() {
     if ! mount -t $ROOT_FSTYPE -o rw,noatime $ROOT_DEVICE $ROOT_MOUNT ; then
         fatal "Could not mount rootfs device (not $ROOT_FSTYPE?)"
     fi
-
-    fatal "root filesystem type is = $ROOT_FSTYPE"
-
     if [ "$ROOT_FSTYPE" = "ubifs" ]; then
         #mknod /dev/loop0 b 7 0 2>/dev/null
 
