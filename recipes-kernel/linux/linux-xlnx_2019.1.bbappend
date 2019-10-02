@@ -36,9 +36,9 @@ linux-elphel_srcrev= ""
 DEV_DIR ?= "${TOPDIR}/../../linux-elphel"
 
 # set output for Eclipse project setup parser:
-EXTRA_OEMAKE += "-s -w -B KCFLAGS='-v'"
+EXTRA_OEMAKE += "-s -w KCFLAGS='-v'"
 # or use a variable:
-export _MAKEFLAGS="-s -w -B KCFLAGS='-v'"
+export _MAKEFLAGS="-s -w KCFLAGS='-v'"
 export BB_ENV_EXTRAWHITE="$BB_ENV_EXTRAWHITE _MAKEFLAGS"
 EXTRA_OEMAKE = "${_MAKEFLAGS}"
 
@@ -205,6 +205,50 @@ kernel_do_compile_prepend() {
 			# indicate to do_bundle_initramfs() task that initramfs was bundled
 			touch "${WORKDIR}/initramfs_is_bundled"
 		fi
+	fi
+}
+
+do_compile_kernelmodules() {
+	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
+	if (grep -q -i -e '^CONFIG_MODULES=y$' ${B}/.config); then
+		cc_extra=$(get_cc_option)
+
+		# OLD: with -B option it comes from EXTRA_OEMAKE a bunch of lines above
+		# oe_runmake -C ${B} ${PARALLEL_MAKE} modules CC="${KERNEL_CC} $cc_extra " LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS}
+
+		# NEW: Without make's -B option.
+		#      - Having -B forces to unconditionally rebuild all targets.
+		#        - in this case fixdep is rebuilt a few times for various targets.
+		#          - when running the parallel make this sometimes can interfere with
+		#            targets (kalsyms or sortextable, etc.). They get built and call
+		#            fixdep while it's being compiled - this can cause:
+		#            fixdep: scripts/basic/fixdep: Permission denied
+		# build log for the error:
+		#     ...
+		#     scripts/basic/fixdep: Permission denied
+                #     scripts/Makefile.host:90: recipe for target 'scripts/sortextable' failed
+                #     make[3]: *** [scripts/sortextable] Error 126
+		#     ...
+		#
+		# To debug, edited kernel-source/scripts/Makefile.host ~@line90:
+		#     $(host-csingle): $(obj)/%: $(src)/%.c FORCE
+	        #     echo "Building $@"
+	        #     $(call if_changed_dep,host-csingle)
+	        #     echo "DONE Building $@"
+		#
+
+                bbnote make -s -w KCFLAGS='-v' "$@"
+		make -s -w KCFLAGS='-v' -C ${B} ${PARALLEL_MAKE} modules CC="${KERNEL_CC} $cc_extra " LD="${KERNEL_LD}" ${KERNEL_EXTRA_ARGS}
+
+		# Module.symvers gets updated during the
+		# building of the kernel modules. We need to
+		# update this in the shared workdir since some
+		# external kernel modules has a dependency on
+		# other kernel modules and will look at this
+		# file to do symbol lookups
+		cp ${B}/Module.symvers ${STAGING_KERNEL_BUILDDIR}/
+	else
+		bbnote "no modules to compile"
 	fi
 }
 
