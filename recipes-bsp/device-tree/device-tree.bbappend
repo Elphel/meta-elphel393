@@ -59,25 +59,35 @@ python do_deploy(){
     PRODUCTION_ROOT_LOCATION = d.getVar('PRODUCTION_ROOT_LOCATION', True)
 
     DTS_NAME = os.path.splitext(MACHINE_DEVICETREE)[0]
+    BOARD_DEFAULT_REVISION = "revC"
+
+    dtb_dir_path = os.path.join(DEPLOY_DIR_IMAGE,"dtb")
+    os.makedirs(dtb_dir_path,exist_ok=True)
+    for f in os.listdir(B):
+        shutil.copyfile(os.path.join(B,f),os.path.join(dtb_dir_path,f))
 
     for RLOC in PRODUCTION_ROOT_LOCATION.split():
-        dtb_name = DTS_NAME+"_"+RLOC+".dtb"
-        dtb_path        = os.path.join(B,dtb_name)
-        dtb_build_path  = os.path.join(DEPLOY_DIR_IMAGE,dtb_name)
-        rloc_path       = os.path.join(DEPLOY_DIR_IMAGE,RLOC)
-        dtb_deploy_path = os.path.join(rloc_path,PRODUCTION_DEVICETREE)
 
-        if not os.path.exists(dtb_path):
-            print("Warning: "+dtb_path+" is not available")
+        if not DTS_NAME.startswith("elphel393_eyesis"):
 
-        os.system("install -d "+DEPLOY_DIR_IMAGE)
-        os.system("install -m 0644 "+dtb_path+" "+dtb_build_path)
+            dtb_name = DTS_NAME+"_"+BOARD_DEFAULT_REVISION+"_"+RLOC+".dtb"
+            dtb_path        = os.path.join(B,dtb_name)
+            dtb_build_path  = os.path.join(DEPLOY_DIR_IMAGE,dtb_name)
+            rloc_path       = os.path.join(DEPLOY_DIR_IMAGE,RLOC)
+            dtb_deploy_path = os.path.join(rloc_path,PRODUCTION_DEVICETREE)
 
-        os.makedirs(rloc_path,exist_ok=True);
+            if not os.path.exists(dtb_path):
+                print("Warning: "+dtb_path+" is not available")
 
-        shutil.copyfile(dtb_build_path,dtb_deploy_path)
+            os.system("install -d "+DEPLOY_DIR_IMAGE)
+            os.system("install -m 0644 "+dtb_path+" "+dtb_build_path)
 
-        print("Deployed "+dtb_deploy_path)
+            os.makedirs(rloc_path,exist_ok=True)
+
+            shutil.copyfile(dtb_build_path,dtb_deploy_path)
+
+            print("Deployed "+dtb_deploy_path)
+
 }
 
 python do_compile(){
