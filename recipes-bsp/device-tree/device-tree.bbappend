@@ -95,6 +95,8 @@ python do_compile(){
     WORKDIR                  = d.getVar('WORKDIR', True)
     PRODUCTION_ROOT_LOCATION = d.getVar('PRODUCTION_ROOT_LOCATION', True)
     DEVICETREE_FLAGS         = d.getVar('DEVICETREE_FLAGS', True)
+    if DEVICETREE_FLAGS is None:
+        DEVICETREE_FLAGS = ''
 
     for f in os.listdir(WORKDIR):
         if f.endswith(".dts"):
@@ -109,15 +111,19 @@ python do_compile(){
             else:
                 print("Device tree type: 10393 (regular)")
 
+            f = os.path.join(WORKDIR,f)
+
             if not eyesis:
                 for RLOC in PRODUCTION_ROOT_LOCATION.split():
                     os.system("ln -sf "+WORKDIR+"/elphel393-bootargs-"+RLOC+".dtsi "+WORKDIR+"/elphel393-bootargs.dtsi")
                     for REV in ["rev0-B","revC"]:
                         os.system("ln -sf "+WORKDIR+"/elphel393-revision-"+REV+".dtsi "+WORKDIR+"/elphel393-revision.dtsi")
-                        os.system("dtc -I dts -O dtb "+DEVICETREE_FLAGS+" -o "+DTS_NAME+"_"+REV+"_"+RLOC+".dtb "+f)
+                        os.system("dtc -I dts -O dtb "+str(DEVICETREE_FLAGS)+" -o "+DTS_NAME+"_"+REV+"_"+RLOC+".dtb "+f)
             else:
                 for RLOC in PRODUCTION_ROOT_LOCATION.split():
-                    os.system("dtc -I dts -O dtb "+DEVICETREE_FLAGS+" -o "+DTS_NAME+"_"+RLOC+".dtb "+f)
+                    print("running: ")
+                    print("dtc -I dts -O dtb "+str(DEVICETREE_FLAGS)+" -o "+DTS_NAME+"_"+RLOC+".dtb "+f)
+                    os.system("dtc -I dts -O dtb "+str(DEVICETREE_FLAGS)+" -o "+DTS_NAME+"_"+RLOC+".dtb "+f)
 }
 
 python do_install(){
