@@ -123,6 +123,7 @@ python do_compile(){
                 for RLOC in PRODUCTION_ROOT_LOCATION.split():
                     print("running: ")
                     print("dtc -I dts -O dtb "+str(DEVICETREE_FLAGS)+" -o "+DTS_NAME+"_"+RLOC+".dtb "+f)
+                    os.system("ln -sf "+WORKDIR+"/elphel393-bootargs-"+RLOC+".dtsi "+WORKDIR+"/elphel393-bootargs.dtsi")
                     os.system("dtc -I dts -O dtb "+str(DEVICETREE_FLAGS)+" -o "+DTS_NAME+"_"+RLOC+".dtb "+f)
 }
 
