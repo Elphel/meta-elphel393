@@ -7,6 +7,7 @@ EXTRA_OECONF += "--enable-elphel \
                 --with-curl=${STAGING_LIBDIR}/.. \
                 --with-readline=${STAGING_LIBDIR}/.. \
                 --with-config-file-path=${sysconfdir}/php \
+                --enable-zip \
                 "
 
 PACKAGECONFIG[mysql] = "--without-mysql --without-mysqli --without-pdo-mysql"
@@ -15,6 +16,7 @@ CFLAGS += " -ldl"
 
 DEPENDS += " curl \
              linux-xlnx \
+             libzip \
            "
 
 VPATH = "${TOPDIR}/../../rootfs-elphel/elphel-apps-php-extension"
