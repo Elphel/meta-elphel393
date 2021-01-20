@@ -12,6 +12,7 @@ SRC_URI += "file://${MACHINE_DEVICETREE} \
             file://elphel393_4_mt9p006.dts \
             file://elphel393_4_mt9f002.dts \
             file://elphel393_4_lepton35.dts \
+            file://elphel393_4_boson640.dts \
             file://elphel393_eyesis.dts \
             file://elphel393_eyesis_bottom2.dts \
             file://elphel393-zynq-base.dtsi \
@@ -105,6 +106,7 @@ python do_compile(){
             eyesis = False
 
             print("Found dts file: "+f)
+
             if f.startswith("elphel393_eyesis"):
                 print("Device tree type: Eyesis4Pi 393 (panoramic camera)")
                 eyesis = True
