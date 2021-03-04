@@ -92,6 +92,7 @@ python do_target_scp () {
                 #copy archive
                 print("Copy archive")
                 cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+                print("cmd: "+cmd)
                 subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
 
                 #unpack archive to mountpoint
@@ -107,6 +108,7 @@ python do_target_scp () {
 
             #copy archive
             cmd = "scp -i "+IDENTITY_FILE+" -p "+WORKDIR+"/image.tar.gz "+REMOTE_USER+"@"+REMOTE_IP+":/"
+            print("cmd: "+cmd)
             subprocess.run(cmd,stderr=subprocess.STDOUT,shell=True)
 
             #unpack archive to /
