@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!-- modified from example in https://github.com/joewalnes/websocketd README.md -->
+<pre id="log"></pre>
+<script>
+  // helper function: log message to screen
+  var logelt = document.getElementById('log');
+  function log(msg) { logelt.textContent += msg + '\n'; }
+  // helper function: send websocket msg with count (1 .. 5)
+  var host = location.hostname;
+  log('SERVER: '+host);
+  var ll = 0;
+  function send_msg() { if (++ll <= 5) { log('SEND: '+ll); ws.send(ll+'\n'); } }
+  // setup websocket with callbacks
+  var ws = new WebSocket('ws://'+host+':80/ws/');
+  ws.onopen = function()         { log('CONNECT\n'); send_msg(); };
+  ws.onclose = function()        { log('DISCONNECT'); };
+  ws.onmessage = function(event) { log('RECV: ' + event.data); send_msg(); };
+</script>
