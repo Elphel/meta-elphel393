@@ -85,6 +85,7 @@ IMAGE_INSTALL_append += " \
                          ltrace \
                          cronie \
                          git \
+                         cltool \
                         "
 
 # removed to save space, TODO: increase nand rootfs size
