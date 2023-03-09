@@ -17,6 +17,7 @@ do_install_append() {
     #cp ${WORKDIR}/phpinfo.php ${D}/www/pages/phpinfo.php
     cp ${WORKDIR}/eth0-down-up-test.sh ${D}/www/pages/eth0-down-up-test.sh
     rm -f ${D}/www/pages/index.html
-    install -m 0644 ${WORKDIR}/lighttpd.conf ${D}${sysconfdir}
+#    install -m 0644 ${WORKDIR}/lighttpd.conf ${D}${sysconfdir} #installs to /etc/, not needed - already in /etc/lighttpd/
+#init_elphel393.py and some others incorrectly used /etc/lighttpd.conf , now all changed to  /etc/lighttpd/lighttpd.conf
 }
 RDEPENDS_${PN} += " perl"
